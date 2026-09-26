@@ -48,24 +48,64 @@ Three ideas carry the whole design:
   `btree_gist`, `cube`, `earthdistance`.
   This is the answer to "how do we host a thing that runs 24/7": `pg_cron` +
   `pgmq` + `pg_net` means **there is nothing extra to host.**
-- **Ingest primitives, 32 tests passing, zero dependencies:**
+- **Search functions applied** (`0005`): `search_lots()`, `match_lots_by_image()`,
+  `compute_sleeper()`, `refresh_sleeper_scores()`, `v_lot_detail`.
+- **Ingest primitives and two adapters, 79 tests passing, zero dependencies:**
   - `money.ts` — currency parsing that never multiplies a float by 100, and
     returns `null` rather than guessing on ambiguous input.
   - `schedule.ts` — the adaptive poll ladder and failure backoff.
   - `jsonld.ts` — schema.org extraction, the ingestion rung the last attempt
     missed entirely.
+  - `adapters/gsa.ts` — federal surplus, written against the **real OpenAPI spec**
+    from `github.com/GSA/auctions_api`, not guessed.
+  - `adapters/hibid.ts` — the platform adapter, with runtime capability detection.
 - **Source registry** — 35 sources with per-source ingestion method, rate limits
   and a human `ingest_allowed` determination.
 
-### Written, not yet applied
+### What the GSA spec forced, each of which would have been a silent bug
 
-- `supabase/migrations/0005_search_functions.sql` — `search_lots()`,
-  `match_lots_by_image()`, the sleeper score, `v_lot_detail`. Apply it manually or
-  via the Supabase CLI.
+Reading the actual spec rather than assuming changed three things:
+
+1. **`PropertyState` and `LocationST` are different fields.** Property\* is where
+   the item physically sits; Location\* is the selling agency. A generator in
+   Milwaukee can be sold by a GSA region in Philadelphia. Mapping the wrong one
+   into `pickup_state` is *exactly* how a Wisconsin buyer never sees Wisconsin
+   inventory — the federal API independently validates the three-location split in
+   the schema.
+2. **`AuctionStatus` is one character where a space is meaningful** — `A`=Active,
+   `P`=Preview, `' '`=Scheduled. So `status.trim()` silently destroys the Scheduled
+   signal. And there is **no closed value at all**, so closure must be derived from
+   `AucEndDt`, never from the status.
+3. **`AucEndDt` is 10 characters — a date with no time.** Combined with
+   `InactivityTime` (soft-close extension in minutes), the true close moment is
+   genuinely indeterminate from the API. Lots carry
+   `raw._meta.closeTimePrecise: false` so the UI cannot render a second-by-second
+   countdown it has no right to. **GSA cannot drive a 30-second snipe alert without
+   also scraping `ItemDescURL`.**
+
+It also corrected a guess in the seed file: the base URL is
+`api.gsa.gov/assets/gsaauctions/v2`, not the `gsa-auctions/v1` originally written.
+Limits are 5,000 calls/day and 5 per 5 seconds, and the endpoint takes **no filter
+parameters** — so one request returns every listing and filtering happens in our
+database. That is a feature: one request per crawl cycle, no pagination.
+
+### The HiBid adapter's honest caveat
+
+This container's egress is blocked, so **no live HiBid page could be fetched** and
+its DOM specifics are unverified. Rather than guess selectors, the adapter
+*measures*: `probeTenant()` fetches one page and decides which ingestion rung the
+tenant belongs on (`json_ld` → `html` → `headless` → `manual`), then records the
+verdict. That is the better design regardless — HiBid can change its markup, and a
+probe notices where a hardcoded selector returns zero rows for three weeks.
+
+Extraction keys on `/catalog/{id}/` link shape rather than CSS classes, because a
+routing contract is far more stable than a class name across a restyle.
 
 ### Not started
 
-- Adapters: GSA, HiBid, Wisconsin Surplus, eBay, GovDeals.
+- Adapters: Wisconsin Surplus, eBay, GovDeals, Public Surplus.
+- The worker/fetcher that enforces robots and rate limits (adapters take `fetch`
+  injected; nothing yet supplies the production implementation).
 - `postal_codes` seed — **blocks all radius search.** Needs the Census ZCTA
   gazetteer; see below.
 - CLIP embedding pipeline.
@@ -107,14 +147,14 @@ with no egress, and it is what makes HTML-rung sources tolerable long-term.
 
 ## Applying the database work
 
-Migrations `0001`–`0004` are already applied. To apply the rest:
+Migrations `0001`–`0005` are all applied. What remains is the seed:
 
 ```bash
-# via the Supabase CLI, against project sfolywzqtxcdorjwnmsz
-supabase db push
+# Load the source registry (35 rows) against project sfolywzqtxcdorjwnmsz.
+# Safe: registers sources without authorising a single crawl. See below.
+supabase db execute --file supabase/seed/sources.sql
 
-# or paste 0005_search_functions.sql into the SQL editor, then:
-#   seed/sources.sql      (safe: registers sources without authorising any crawl)
+# or paste supabase/seed/sources.sql into the Supabase SQL editor
 ```
 
 `seed/sources.sql` seeds every source with `robots_allows = null`, and the crawler
@@ -140,12 +180,16 @@ platform/
 │   │   ├── 0002_core_schema.sql       applied
 │   │   ├── 0003_rls.sql               applied
 │   │   ├── 0004_tiers_metering.sql    applied
-│   │   └── 0005_search_functions.sql  NOT applied
+│   │   └── 0005_search_functions.sql  applied
 │   └── seed/
 │       └── sources.sql
 └── packages/ingest/
-    ├── src/{types,money,schedule,jsonld}.ts
-    └── test/                    32 passing, no network required
+    ├── src/
+    │   ├── {types,money,schedule,jsonld}.ts
+    │   └── adapters/
+    │       ├── gsa.ts           written against the real OpenAPI spec
+    │       └── hibid.ts         platform adapter + runtime capability probe
+    └── test/                    79 passing, no network required
 ```
 
 ---
