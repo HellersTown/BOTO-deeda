@@ -111,9 +111,11 @@ insert into sources (
 
 ('hibid', 'HiBid', 'https://hibid.com',
  null, 'private', 'json_ld', 'hibid', null,
- false, true, false, true, true,
+ false, false, false, true, true,
  'HIGHEST-LEVERAGE ADAPTER IN THE PROJECT. Nearly every small and mid-size Wisconsin auction house runs on HiBid/AuctionFlex. Each tenant gets a *.hibid.com subdomain, and some additionally run white-label on their own domain (e.g. bids.beloitauction.com) - the SAME platform, so one adapter serves both. '
- 'Per-auctioneer RSS exists. Check JSON-LD first: if lot pages carry schema.org Product markup, this source moves from brittle HTML parsing to durable structured ingestion for free. '
+ 'RSS: UNVERIFIED, has_rss is false. An earlier note here claimed per-auctioneer RSS exists; that came from a snippet saying third-party TOOLS can export HiBid data as RSS, which is not the same as the platform emitting a feed. Research found no confirmed native RSS on any major auction platform. Probe /rss, /feed and a <link rel=alternate> tag before believing otherwise. '
+ 'JSON-LD IS A FLOOR, NOT A SOLUTION: schema.org has no Auction type, no Bid type, and no bidCount, currentBid, reservePrice or estimate property, so even perfect markup cannot state that a price is a live bid rather than a fixed ask. Expect title, image, price-at-crawl-time and close time from JSON-LD; bid_count, reserve_met, estimates and buyer premium must come from the internal JSON endpoint or embedded app state. '
+ 'Check JSON-LD first: if lot pages carry schema.org Product markup, this source moves from brittle HTML parsing to durable structured ingestion for free. '
  'hibid.com/wisconsin and wisconsin-s.hibid.com are state-scoped entry points; hibid.com/wisconsin/companysearch enumerates auctioneers and is the right discovery surface for adding tenants.',
  20, false, false, 30, 2,
  'https://hibid.com/lots?q={query}', 'Dominant US platform for independent auctioneers.',
@@ -205,7 +207,7 @@ insert into sources (
 
 ('hamele', 'Hamele Auction Service', 'https://www.hameleauctions.com',
  null, 'private', 'json_ld', 'hibid', array['WI'],
- false, true, false, true, true,
+ false, false, false, true, true,
  'Central Wisconsin, 30+ years. Bidding at hameleauctions.hibid.com - a HiBid tenant, so the HiBid adapter serves it. '
  'Terms observed: 10% online buyer premium plus 3.5% for card payment. Record both on the auction so the displayed total is honest.',
  10, false, false, 60, 15,
@@ -222,7 +224,7 @@ insert into sources (
 
 ('wisconsin-auction-co', 'Wisconsin Auction Company', 'https://auctionwi.hibid.com',
  null, 'private', 'json_ld', 'hibid', array['WI'],
- false, true, false, true, true,
+ false, false, false, true, true,
  'HiBid tenant.',
  10, false, false, 60, 18,
  null, 'Wisconsin general auctions.',

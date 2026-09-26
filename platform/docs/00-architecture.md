@@ -105,10 +105,10 @@ Documented, keyed, stable, explicitly permitted.
   but **is currently disabled** and needs activating.
 
 ### Rung 2 — `json_ld`
-**The most underrated rung, and the one the previous attempt missed entirely.**
+**A free, durable floor — but explicitly NOT a solution. Corrected below.**
 
-Auction sites want Google to index their lots, so they voluntarily publish
-machine-readable `schema.org` markup:
+Where auction sites publish `schema.org` markup for SEO, it is clean, structured
+data placed there on purpose for machines to read:
 
 ```html
 <script type="application/ld+json">
@@ -118,10 +118,61 @@ machine-readable `schema.org` markup:
 </script>
 ```
 
-That is clean, structured, versioned data, placed there on purpose for machines
-to read. Parsing it is not fragile HTML scraping — it is consuming a published
-feed that happens to be embedded in a page. Always check for this before writing
-a single CSS selector.
+Parsing that is not fragile HTML scraping — it is consuming a published feed that
+happens to be embedded in a page. Always check for it before writing a CSS
+selector.
+
+#### The ceiling, which an earlier draft of this document got wrong
+
+An earlier version of this section called JSON-LD "the most underrated rung" and
+implied it was close to sufficient. That was an overstatement, and the correction
+matters because it changes what the other rungs are *for*.
+
+**schema.org has no auction vocabulary.** There is no `Auction` type, no `Bid`
+type, and no `bidCount`, `currentBid`, `reservePrice`, `minimumBid` or estimate
+property. The only representable path is `Product` → `offers` → `Offer`, with the
+bid stuffed into `price` and the close time in `availabilityEnds` /
+`validThrough` / `priceValidUntil`.
+
+So even a *perfectly* marked-up lot cannot state, in standard vocabulary, that
+its price is a live bid rather than a fixed ask. Concretely:
+
+| Field | From JSON-LD? |
+|---|---|
+| title, images, URL | yes |
+| price at crawl time | yes, but semantically ambiguous |
+| close time | yes, where published |
+| **bid count** | **no** — and `sleeper_score` depends on it |
+| **reserve met** | **no** |
+| **low/high estimate** | **no** |
+| **lot number** | only incidentally, via `sku` |
+| **buyer's premium** | **no** |
+
+That is why `jsonld.ts` returns `bidCount: null`: it is structurally
+unavailable, not an omission left for later.
+
+**The SEO incentive is also weaker than that earlier draft assumed.** Google
+publishes no auction structured-data type, states outright that "vehicle auctions
+and auction pricing are not supported" in its vehicle-listings policy, and
+requires a marked-up price to be "what a user would actually pay at that time" —
+which for a live auction is a moving target. Google therefore gives auction sites
+little reason to mark up lots honestly, and some reason not to.
+
+**Consequence for the ladder:** JSON-LD is worth taking wherever it exists,
+because it is free and survives restyling. But the auction-specific fields have
+to come from rung 3 (`internal_json`) or from embedded application state, where
+they appear under their real names — `currentBid`, `bidCount`, `endTime`. Treat
+rung 2 as cheap discovery and baseline metadata, and rung 3 as the source of
+truth for anything a bid depends on.
+
+One addition to the fallback order, absent from the earlier draft: **OpenGraph
+reaches roughly 64% of pages, about 1.6× JSON-LD's reach**, and embedded app
+state (`__NEXT_DATA__`, `__NUXT__`) is frequently the richest payload on the
+page. The full ladder within a single document is therefore:
+
+```
+JSON-LD  →  microdata  →  OpenGraph  →  embedded app state  →  h-product
+```
 
 ### Rung 3 — `internal_json`
 Modern auction platforms are single-page apps, which means the site's own front

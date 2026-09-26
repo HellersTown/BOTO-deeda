@@ -32,6 +32,49 @@ What that does **not** get you:
   creates none. This is the strongest practical argument for the adaptive
   scheduler in `schedule.ts`: politeness is also the legal defence.
 
+### The line is "access control", not "HTML vs API"
+
+This deserves its own heading because the intuition is usually wrong, and getting
+it right licenses ingest rung 3 (`internal_json`), which is where the auction
+fields actually live.
+
+It is tempting to assume that calling a site's internal JSON endpoint is legally
+worse than fetching the HTML page it renders. **No US case appears to turn on
+that distinction.** What courts actually look at is whether the data sat behind an
+access control:
+
+- ***Van Buren v. United States*** (Supreme Court, 2021) narrowed the CFAA's
+  "exceeds authorized access" to gaining entry to areas of a system that are
+  off-limits. A bare terms-of-service breach is not a computer crime.
+- ***X Corp. v. Bright Data*** (2024) was dismissed, with the court leaning on
+  Copyright Act preemption for *public* data.
+- ***Ryanair v. Booking.com*** is the cautionary one: a Delaware jury found a CFAA
+  violation in 2024, and the district court then **overturned it** for failure to
+  prove the statute's $5,000 loss element. The fact that actually drove that case
+  was continuing after a cease-and-desist, not the mechanism of collection.
+
+So the honest risk ladder is about authentication, not about response format:
+
+| What we call | Posture |
+|---|---|
+| Public HTML page | baseline |
+| **Unauthenticated internal JSON endpoint** | **≈ same as the HTML page** |
+| Endpoint needing an anonymously-issued token | small step up |
+| Endpoint requiring a login | squarely the *Van Buren* "off-limits area" problem |
+| Anything at all after a cease-and-desist | the fact that loses cases |
+
+**Practical rule, unchanged in spirit:** if reaching the data requires
+authenticating, we do not take it — `auth_required = true` still means deep-link
+only. If it does not, an internal JSON endpoint is fair game on the same footing
+as the page, and is *preferable* on engineering grounds because it fails loudly
+rather than silently (see `docs/00-architecture.md` §7).
+
+Two caveats held deliberately. This is US analysis only; the EU database right is
+a separate question we have not examined. And "no case turns on it" is a
+defensible heuristic, not a doctrinal rule — internal endpoints more often sit
+behind tokens, are absent from `robots.txt`, and simply *look* more like
+circumvention to a judge, so the gap between the two is narrower than zero-risk.
+
 ---
 
 ## 2. What this implies, concretely
