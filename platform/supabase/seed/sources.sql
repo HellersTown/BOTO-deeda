@@ -1,0 +1,361 @@
+-- seed/sources.sql
+-- The source registry.
+--
+-- IMPORTANT SAFETY PROPERTY: every row is seeded with
+--     robots_allows = null   and   verified = false
+--
+-- The crawler treats a null robots verdict as "do not crawl". So loading this file
+-- registers sources WITHOUT authorising a single request against any of them. Each
+-- one becomes crawlable only after a human (or the onboarding job) has fetched its
+-- robots.txt, recorded the verdict, and captured one passing fixture.
+--
+-- That ordering is deliberate. It means this file can be reviewed, merged and
+-- deployed with no risk of an accidental crawl of a small auctioneer's website.
+--
+-- `active` is set true only for sources whose URL was confirmed live this session;
+-- everything else starts inactive and is promoted by hand.
+--
+-- Idempotent: safe to re-run.
+
+insert into sources (
+  slug, name, url, api_base, tier, ingest, platform, states,
+  has_api, has_rss, verified, active, ingest_allowed, ingest_note,
+  rate_limit_rpm, requires_js, auth_required, crawl_cadence_min, priority,
+  search_template, description, robots_url, robots_allows
+) values
+
+-- ============================================================ TIER 1: FEDERAL
+
+('gsa-auctions', 'GSA Auctions', 'https://www.gsaauctions.gov',
+ 'https://api.gsa.gov/assets/gsa-auctions/v1', 'federal', 'official_api', 'gsa',
+ null, true, false, false, true, true,
+ 'Documented public API, JSON and XML. A GSA_API_KEY already exists on the Vercel project. Highest priority: legally clean, national coverage, zero parsing risk.',
+ 60, false, false, 30, 0,
+ null, 'Federal surplus across all participating agencies.',
+ 'https://www.gsaauctions.gov/robots.txt', null),
+
+('govdeals', 'GovDeals', 'https://www.govdeals.com',
+ null, 'county', 'internal_json', 'liquidity-services', null,
+ false, false, false, true, true,
+ 'Carries a large share of Wisconsin county and municipal sellers as well as federal. Find the JSON endpoint the site''s own search UI calls before considering HTML parsing.',
+ 20, true, false, 60, 5,
+ null, 'Government surplus: counties, municipalities, agencies.',
+ 'https://www.govdeals.com/robots.txt', null),
+
+('public-surplus', 'Public Surplus', 'https://www.publicsurplus.com',
+ null, 'school', 'internal_json', 'public-surplus', null,
+ false, false, false, true, true,
+ 'Schools, municipalities, state agencies. Searchable by keyword and state.',
+ 20, true, false, 60, 10,
+ null, 'Surplus from schools and local government.',
+ 'https://www.publicsurplus.com/robots.txt', null),
+
+('municibid', 'Municibid', 'https://municibid.com',
+ null, 'municipal', 'internal_json', 'municibid', null,
+ false, false, false, true, true,
+ 'Private platform, government sellers. Strongest in the Northeast but carries Midwest inventory.',
+ 20, true, false, 120, 25,
+ null, 'Government equipment and vehicles, public bidding.',
+ 'https://municibid.com/robots.txt', null),
+
+('allsurplus', 'AllSurplus (Liquidity Services)', 'https://www.allsurplus.com',
+ null, 'federal', 'internal_json', 'liquidity-services', null,
+ false, false, false, false, true,
+ 'URL not independently confirmed this session. Verify before activating.',
+ 20, true, false, 120, 40,
+ null, 'Industrial and fleet surplus.',
+ 'https://www.allsurplus.com/robots.txt', null),
+
+('govplanet', 'GovPlanet', 'https://www.govplanet.com',
+ null, 'federal', 'internal_json', 'ritchie-bros', null,
+ false, false, false, false, true,
+ 'Ex-military vehicles and equipment. URL not independently confirmed this session.',
+ 20, true, false, 120, 45,
+ null, 'Ex-military vehicles, parts and equipment.',
+ 'https://www.govplanet.com/robots.txt', null),
+
+('us-marshals', 'US Marshals Asset Forfeiture', 'https://www.usmarshals.gov/assets',
+ null, 'federal', 'html', null, null,
+ false, false, false, false, true,
+ 'Low volume, high interest. Verify current host before activating.',
+ 10, false, false, 720, 60,
+ null, 'Seized and forfeited federal assets.',
+ 'https://www.usmarshals.gov/robots.txt', null),
+
+-- ================================================= TIER 2: WISCONSIN STATE/LOCAL
+
+('wisconsin-surplus', 'Wisconsin Surplus Online Auction', 'https://wisconsinsurplus.com',
+ null, 'state', 'html', 'custom-dotnet', array['WI','IL','MI','IA','MN'],
+ false, false, false, true, true,
+ 'THE most important Wisconsin source. Holds the State of Wisconsin online auction contract since 2003; also runs sales for hundreds of WI counties, municipalities, schools and sheriff offices. Based in Mount Horeb. '
+ 'CRITICAL: bidding host is bid.wisconsinsurplus.com and auction IDs are opaque URL-encoded tokens (e.g. AuctionId=wTEQql9u1r8eDoI02hWnbw%3D%3D). Lot URLs CANNOT be constructed - the listing index must be crawled and links followed. '
+ 'Before writing the adapter, determine whether those tokens are stable across sessions. If they are not, external_id must be derived from stable content (auction number such as #25-832 plus lot number), or every crawl will create duplicate rows instead of updating existing ones.',
+ 12, true, false, 30, 1,
+ null, 'State of Wisconsin plus county, municipal and school surplus.',
+ 'https://wisconsinsurplus.com/robots.txt', null),
+
+('uw-swap', 'UW-Madison SWAP', 'https://swap.wisc.edu',
+ null, 'school', 'html', null, array['WI'],
+ false, false, false, false, true,
+ 'University surplus. Existence believed but not confirmed this session; verify the current bidding host before activating.',
+ 10, false, false, 240, 55,
+ null, 'University of Wisconsin surplus property.',
+ 'https://swap.wisc.edu/robots.txt', null),
+
+-- ======================================================== TIER 3: PLATFORMS
+
+('hibid', 'HiBid', 'https://hibid.com',
+ null, 'private', 'json_ld', 'hibid', null,
+ false, true, false, true, true,
+ 'HIGHEST-LEVERAGE ADAPTER IN THE PROJECT. Nearly every small and mid-size Wisconsin auction house runs on HiBid/AuctionFlex. Each tenant gets a *.hibid.com subdomain, and some additionally run white-label on their own domain (e.g. bids.beloitauction.com) - the SAME platform, so one adapter serves both. '
+ 'Per-auctioneer RSS exists. Check JSON-LD first: if lot pages carry schema.org Product markup, this source moves from brittle HTML parsing to durable structured ingestion for free. '
+ 'hibid.com/wisconsin and wisconsin-s.hibid.com are state-scoped entry points; hibid.com/wisconsin/companysearch enumerates auctioneers and is the right discovery surface for adding tenants.',
+ 20, false, false, 30, 2,
+ 'https://hibid.com/lots?q={query}', 'Dominant US platform for independent auctioneers.',
+ 'https://hibid.com/robots.txt', null),
+
+('proxibid', 'Proxibid', 'https://www.proxibid.com',
+ null, 'private', 'internal_json', 'proxibid', null,
+ false, false, false, false, true,
+ 'Mid and large houses, equipment-heavy. URL not independently confirmed this session.',
+ 20, true, false, 60, 30,
+ null, 'Live and timed auctions, equipment and collectibles.',
+ 'https://www.proxibid.com/robots.txt', null),
+
+('auctionzip', 'AuctionZip', 'https://www.auctionzip.com',
+ null, 'private', 'html', 'auctionzip', null,
+ false, false, false, true, true,
+ 'Primarily a DIRECTORY, not a lot feed. Its real value is DISCOVERY: auctionzip.com/wi.html enumerates Wisconsin auction houses to add as sources. Use it to build the source registry, not to ingest lots.',
+ 10, false, false, 1440, 70,
+ null, 'Directory of US auction houses and upcoming sales.',
+ 'https://www.auctionzip.com/robots.txt', null),
+
+('gotoauction', 'GoToAuction', 'https://www.gotoauction.com',
+ null, 'private', 'html', null, null,
+ false, false, false, true, true,
+ 'Directory. Use for discovery of Wisconsin houses (gotoauction.com/states/viewAll/49/), not for lots.',
+ 10, false, false, 1440, 72,
+ null, 'Directory of auctions by state and city.',
+ 'https://www.gotoauction.com/robots.txt', null),
+
+('auctionguide', 'AuctionGuide', 'https://www.auctionguide.com',
+ null, 'private', 'html', null, null,
+ false, false, false, true, true,
+ 'Directory. Discovery only.',
+ 10, false, false, 1440, 74,
+ null, 'Directory of upcoming auctions by location.',
+ 'https://www.auctionguide.com/robots.txt', null),
+
+('invaluable', 'Invaluable', 'https://www.invaluable.com',
+ null, 'private', 'internal_json', 'invaluable', null,
+ false, false, false, true, true,
+ 'Art, antiques, collectibles. Already an aggregator itself, so read its terms carefully - aggregating an aggregator is the case most likely to draw a complaint. Schrager Galleries (Milwaukee, WI) lists here.',
+ 10, true, false, 240, 80,
+ null, 'Global art and antiques auction aggregator.',
+ 'https://www.invaluable.com/robots.txt', null),
+
+('liveauctioneers', 'LiveAuctioneers', 'https://www.liveauctioneers.com',
+ null, 'private', 'internal_json', 'liveauctioneers', null,
+ false, false, false, true, true,
+ 'Art, antiques, collectibles. Krueger & Krueger LLC (WI) lists here. Same aggregator-of-aggregator caution as Invaluable.',
+ 10, true, false, 240, 82,
+ null, 'Live and timed art and collectibles auctions.',
+ 'https://www.liveauctioneers.com/robots.txt', null),
+
+('purple-wave', 'Purple Wave', 'https://www.purplewave.com',
+ null, 'dealer', 'internal_json', 'purple-wave', null,
+ false, false, false, true, true,
+ 'No-reserve absolute auctions, ag and construction equipment. Strong Midwest and Plains inventory - directly relevant to Wisconsin.',
+ 20, true, false, 120, 35,
+ null, 'No-reserve agricultural and construction equipment.',
+ 'https://www.purplewave.com/robots.txt', null),
+
+('k-bid', 'K-BID', 'https://www.k-bid.com',
+ null, 'private', 'internal_json', 'k-bid', array['MN','WI','IA','ND','SD'],
+ false, false, false, false, true,
+ 'Minnesota-centred with heavy upper-Midwest overlap. Directly relevant to Wisconsin buyers. URL not confirmed this session.',
+ 20, true, false, 120, 38,
+ null, 'Upper-Midwest online auctions.',
+ 'https://www.k-bid.com/robots.txt', null),
+
+('nellis', 'Nellis Auction', 'https://www.nellisauction.com',
+ null, 'wholesale', 'internal_json', 'nellis', null,
+ false, false, false, true, true,
+ 'Retail returns and overstock. Has a well-regarded mobile app worth studying for UX. Pickup-location bound, so geo matters.',
+ 20, true, false, 120, 50,
+ null, 'Overstock and retail returns at auction.',
+ 'https://www.nellisauction.com/robots.txt', null),
+
+('equipmentfacts', 'EquipmentFacts / AuctionTime', 'https://www.equipmentfacts.com',
+ null, 'dealer', 'internal_json', 'sandhills', null,
+ false, false, false, false, true,
+ 'Sandhills platform. Ag and construction equipment - very relevant to Wisconsin farm auctions. URL not confirmed this session.',
+ 20, true, false, 180, 42,
+ null, 'Agricultural and construction equipment auctions.',
+ 'https://www.equipmentfacts.com/robots.txt', null),
+
+-- ========================================= TIER 4: WISCONSIN PRIVATE HOUSES
+-- All confirmed live this session. Each runs on a platform above, so these are
+-- TENANTS, not new adapters - which is the whole point of platform-shaped design.
+
+('hamele', 'Hamele Auction Service', 'https://www.hameleauctions.com',
+ null, 'private', 'json_ld', 'hibid', array['WI'],
+ false, true, false, true, true,
+ 'Central Wisconsin, 30+ years. Bidding at hameleauctions.hibid.com - a HiBid tenant, so the HiBid adapter serves it. '
+ 'Terms observed: 10% online buyer premium plus 3.5% for card payment. Record both on the auction so the displayed total is honest.',
+ 10, false, false, 60, 15,
+ null, 'Central Wisconsin estate, farm and equipment auctions.',
+ 'https://hameleauctions.hibid.com/robots.txt', null),
+
+('beloit-auction', 'Beloit Auction & Realty', 'https://www.beloitauction.com',
+ null, 'private', 'json_ld', 'hibid', array['WI','IL'],
+ false, false, false, true, true,
+ 'Beloit, WISCONSIN (not Kansas - see the warning below). 50+ years, southern WI and northern IL. Bidding at bids.beloitauction.com, which is a WHITE-LABEL HiBid instance on a custom domain: same platform, different hostname. Proof that adapters must key on platform, not on domain.',
+ 10, false, false, 60, 16,
+ null, 'Southern Wisconsin estate and real estate auctions.',
+ 'https://bids.beloitauction.com/robots.txt', null),
+
+('wisconsin-auction-co', 'Wisconsin Auction Company', 'https://auctionwi.hibid.com',
+ null, 'private', 'json_ld', 'hibid', array['WI'],
+ false, true, false, true, true,
+ 'HiBid tenant.',
+ 10, false, false, 60, 18,
+ null, 'Wisconsin general auctions.',
+ 'https://auctionwi.hibid.com/robots.txt', null),
+
+('hansen-auction-group', 'Hansen Auction Group', 'https://www.hansenauctiongroup.com',
+ null, 'private', 'html', null, array['WI'],
+ false, false, false, true, true,
+ 'WISCONSIN operation: equipment, farm, business and real estate. '
+ 'DATA TRAP - DO NOT CONFLATE: hansenonlineauction.hibid.com is "Hansen Auction & Realty" of Beloit, KANSAS, a DIFFERENT company. There is a Beloit in both states and a Hansen auction house in each. Never infer state from a city name; require an explicit state or geocode the full address.',
+ 10, false, false, 120, 20,
+ null, 'Wisconsin equipment, farm and real estate auctions.',
+ 'https://www.hansenauctiongroup.com/robots.txt', null),
+
+('schrager', 'Schrager Auction Galleries', 'https://www.schragerauction.com',
+ null, 'private', 'internal_json', 'invaluable', array['WI'],
+ false, false, false, false, true,
+ 'Milwaukee, WI (2915 N Sherman Blvd). Lists via Invaluable. Own-domain URL not confirmed this session.',
+ 10, false, false, 240, 48,
+ null, 'Milwaukee estate and fine art auctions.',
+ 'https://www.schragerauction.com/robots.txt', null),
+
+('krueger-montello', 'Krueger Real Estate Auction Service', 'https://www.auctionzip.com/WI-Auctioneers/46854.html',
+ null, 'private', 'html', 'auctionzip', array['WI'],
+ false, false, false, false, true,
+ 'Montello, WI. Currently only discoverable via AuctionZip; find their own site or platform before activating.',
+ 6, false, false, 360, 85,
+ null, 'Montello, Wisconsin real estate and estate auctions.',
+ null, null),
+
+-- ===================================================== TIER 5: ESTATE SALES
+-- Mostly NOT auctions: many are fixed-price, walk-in, first-come. Model as events
+-- with items rather than lots with bids.
+
+('estatesales-net', 'EstateSales.NET', 'https://www.estatesales.net',
+ null, 'estate', 'internal_json', 'estatesales-net', null,
+ false, false, false, true, true,
+ 'Category leader. Its map/radius UX is well reviewed - study it as a UX reference for our own zip filter.',
+ 15, true, false, 180, 52,
+ null, 'Estate sale listings with map and radius search.',
+ 'https://www.estatesales.net/robots.txt', null),
+
+('estatesales-org', 'EstateSales.org', 'https://estatesales.org',
+ null, 'estate', 'html', null, null,
+ false, false, false, true, true,
+ 'Wisconsin listings confirmed at estatesales.org/estate-sales/wi.',
+ 10, false, false, 240, 58,
+ null, 'Estate sale and estate auction listings by state.',
+ 'https://estatesales.org/robots.txt', null),
+
+('maxsold', 'MaxSold', 'https://www.maxsold.com',
+ null, 'estate', 'internal_json', 'maxsold', null,
+ false, false, false, false, true,
+ 'Genuine online bidding rather than fixed price. URL not confirmed this session.',
+ 15, true, false, 180, 62,
+ null, 'Estate contents sold by online auction.',
+ 'https://www.maxsold.com/robots.txt', null),
+
+-- ====================================================== TIER 6: MARKETPLACES
+
+('ebay', 'eBay', 'https://www.ebay.com',
+ 'https://api.ebay.com/buy/browse/v1', 'marketplace', 'official_api', 'ebay', null,
+ true, false, false, true, true,
+ 'Browse API for auction search. A production keyset named "Waystock" already exists but is DISABLED and must be enabled before use. '
+ 'placeProxyBid exists via the Offer API but is Limited Release: requires eBay approval and a signed contract. Treat as business development, not engineering.',
+ 120, false, false, 15, 8,
+ null, 'Global marketplace including timed auctions.',
+ null, true),
+
+('facebook-marketplace', 'Facebook Marketplace', 'https://www.facebook.com/marketplace',
+ null, 'marketplace', 'deeplink_only', 'meta', null,
+ false, false, false, true, false,
+ 'DO NOT INGEST. No public API, terms clearly prohibit automated collection, actively defended, and Meta has litigated against scrapers successfully. '
+ 'ingest_allowed is FALSE deliberately. We construct a search deep link from the user''s hunt and hand off with a tap - the user still gets the search and we take on none of the exposure.',
+ 0, true, true, 0, 99,
+ 'https://www.facebook.com/marketplace/{location}/search?query={query}&maxPrice={max_price}',
+ 'Deep-link handoff only. Never crawled.',
+ null, false),
+
+('craigslist', 'Craigslist', 'https://craigslist.org',
+ null, 'marketplace', 'deeplink_only', 'craigslist', null,
+ false, false, false, true, false,
+ 'DO NOT INGEST. Same posture as Marketplace: hostile to automation and litigious. Deep link only.',
+ 0, false, false, 0, 99,
+ 'https://{region}.craigslist.org/search/sss?query={query}&max_price={max_price}',
+ 'Deep-link handoff only. Never crawled.',
+ null, false),
+
+-- ============================== TIER 7: COIN SPECIALISTS (REFERENCE CORPUS)
+-- These are NOT where the bargains are - they catalogue meticulously and price
+-- efficiently. They are the corpus we embed to LEARN what things look like, so we
+-- can then find those things in the general auctions of Tiers 2-4, where "lot of
+-- assorted coins" hides varieties nobody recorded.
+
+('heritage', 'Heritage Auctions', 'https://www.ha.com',
+ null, 'dealer', 'internal_json', 'heritage', null,
+ false, false, false, false, true,
+ 'Largest US collectibles house. Excellent, consistent photography - the ideal reference corpus for CLIP embeddings. Use to train recognition, not to hunt bargains.',
+ 10, true, false, 360, 90,
+ null, 'Coins, currency, comics and collectibles.',
+ 'https://www.ha.com/robots.txt', null),
+
+('greatcollections', 'GreatCollections', 'https://www.greatcollections.com',
+ null, 'dealer', 'internal_json', null, null,
+ false, false, false, false, true,
+ 'High-volume weekly coin auctions. Strong reference corpus: every lot is graded and photographed to a standard.',
+ 10, true, false, 360, 92,
+ null, 'Certified coin auctions, weekly.',
+ 'https://www.greatcollections.com/robots.txt', null),
+
+('stacks-bowers', 'Stack''s Bowers Galleries', 'https://www.stacksbowers.com',
+ null, 'dealer', 'internal_json', null, null,
+ false, false, false, false, true,
+ 'Reference corpus for numismatics.',
+ 10, true, false, 360, 94,
+ null, 'Rare coin and currency auctions.',
+ 'https://www.stacksbowers.com/robots.txt', null)
+
+on conflict (slug) do update set
+  name            = excluded.name,
+  url             = excluded.url,
+  api_base        = excluded.api_base,
+  tier            = excluded.tier,
+  ingest          = excluded.ingest,
+  platform        = excluded.platform,
+  states          = excluded.states,
+  has_api         = excluded.has_api,
+  has_rss         = excluded.has_rss,
+  ingest_allowed  = excluded.ingest_allowed,
+  ingest_note     = excluded.ingest_note,
+  rate_limit_rpm  = excluded.rate_limit_rpm,
+  requires_js     = excluded.requires_js,
+  auth_required   = excluded.auth_required,
+  crawl_cadence_min = excluded.crawl_cadence_min,
+  priority        = excluded.priority,
+  search_template = excluded.search_template,
+  description     = excluded.description,
+  robots_url      = excluded.robots_url;
+  -- Deliberately NOT overwriting robots_allows or verified: once a human has
+  -- recorded a robots verdict or verified a source, re-running this seed must not
+  -- silently revoke or re-grant it.

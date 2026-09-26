@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<title>Lot 147 - DJI Mavic 3T Thermal Drone | Sample Auction Co</title>
+
+<!-- A real page carries several ld+json blocks. Only one of them is the product. -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+  {"@type":"ListItem","position":1,"name":"Auctions","item":"https://example-auction.test/auctions"},
+  {"@type":"ListItem","position":2,"name":"September Estate & Equipment","item":"https://example-auction.test/auctions/4471"}
+]}
+</script>
+
+<!-- This block is deliberately malformed (trailing comma). The extractor must skip
+     it without discarding the valid blocks around it. -->
+<script type="application/ld+json">
+{"@type":"Organization","name":"Sample Auction Co",}
+</script>
+
+<script type='application/ld+json'>
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Product",
+      "@id": "https://example-auction.test/lot/4471-147",
+      "sku": "147",
+      "name": "DJI Mavic 3T Thermal Drone with Radiometric Payload",
+      "description": "DJI Mavic 3T with thermal radiometric camera, 3 batteries, hard case. Powers on, flies. Sold as-is.",
+      "brand": {"@type":"Brand","name":"DJI"},
+      "mpn": "M3T-2024",
+      "image": [
+        "https://cdn.example-auction.test/147/a.jpg",
+        "https://cdn.example-auction.test/147/b.jpg",
+        {"@type":"ImageObject","url":"https://cdn.example-auction.test/147/c.jpg"},
+        "https://cdn.example-auction.test/147/a.jpg"
+      ],
+      "url": "https://example-auction.test/lot/4471-147",
+      "offers": {
+        "@type": "Offer",
+        "price": "1,450.00",
+        "priceCurrency": "USD",
+        "availabilityEnds": "2099-10-04T23:00:00-05:00",
+        "itemCondition": "https://schema.org/UsedCondition",
+        "availability": "https://schema.org/InStock"
+      }
+    },
+    {
+      "@type": "Product",
+      "sku": "148",
+      "name": "Lot of assorted hand tools",
+      "description": "Box of misc tools",
+      "image": "https://cdn.example-auction.test/148/a.jpg",
+      "url": "https://example-auction.test/lot/4471-148",
+      "offers": {"@type":"Offer","price":"12.50","priceCurrency":"USD",
+                 "availabilityEnds":"2099-10-04T23:05:00-05:00"}
+    }
+  ]
+}
+</script>
+
+<!-- HTML-escaped JSON-LD, which some CMSs emit. Must still parse. -->
+<script type="application/ld+json">
+{&quot;@type&quot;:&quot;Product&quot;,&quot;sku&quot;:&quot;149&quot;,&quot;name&quot;:&quot;Craftsman rolling tool chest&quot;,&quot;offers&quot;:{&quot;@type&quot;:&quot;Offer&quot;,&quot;price&quot;:&quot;85.00&quot;,&quot;priceCurrency&quot;:&quot;USD&quot;,&quot;availabilityEnds&quot;:&quot;2099-10-04T23:10:00-05:00&quot;}}
+</script>
+</head>
+<body><h1>Lot 147</h1></body>
+</html>
