@@ -10,7 +10,7 @@
  *   Auth:      X-API-KEY header, or ?api_key= query param
  *   Params:    format=JSON|XML  ... and nothing else
  *   Limits:    5,000 calls/day, 5 calls per 5 seconds
- *   Shape:     { results: [ auction, ... ] }
+ *   Shape:     documented { results: [...] }; LIVE { Results: [...] } — see below
  *
  * THREE THINGS THE SPEC FORCED, each of which would have been a silent bug:
  *
@@ -48,47 +48,46 @@ import { parseMoneyToCents } from '../money.ts';
 
 export const GSA_API_BASE = 'https://api.gsa.gov/assets/gsaauctions/v2';
 
-/** Raw record shape, as documented. Everything optional: it is someone else's API. */
-export interface GsaRecord {
-  SaleNo?: string;
-  LotNo?: number | string;
-  AucStartDt?: string;
-  AucEndDt?: string;
-  ItemName?: string;
-  PropertyAddr1?: string;
-  PropertyAddr2?: string;
-  PropertyAddr3?: string;
-  PropertyCity?: string;
-  PropertyState?: string;
-  PropertyZip?: string;
-  AuctionStatus?: string;
-  SaleLocation?: string;
-  LocationOrg?: string;
-  LocationStAddr?: string;
-  LocationCity?: string;
-  LocationST?: string;
-  LocationZip?: string;
-  BiddersCount?: number | string;
-  LotInfo?: { LotSequence?: number; LotDescript?: string }[];
-  Instruction1?: string;
-  Instruction2?: string;
-  Instruction3?: string;
-  ContractOfficer?: string;
-  COEmail?: string;
-  COPhone?: string;
-  Reserve?: number | string;
-  AucIncrement?: number | string;
-  HighBidAmount?: number | string;
-  InactivityTime?: number | string;
-  AgencyCode?: string;
-  BureauCode?: string;
-  AgencyName?: string;
-  BureauName?: string;
-  ItemDescURL?: string;
-  ImageURL?: string;
+/**
+ * THE LIVE API DOES NOT MATCH ITS OWN DOCUMENTATION.
+ *
+ * Verified 2026-09-27 by calling the real endpoint from a Supabase Edge Function
+ * (678 records). Built against openapi.yaml alone, this adapter returned ZERO
+ * lots in production while passing all 24 of its tests — every test used a
+ * fixture written from the same wrong documentation. That is the exact failure
+ * this project was restarted to avoid, and it is why fixtures now come from
+ * captured live responses (test/fixtures/gsa-live-*.json).
+ *
+ *   documented (openapi.yaml)             live API (reality)
+ *   ─────────────────────────────────     ─────────────────────────────────
+ *   envelope   results                    Results
+ *   fields     PascalCase (SaleNo)        camelCase (saleNo)
+ *   LotNo      integer 1                  string "001"
+ *   Reserve    dollar amount              boolean: "a reserve exists"
+ *   LotInfo    [{LotSequence,LotDescript}] one HTML string
+ *   Instruction1/2/3                      one `instruction` string
+ *   AuctionStatus  'A' | 'P' | ' '        "Active" | "Preview" | ...
+ *   dates      MM/DD/YYYY                 YYYY-MM-DD
+ *
+ * Plus data-quality defects in the live feed itself:
+ *   locationZip  "85007null"   (the literal word null appended)
+ *   locationCity "Phoenix                       "   (fixed-width padding)
+ *   lotInfo      ~150 words of identical legal boilerplate on every lot
+ *
+ * Both shapes are accepted: `field()` reads the live camelCase name and falls
+ * back to the documented PascalCase one, so this keeps working whichever way GSA
+ * goes next.
+ */
+export type GsaRecord = Record<string, unknown>;
+
+/** Read a field by its live camelCase name, falling back to documented PascalCase. */
+export function field(r: GsaRecord, camel: string): unknown {
+  const v = r[camel];
+  if (v !== undefined) return v;
+  return r[camel.charAt(0).toUpperCase() + camel.slice(1)];
 }
 
-export type GsaSaleStatus = 'active' | 'preview' | 'scheduled' | 'unknown';
+export type GsaSaleStatus = 'active' | 'preview' | 'scheduled' | 'closed' | 'unknown';
 
 /**
  * Decode AuctionStatus WITHOUT trimming first.
@@ -98,12 +97,144 @@ export type GsaSaleStatus = 'active' | 'preview' | 'scheduled' | 'unknown';
  */
 export function decodeStatus(raw: string | undefined): GsaSaleStatus {
   if (raw === undefined || raw === null) return 'unknown';
+  // Documented form: a single character where a SPACE means Scheduled. Checked
+  // before anything trims it.
   if (raw === ' ' || raw === '') return 'scheduled';
-  const c = raw.charAt(0).toUpperCase();
-  if (c === 'A') return 'active';
-  if (c === 'P') return 'preview';
-  if (c === ' ') return 'scheduled';
+
+  // Live form: whole words ("Active"). Matching whole words first matters: the
+  // old first-letter rule only decoded "Active" correctly by accident, and would
+  // have read "Scheduled" as unknown and "Sold" as scheduled.
+  const word = raw.trim().toLowerCase();
+  if (word === 'active') return 'active';
+  if (word === 'preview') return 'preview';
+  if (word === 'scheduled') return 'scheduled';
+  if (word === 'closed') return 'closed';
+
+  // Documented single-letter codes. Anything else is unknown, not a guess.
+  if (raw.length === 1) {
+    const c = raw.toUpperCase();
+    if (c === 'A') return 'active';
+    if (c === 'P') return 'preview';
+    if (c === 'S') return 'scheduled';
+    if (c === 'C') return 'closed';
+  }
   return 'unknown';
+}
+
+/** Decode HTML to plain text: tags stripped, entities decoded, whitespace collapsed. */
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<\s*(br|\/p|\/li|\/h[1-6]|\/div)\s*\/?>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '\n• ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s*\n+/g, '\n')
+    .trim();
+}
+
+/**
+ * Sections of a GSA lotInfo that are identical boilerplate on every lot.
+ *
+ * They are kept (the buyer needs the removal rules) but NOT counted as
+ * description. Counted naively, ~150 identical words make every federal lot look
+ * richly catalogued, which would silence the sleeper signal for all of GSA.
+ */
+const BOILERPLATE_SECTIONS = [
+  'inspection and removal',
+  'disclaimer',
+  'vehicle documentation',
+];
+
+export interface ParsedLotInfo {
+  /** Meaningful description: overview, specifications, condition. */
+  description: string | null;
+  /** Removal rules, disclaimers: shown to buyers, excluded from scoring. */
+  terms: string | null;
+  /** "Make: Dell" style pairs from a Specifications section. */
+  specs: Record<string, string>;
+  /** A disclosed extra cost, e.g. "$23,000 to $25,000" removal fees. */
+  feeNote: string | null;
+}
+
+/**
+ * Split a GSA lotInfo HTML string into what describes the item and what doesn't.
+ *
+ * Two real shapes exist: structured (<h4> sections: Overview, Specifications,
+ * Condition, Inspection and Removal, Disclaimer) and free-form (the aircraft
+ * listings are one long run of <p><strong>). Structured listings are split by
+ * section; free-form ones are kept whole, since everything in them is specific.
+ */
+export function parseLotInfo(html: string | null | undefined): ParsedLotInfo {
+  const empty: ParsedLotInfo = { description: null, terms: null, specs: {}, feeNote: null };
+  if (!html || typeof html !== 'string') return empty;
+
+  const specs: Record<string, string> = {};
+  const describe: string[] = [];
+  const terms: string[] = [];
+
+  const parts = html.split(/<h4[^>]*>/i);
+  const structured = parts.length > 1;
+
+  if (structured) {
+    // parts[0] is anything before the first heading (usually empty).
+    if (parts[0].trim()) describe.push(htmlToText(parts[0]));
+    for (const part of parts.slice(1)) {
+      const [headingHtml, ...rest] = part.split(/<\/h4>/i);
+      const heading = htmlToText(headingHtml).toLowerCase();
+      const bodyHtml = rest.join('');
+      const body = htmlToText(bodyHtml);
+      if (!body) continue;
+
+      if (heading.startsWith('specification')) {
+        for (const li of bodyHtml.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) ?? []) {
+          const text = htmlToText(li).replace(/^•\s*/, '');
+          const m = text.match(/^([^:]{1,40}):\s*(.+)$/);
+          if (m) specs[m[1].trim().toLowerCase()] = m[2].trim();
+        }
+        describe.push(body);
+      } else if (BOILERPLATE_SECTIONS.some((b) => heading.startsWith(b))) {
+        terms.push(body);
+      } else {
+        describe.push(body);
+      }
+    }
+  } else {
+    describe.push(htmlToText(html));
+  }
+
+  const fullText = htmlToText(html);
+  const fee = fullText.match(
+    /(?:additional|extra)[^.]{0,120}?\$\s?[\d,]+(?:\.\d{2})?(?:\s*(?:to|-|–)\s*\$\s?[\d,]+(?:\.\d{2})?)?/i,
+  );
+
+  const description = describe.join('\n').trim();
+  const termText = terms.join('\n').trim();
+  return {
+    description: description || null,
+    terms: termText || null,
+    specs,
+    feeNote: fee ? fee[0].trim() : null,
+  };
+}
+
+/**
+ * Keep only the first five digits of a ZIP.
+ *
+ * The live feed contains values like "85007null" — a zip with the literal word
+ * "null" appended — and ZIP+4 forms. Anything without five leading digits is
+ * treated as absent rather than guessed at.
+ */
+export function sanitizeZip(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null;
+  const m = String(raw).trim().match(/^(\d{5})/);
+  return m ? m[1] : null;
 }
 
 /**
@@ -188,23 +319,59 @@ function int(v: unknown): number | null {
   return null;
 }
 
-/** Join the multi-line instruction and lot-description fields into prose. */
-function buildDescription(r: GsaRecord): string | null {
-  const lotDescs = (r.LotInfo ?? [])
-    .slice()
-    .sort((a, b) => (a.LotSequence ?? 0) - (b.LotSequence ?? 0))
-    .map((l) => str(l.LotDescript))
-    .filter((s): s is string => !!s);
+/**
+ * Describe the lot, and separately collect the logistics text.
+ *
+ * Handles both real shapes of lotInfo: the live API's single HTML string, and the
+ * documented array of {LotSequence, LotDescript}.
+ *
+ * Inspection and removal instructions go to `terms`, NOT the description. An
+ * earlier version appended them to the description. Live data showed why that is
+ * wrong: they are near-identical logistics on every lot, so counting them makes a
+ * two-word listing look richly catalogued (killing the sleeper signal) and makes
+ * every lot match searches for words like "removal". The buyer still sees them.
+ */
+export function describeGsaLot(r: GsaRecord): {
+  description: string | null;
+  terms: string | null;
+  specs: Record<string, string>;
+  feeNote: string | null;
+} {
+  const info = field(r, 'lotInfo');
+  const describe: string[] = [];
+  const terms: string[] = [];
+  let specs: Record<string, string> = {};
+  let feeNote: string | null = null;
 
-  const instructions = [r.Instruction1, r.Instruction2, r.Instruction3]
+  if (typeof info === 'string') {
+    const parsed = parseLotInfo(info);
+    if (parsed.description) describe.push(parsed.description);
+    if (parsed.terms) terms.push(parsed.terms);
+    specs = parsed.specs;
+    feeNote = parsed.feeNote;
+  } else if (Array.isArray(info)) {
+    const entries = info as { LotSequence?: number; LotDescript?: string }[];
+    entries
+      .slice()
+      .sort((a, b) => (a.LotSequence ?? 0) - (b.LotSequence ?? 0))
+      .map((l) => str(l.LotDescript))
+      .filter((s): s is string => !!s)
+      .forEach((s) => describe.push(s));
+  }
+
+  // Live: one `instruction` field. Documented: Instruction1..3.
+  const instructions = [
+    field(r, 'instruction'),
+    r.Instruction1, r.Instruction2, r.Instruction3,
+  ]
+    .map((v) => (typeof v === 'string' ? v.replace(/[•\t]+/g, ' ') : v))
     .map(str)
     .filter((s): s is string => !!s);
+  if (instructions.length) terms.push(`Inspection: ${instructions.join(' ').replace(/\s+/g, ' ')}`);
 
-  const parts = [...lotDescs];
-  if (instructions.length) parts.push(`Inspection: ${instructions.join(' ')}`);
-
-  const joined = parts.join('\n').trim();
-  return joined === '' ? null : joined;
+  const d = describe.join('\n').trim();
+  const t = terms.join('\n').trim();
+  return { description: d || null, terms: t || null, specs, feeNote };
 }
 
 /**
@@ -215,11 +382,18 @@ function buildDescription(r: GsaRecord): string | null {
  * Kansas, and a confidently wrong location is far more damaging than a missing one.
  */
 export function propertyLocation(r: GsaRecord): NormalizedLocation | null {
-  const city = str(r.PropertyCity);
-  const state = str(r.PropertyState);
-  const zip = str(r.PropertyZip);
-  const line1 = [str(r.PropertyAddr3), str(r.PropertyAddr2), str(r.PropertyAddr1)]
-    .filter((s): s is string => !!s)[0] ?? null;
+  const city = str(field(r, 'propertyCity'));
+  const state = str(field(r, 'propertyState'));
+  const zip = sanitizeZip(field(r, 'propertyZip'));
+  // Live data puts the street in addr2 ("310 W. Wisconsin Avenue") and the
+  // occupant in addr1 ("U.S. Dept. of HUD"), and sometimes a unit in addr3
+  // ("309th AMARG"). Prefer whichever line starts with a street number.
+  const lines = [field(r, 'propertyAddr1'), field(r, 'propertyAddr2'), field(r, 'propertyAddr3')]
+    .map(str)
+    .filter((s): s is string => !!s);
+  // "A number, then a space" — so "4730 S SAFFORD AVE" qualifies but the unit name
+  // "309th AMARG" (same record, addr3) does not.
+  const line1 = lines.find((l) => /^\d+[A-Za-z]?\s+\S/.test(l)) ?? lines[lines.length - 1] ?? null;
 
   if (!city && !state && !zip && !line1) return null;
 
@@ -227,7 +401,7 @@ export function propertyLocation(r: GsaRecord): NormalizedLocation | null {
     line1,
     city,
     state: state ? state.toUpperCase().slice(0, 2) : null,
-    postalCode: zip ? zip.slice(0, 5) : null,
+    postalCode: zip,
     ambiguous: !!city && !state,
   };
 }
@@ -236,40 +410,63 @@ export function propertyLocation(r: GsaRecord): NormalizedLocation | null {
 export function normalizeGsaRecord(
   r: GsaRecord,
 ): { auction: NormalizedAuction; lot: NormalizedLot } | null {
-  const saleNo = str(r.SaleNo);
-  const itemName = str(r.ItemName);
+  const saleNo = str(field(r, 'saleNo'));
+  const itemName = str(field(r, 'itemName'));
   // Without a sale number we cannot build a stable id, and without a name the row
   // is not a usable lot. Both are hard requirements.
   if (!saleNo || !itemName) return null;
 
-  const lotNo = int(r.LotNo);
+  // Live lotNo is a zero-padded string ("040"); documented LotNo is an integer.
+  // The id uses the integer so "040" and 40 are the same lot; the display keeps
+  // the source's own form, which is what the buyer sees on gsaauctions.gov.
+  const rawLotNo = field(r, 'lotNo');
+  const lotNo = int(rawLotNo);
   const lotExternalId = lotNo === null ? saleNo : `${saleNo}/${lotNo}`;
 
-  const status = decodeStatus(r.AuctionStatus);
-  const close = gsaCloseInstant(r.AucEndDt);
-  const startParts = parseGsaDate(r.AucStartDt);
+  const status = decodeStatus(field(r, 'auctionStatus') as string | undefined);
+  const close = gsaCloseInstant(field(r, 'aucEndDt') as string | undefined);
+  const startParts = parseGsaDate(field(r, 'aucStartDt') as string | undefined);
   const startsAt = startParts
     ? new Date(Date.UTC(startParts.y, startParts.m - 1, startParts.d, 12, 0, 0)).toISOString()
     : null;
 
-  // Closure is derived from the date, NOT from AuctionStatus: the status vocabulary
-  // ('A'/'P'/' ') has no closed value at all.
-  const closed = close ? new Date(close.iso).getTime() < Date.now() : false;
+  // Closure is derived from the date. The documented status vocabulary had no
+  // closed value; the live one might, and either way the date is authoritative.
+  const closed = status === 'closed'
+    || (close ? new Date(close.iso).getTime() < Date.now() : false);
 
-  const currentBidCents = parseMoneyToCents(r.HighBidAmount);
-  const reserveCents = parseMoneyToCents(r.Reserve);
-  const incrementCents = parseMoneyToCents(r.AucIncrement);
+  const currentBidCents = parseMoneyToCents(field(r, 'highBidAmount'));
+  const incrementCents = parseMoneyToCents(field(r, 'aucIncrement'));
+
+  // Documented Reserve is a dollar amount; live `reserve` is a boolean meaning
+  // "a reserve exists" with the amount undisclosed. Treating the boolean as money
+  // would be wrong, and parseMoneyToCents(true) returns null anyway -- but the
+  // distinction is kept explicitly so reserve_met is never computed from a guess.
+  const rawReserve = field(r, 'reserve');
+  const hasReserve = typeof rawReserve === 'boolean' ? rawReserve : null;
+  const reserveCents = typeof rawReserve === 'boolean' ? null : parseMoneyToCents(rawReserve);
 
   const pickup = propertyLocation(r);
+  const described = describeGsaLot(r);
 
-  const imageUrl = str(r.ImageURL);
-  const itemUrl = str(r.ItemDescURL);
+  const imageUrl = str(field(r, 'imageURL'));
+  const itemUrl = str(field(r, 'itemDescURL'));
+  const agencyName = str(field(r, 'agencyName'));
+  const bureauName = str(field(r, 'bureauName'));
+
+  // Structured specs from lotInfo ("Make: Dell", "Model: 5320") give hunts a real
+  // brand and model to match, instead of only a two-word title.
+  const brand = described.specs['make'] ?? null;
+  const modelYear = described.specs['model year'] ?? null;
+  const model = described.specs['model']
+    ? (modelYear ? `${modelYear} ${described.specs['model']}` : described.specs['model'])
+    : null;
 
   const auction: NormalizedAuction = {
     externalId: saleNo,
-    title: `GSA sale ${saleNo}${r.AgencyName ? ` — ${str(r.AgencyName)}` : ''}`,
-    description: str(r.SaleLocation),
-    auctioneer: str(r.AgencyName) ?? 'U.S. General Services Administration',
+    title: `GSA sale ${saleNo}${agencyName ? ` — ${agencyName}` : ''}`,
+    description: str(field(r, 'saleLocation')),
+    auctioneer: agencyName ?? 'U.S. General Services Administration',
     url: itemUrl,
     format: 'online',
     startsAt,
@@ -283,7 +480,7 @@ export function normalizeGsaRecord(
     // let a later, more specific signal override it.
     ships: false,
     // LocationST is the SELLING AGENCY's state, deliberately NOT pickup state.
-    sellerName: str(r.AgencyName) ?? str(r.BureauName),
+    sellerName: agencyName ?? bureauName,
     lotCount: null,
     currency: 'USD',
     // GSA publishes no buyer's premium on surplus sales.
@@ -295,9 +492,11 @@ export function normalizeGsaRecord(
   const lot: NormalizedLot = {
     externalId: lotExternalId,
     auctionExternalId: saleNo,
-    lotNumber: lotNo === null ? null : String(lotNo),
+    lotNumber: str(rawLotNo),
     title: itemName,
-    description: buildDescription(r),
+    description: described.description,
+    brand,
+    model,
     condition: null,
     quantity: 1,
     startingBidCents: null,
@@ -309,7 +508,7 @@ export function normalizeGsaRecord(
         : null,
     estimateLowCents: reserveCents,
     estimateHighCents: null,
-    bidCount: int(r.BiddersCount),
+    bidCount: int(field(r, 'biddersCount')),
     reserveMet:
       reserveCents !== null && currentBidCents !== null ? currentBidCents >= reserveCents : null,
     closesAt: close?.iso ?? null,
@@ -330,11 +529,19 @@ export function normalizeGsaRecord(
         closeTimeNote:
           'GSA publishes AucEndDt as a date only (10 chars). Resolved to 23:59:59 America/New_York. ' +
           'Sale also soft-closes after InactivityTime minutes without a bid, so the true close may be later.',
-        inactivityMinutes: int(r.InactivityTime),
-        sellerState: str(r.LocationST),
-        agencyCode: str(r.AgencyCode),
-        bureauCode: str(r.BureauCode),
-        contractOfficer: str(r.ContractOfficer),
+        inactivityMinutes: int(field(r, 'inactivityTime')),
+        sellerState: str(field(r, 'locationST')),
+        agencyCode: str(field(r, 'agencyCode')),
+        bureauCode: str(field(r, 'bureauCode')),
+        contractOfficer: str(field(r, 'contractOfficer')),
+        hasReserve,
+        // Shown to buyers, excluded from search text and the sleeper score.
+        terms: described.terms,
+        // A disclosed extra cost the hammer price does not include. The T-34C
+        // listings disclose $23,000-$25,000 of removal fees on a ~$100k bid.
+        feeNote: described.feeNote,
+        vin: described.specs['vin'] ?? null,
+        mileage: described.specs['mileage'] ?? null,
       },
     },
   };
@@ -366,16 +573,24 @@ export function normalizeGsaResponse(body: unknown): {
 } {
   const warnings: string[] = [];
 
-  // The documented envelope is { results: [...] }, but be tolerant of a bare array
-  // and of the single-object case, both of which government feeds do emit.
+  // The LIVE envelope is { Results: [...] }; the documented one is { results: [...] }.
+  // Checking only the documented key is what made this adapter return zero lots
+  // in production: the whole live envelope fell through to the bare-object branch
+  // below and was treated as a single record with no SaleNo. Both keys are
+  // accepted, plus a bare array and a single object, which government feeds emit.
+  const envelope =
+    body && typeof body === 'object' && !Array.isArray(body)
+      ? ((body as any).Results ?? (body as any).results)
+      : undefined;
+
   let records: unknown[];
   if (Array.isArray(body)) {
     records = body;
-  } else if (body && typeof body === 'object' && Array.isArray((body as any).results)) {
-    records = (body as any).results;
+  } else if (Array.isArray(envelope)) {
+    records = envelope;
   } else if (body && typeof body === 'object') {
     records = [body];
-    warnings.push('Response was a bare object, not the documented { results: [...] } envelope.');
+    warnings.push('Response was a bare object, not a { Results: [...] } envelope.');
   } else {
     return { auctions: [], lots: [], warnings: ['Response body was not an object or array.'] };
   }

@@ -11,6 +11,10 @@ import {
   gsaCloseInstant,
   isUsEasternDst,
   propertyLocation,
+  sanitizeZip,
+  field,
+  htmlToText,
+  parseLotInfo,
   gsaAdapter,
   GSA_API_BASE,
 } from '../src/adapters/gsa.ts';
@@ -170,7 +174,7 @@ test('lot ids are stable and composite, so upserts are idempotent', () => {
   assert.equal(new Set(ids).size, ids.length, 'external ids must be unique');
 });
 
-test('LotInfo descriptions are ordered by LotSequence and instructions appended', () => {
+test('LotInfo descriptions are ordered by LotSequence; instructions go to terms', () => {
   const { lots } = normalizeGsaResponse(fixture);
   const gen = lots.find((l) => l.externalId === '21QSCI25001/1')!;
   // Fixture deliberately lists sequence 2 before sequence 1.
@@ -178,7 +182,15 @@ test('LotInfo descriptions are ordered by LotSequence and instructions appended'
     gen.description!.startsWith('Diesel generator set'),
     `expected sequence-1 text first, got: ${gen.description}`,
   );
-  assert.match(gen.description!, /Inspection: Inspection by appointment only\. Call 414-555-0100\./);
+  // Behavior change, deliberate: instructions used to be appended to the
+  // description. Live data showed they are near-identical logistics on every lot,
+  // so counting them inflated every listing's apparent detail (hiding sleepers)
+  // and made every lot match a search for "inspection". The buyer still sees them.
+  assert.doesNotMatch(gen.description!, /Inspection by appointment/);
+  assert.match(
+    (gen.raw as any)._meta.terms,
+    /Inspection: Inspection by appointment only\. Call 414-555-0100\./,
+  );
 });
 
 test('records missing SaleNo or ItemName are dropped AND reported', () => {
@@ -294,4 +306,166 @@ test('non-JSON and error responses raise rather than silently returning nothing'
 
   const boom: Fetcher = async () => ({ status: 503, headers: {}, text: '' });
   await assert.rejects(() => gsaAdapter.run(ctxWith(boom, { GSA_API_KEY: 'k' })), /HTTP 503/);
+});
+
+// ======================================================================
+// LIVE-SHAPE TESTS
+//
+// Everything above was written from GSA's openapi.yaml. The live API turned out
+// to differ in envelope, casing, and five field types, and against real data the
+// adapter produced ZERO lots while every test above passed. The tests below run
+// against records captured from the real endpoint on 2026-09-27, so they fail if
+// the adapter drifts from what GSA actually sends.
+// ======================================================================
+
+const liveText = readFileSync(join(here, 'fixtures', 'gsa-live-2026-09-27.json'), 'utf8');
+const live = JSON.parse(liveText);
+
+test('LIVE: the capitalized Results envelope is read (the actual zero-lots bug)', () => {
+  const { lots, warnings } = normalizeGsaResponse(live);
+  assert.equal(lots.length, 4, `expected 4 lots, got ${lots.length}; warnings: ${warnings}`);
+  assert.deepEqual(warnings, []);
+});
+
+test('LIVE: a Milwaukee lot sold by an Arizona office is pickup WI, seller AZ', () => {
+  const { lots } = normalizeGsaResponse(live);
+  const tw = lots.find((l) => l.title === 'Typewriters')!;
+  assert.equal(tw.externalId, '2-1-QSC-I-26-390/40');
+  assert.equal(tw.lotNumber, '040'); // display keeps the source's own form
+  assert.equal(tw.pickup!.state, 'WI');
+  assert.equal(tw.pickup!.city, 'Milwaukee');
+  assert.equal(tw.pickup!.postalCode, '53203');
+  // addr1 is the occupant ("U.S. Dept. of HUD"); the street is addr2.
+  assert.equal(tw.pickup!.line1, '310 W. Wisconsin Avenue, Suite 950W');
+  assert.equal((tw.raw as any)._meta.sellerState, 'AZ');
+  assert.equal(tw.url, 'https://www.gsaauctions.gov/auctions/preview/377880');
+  assert.equal(tw.images[0].url, 'https://www.ppms.gov/gw/auction/ppms/api/v1/auction/image/21QSCI26390040.jpg');
+});
+
+test('LIVE: "85007null" zips are repaired, and garbage is refused rather than guessed', () => {
+  assert.equal(sanitizeZip('85007null'), '85007');
+  assert.equal(sanitizeZip('53703-1234'), '53703');
+  assert.equal(sanitizeZip(' 02108null '), '02108'); // leading zero kept: it is a string
+  assert.equal(sanitizeZip('null'), null);
+  assert.equal(sanitizeZip('1234'), null);
+  assert.equal(sanitizeZip(null), null);
+});
+
+test('LIVE: boilerplate is separated from the description and kept as terms', () => {
+  const { lots } = normalizeGsaResponse(live);
+  const tw = lots.find((l) => l.title === 'Typewriters')!;
+  assert.match(tw.description!, /This lot contains 4 typewriters/);
+  assert.match(tw.description!, /Condition & Markings|Parts may be missing/);
+  // The ~150 identical words on every lot must not count as description...
+  assert.doesNotMatch(tw.description!, /Removal Responsibilities|not warranted/);
+  // ...but the buyer still needs them.
+  const terms = (tw.raw as any)._meta.terms as string;
+  assert.match(terms, /Removal Responsibilities/);
+  assert.match(terms, /not warranted/);
+  assert.match(terms, /Inspection: .*Monday through Friday/);
+  // Entities decoded, not shown raw.
+  assert.doesNotMatch(tw.description!, /&amp;/);
+});
+
+test('LIVE: Specifications become brand and model a hunt can match', () => {
+  const { lots } = normalizeGsaResponse(live);
+  const dell = lots.find((l) => l.title === 'Dell Laptops')!;
+  assert.equal(dell.brand, 'Dell');
+  assert.equal(dell.model, '5320');
+
+  const truck = lots.find((l) => l.title === '2004 Ford F-350')!;
+  assert.equal(truck.brand, 'Ford');
+  assert.equal(truck.model, '2004 F-350 4x4');
+  assert.equal((truck.raw as any)._meta.vin, '1FTSF31L94ED77243');
+  assert.equal((truck.raw as any)._meta.mileage, '70000');
+  // Vehicle Documentation is boilerplate too.
+  assert.doesNotMatch(truck.description!, /SF-97/);
+  assert.match((truck.raw as any)._meta.terms, /SF-97/);
+  // &#39; decoded inside terms.
+  assert.match((truck.raw as any)._meta.terms, /purchaser's receipt/);
+});
+
+test('LIVE: dollar high bids, bidder counts and the increment are parsed', () => {
+  const { lots } = normalizeGsaResponse(live);
+  const truck = lots.find((l) => l.title === '2004 Ford F-350')!;
+  assert.equal(truck.currentBidCents, 367700);  // highBidAmount 3677 (dollars)
+  assert.equal(truck.nextBidCents, 377700);     // + aucIncrement 100
+  assert.equal(truck.bidCount, 8);
+  assert.equal(truck.pickup!.state, 'KS');
+  assert.equal(truck.pickup!.line1, '5020 Tuttle Creek Blvd');
+
+  const tw = lots.find((l) => l.title === 'Typewriters')!;
+  assert.equal(tw.currentBidCents, null); // null means no bid, not $0
+  assert.equal(tw.bidCount, null);
+  assert.equal(tw.nextBidCents, null);
+});
+
+test('LIVE: reserve is a boolean flag; it is never mistaken for a dollar amount', () => {
+  const { lots } = normalizeGsaResponse(live);
+  for (const l of lots) {
+    assert.equal((l.raw as any)._meta.hasReserve, true);
+    assert.equal(l.estimateLowCents, null); // amount undisclosed
+    assert.equal(l.reserveMet, null);       // so reserve_met is unknowable
+  }
+});
+
+test('LIVE: free-form aircraft listing keeps its text and surfaces the hidden fee', () => {
+  const { lots } = normalizeGsaResponse(live);
+  const plane = lots.find((l) => l.title.startsWith('1983 Beechcraft'))!;
+  assert.equal(plane.currentBidCents, 10010000); // $100,100
+  assert.equal(plane.bidCount, 2);
+  assert.match(plane.description!, /Total hours - 15,905\.4/);
+  // $23k-$25k of removal fees on top of the hammer price. A total-cost display
+  // that omitted this would understate the real price by ~25%.
+  assert.match((plane.raw as any)._meta.feeNote, /\$23,000 to \$25,000/);
+  // Street line chosen over the unit name "309th AMARG".
+  assert.equal(plane.pickup!.line1, '4730 S SAFFORD AVE');
+  assert.equal(plane.pickup!.city, 'TUCSON');
+  assert.equal(plane.pickup!.state, 'AZ');
+});
+
+test('LIVE: word statuses decode, and dates are the ISO form', () => {
+  assert.equal(decodeStatus('Active'), 'active');
+  assert.equal(decodeStatus('Preview'), 'preview');
+  assert.equal(decodeStatus('Scheduled'), 'scheduled');
+  assert.equal(decodeStatus('Closed'), 'closed');
+  // The old first-letter rule would have read these wrongly.
+  assert.equal(decodeStatus('Sold'), 'unknown');
+
+  const { lots } = normalizeGsaResponse(live);
+  const tw = lots.find((l) => l.title === 'Typewriters')!;
+  assert.equal((tw.raw as any)._meta.saleStatus, 'active');
+  // 2026-10-02 is EDT, so 23:59:59 Eastern is 03:59:59Z on the 3rd.
+  assert.equal(tw.closesAt, '2026-10-03T03:59:59.000Z');
+});
+
+test('LIVE: two lots of one sale become one auction', () => {
+  const { auctions, lots } = normalizeGsaResponse(live);
+  assert.equal(auctions.length, 3);
+  assert.equal(lots.filter((l) => l.auctionExternalId === '2-1-QSC-I-26-390').length, 2);
+  const hud = auctions.find((a) => a.externalId === '2-1-QSC-I-26-390')!;
+  assert.equal(hud.sellerName, 'Department of Housing and Urban Development');
+});
+
+test('LIVE: the full adapter path produces lots from the captured body', async () => {
+  const fetch: Fetcher = async () => ({ status: 200, headers: {}, text: liveText });
+  const result = await gsaAdapter.run(ctxWith(fetch, { GSA_API_KEY: 'k' }));
+  assert.equal(result.lots.length, 4);
+  assert.deepEqual(result.warnings, []);
+});
+
+test('field() reads live camelCase and falls back to documented PascalCase', () => {
+  assert.equal(field({ saleNo: 'a' }, 'saleNo'), 'a');
+  assert.equal(field({ SaleNo: 'b' }, 'saleNo'), 'b');
+  assert.equal(field({ saleNo: 'a', SaleNo: 'b' }, 'saleNo'), 'a');
+  assert.equal(field({}, 'saleNo'), undefined);
+});
+
+test('htmlToText and parseLotInfo handle entities, lists and unstructured HTML', () => {
+  assert.equal(htmlToText('<p>A &amp; B&nbsp;&#39;C&#39;</p>'), "A & B 'C'");
+  assert.equal(htmlToText('<ul><li>one</li><li>two</li></ul>'), '• one\n• two');
+  const p = parseLotInfo('<p>just text</p>');
+  assert.equal(p.description, 'just text');
+  assert.equal(p.terms, null);
+  assert.deepEqual(parseLotInfo(null), { description: null, terms: null, specs: {}, feeNote: null });
 });
