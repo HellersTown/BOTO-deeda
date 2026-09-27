@@ -131,37 +131,85 @@ console.
 
 ## Running the tests
 
-No install step, no build step, no dependencies. Node 22 runs TypeScript directly.
+There are two suites, and they test different things.
+
+**Ingest adapters** — no install, no build, no dependencies; Node 22 runs
+TypeScript directly:
 
 ```bash
 cd platform/packages/ingest
-npm test          # -> 32 tests, 32 pass, 0 fail
+npm test          # -> 79 tests, 79 pass, 0 fail
 ```
 
-Every adapter takes its `fetch` as an injected dependency, so tests run against
-saved fixtures in `test/fixtures/` with no network at all. That is not only for
-convenience: it is the only way these parsers can be verified in an environment
-with no egress, and it is what makes HTML-rung sources tolerable long-term.
+Every adapter takes its `fetch` as an injected dependency, so these run against
+saved fixtures in `test/fixtures/` with no network at all.
+
+**Platform functions** — every database function tested individually against
+real rows:
+
+```bash
+psql "$DATABASE_URL" -f platform/supabase/tests/platform_functions.sql
+# or paste it into the Supabase SQL editor
+# -> 27 passed, 0 failed, 27 total
+```
+
+The whole suite runs inside one transaction that **rolls back**, so it is safe to
+run against production and leaves nothing behind. Verified: after a run, zero
+fixture rows and zero test users remain.
+
+### What testing against real data found
+
+Every function below had passed "it exists". Six failed "it is correct", and none
+of them would have shown up without executing against actual rows:
+
+| # | Bug | Severity | Fixed in |
+|---|---|---|---|
+| 1 | Ranking used `ts_rank_cd` (cover density), which docked the *more specific* listing 3× because its query terms weren't adjacent. A lot 75 mi away outranked one 5 mi away. | high | `0006` |
+| 2 | Proximity dropped to exactly 0 past the radius, so every out-of-radius lot tied on distance. | medium | `0006` |
+| 3 | A lot with **no photos** scored 97% of its photographed twin — the code *added* photo credit while its own comment said photos should *gate* the score. | medium | `0006` |
+| 4 | A truck in Beloit, **WI** was invisible to Wisconsin searches: GSA left the state blank and the "never infer state from a city" rule was also refusing to use the ZIP code, which is authoritative. | high | `0007` |
+| 5 | Subscribe to Pro, create 10 photo hunts, cancel — all 10 kept running free forever. Changing a tier re-checked nothing. | high | `0008` |
+| 6 | **Any signed-in user could set their own tier to Dealer** from the browser console. RLS restricts rows, not columns. | **critical** | `0009` |
+
+Bug 6 contradicts a claim made in an earlier version of this README and the PR
+description: that the rival-intel paywall was "enforced in the database, so a
+client can't bypass it." It read the tier from the database — but the client
+could write that tier. A database check is only as strong as its input. After
+`0009`, `tier` is writable by the service role alone, and test 21 proves it.
 
 ---
 
 ## Applying the database work
 
-Migrations `0001`–`0005` are all applied. What remains is the seed:
+Migrations `0001`–`0009` are all applied to project `sfolywzqtxcdorjwnmsz`.
 
-```bash
-# Load the source registry (35 rows) against project sfolywzqtxcdorjwnmsz.
-# Safe: registers sources without authorising a single crawl. See below.
-supabase db execute --file supabase/seed/sources.sql
+### Do NOT load `seed/sources.sql` yet
 
-# or paste supabase/seed/sources.sql into the Supabase SQL editor
-```
+The database already holds **23 source rows from the original Waystock build**
+(created 2026-06-03). Testing found three problems with them:
 
-`seed/sources.sql` seeds every source with `robots_allows = null`, and the crawler
-treats null as **do not crawl**. So loading it registers sources without
-authorising a single HTTP request against any of them. A source becomes crawlable
-only after its `robots.txt` has been fetched, the verdict recorded, and one passing
-fixture captured.
+- **`slug` is NULL on all 23.** The seed upserts `on conflict (slug)`, so it cannot
+  match them. Loading it creates 35 new rows beside the 23 old ones instead of
+  updating them — duplicates.
+- **All 23 are `active = true` and `verified = true`** with `tier` and `ingest`
+  NULL. They predate those columns and were never classified.
+- **Facebook Marketplace and Craigslist are among them, marked active and
+  verified**, with no `deeplink_only` method and no `ingest_allowed = false`
+  guard. A crawler iterating `sources where active` would try to scrape both.
+
+The only thing currently preventing a crawl of those two is `robots_allows = null`,
+which the crawler treats as "do not crawl". That held — but it is the last line of
+defence, not the first.
+
+The fix is a reconciliation step that assigns slugs to the legacy rows by name,
+applies the seed's classification to them, and marks Marketplace and Craigslist
+`deeplink_only`. It modifies data from the original build, so it is left for an
+explicit go-ahead rather than applied automatically.
+
+Once that runs, the seed is safe to load. It registers every source with
+`robots_allows = null`, which the crawler treats as **do not crawl**, so loading it
+authorises zero requests. A source becomes crawlable only after its `robots.txt`
+has been fetched, the verdict recorded, and one passing fixture captured.
 
 ---
 
@@ -180,9 +228,15 @@ platform/
 │   │   ├── 0002_core_schema.sql       applied
 │   │   ├── 0003_rls.sql               applied
 │   │   ├── 0004_tiers_metering.sql    applied
-│   │   └── 0005_search_functions.sql  applied
-│   └── seed/
-│       └── sources.sql
+│   │   ├── 0005_search_functions.sql  applied
+│   │   ├── 0006_ranking_and_sleeper_fixes.sql   applied  (bugs 1-3)
+│   │   ├── 0007_gazetteer_backfill.sql          applied  (bug 4)
+│   │   ├── 0008_downgrade_reconciliation.sql    applied  (bug 5)
+│   │   └── 0009_column_privileges.sql           applied  (bug 6, critical)
+│   ├── seed/
+│   │   └── sources.sql          do not load yet; see "Applying the database work"
+│   └── tests/
+│       └── platform_functions.sql   27 checks, rolls back, safe on prod
 └── packages/ingest/
     ├── src/
     │   ├── {types,money,schedule,jsonld}.ts
