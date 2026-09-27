@@ -22,6 +22,7 @@ one-line change plus a `git mv`.
 | [`docs/01-sources.md`](docs/01-sources.md) | Every source worth indexing, which ingestion method each needs, and what to build first |
 | [`docs/02-naming.md`](docs/02-naming.md) | Name candidates with verified domain availability, and a recommendation |
 | [`docs/03-legal-and-tos.md`](docs/03-legal-and-tos.md) | What is safe to crawl, what must be deep-linked, and what the paid tier can honestly promise |
+| [`docs/04-universal-extraction.md`](docs/04-universal-extraction.md) | How to ingest every source without writing 35 adapters — costed, and what to stop doing |
 
 Three ideas carry the whole design:
 
