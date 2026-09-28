@@ -1,3 +1,4 @@
+// GENERATED from packages/ingest/src/types.ts by scripts/sync-function-libs.mjs. Do not edit here.
 /**
  * The canonical shapes every adapter must produce.
  *

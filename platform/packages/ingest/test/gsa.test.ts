@@ -469,3 +469,10 @@ test('htmlToText and parseLotInfo handle entities, lists and unstructured HTML',
   assert.equal(p.terms, null);
   assert.deepEqual(parseLotInfo(null), { description: null, terms: null, specs: {}, feeNote: null });
 });
+
+test('LIVE: the selling office state is carried on the auction, never as pickup', () => {
+  const { auctions } = normalizeGsaResponse(live);
+  const hud = auctions.find((a) => a.externalId === '2-1-QSC-I-26-390')!;
+  assert.equal(hud.sellerState, 'AZ');
+  assert.equal(hud.pickup!.state, 'WI');
+});

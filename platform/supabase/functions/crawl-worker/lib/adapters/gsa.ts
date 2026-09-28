@@ -1,3 +1,4 @@
+// GENERATED from packages/ingest/src/adapters/gsa.ts by scripts/sync-function-libs.mjs. Do not edit here.
 /**
  * GSA Auctions adapter — federal surplus, rung 1 (official API).
  *
