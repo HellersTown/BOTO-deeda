@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lot detail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:"Public Sans",system-ui,sans-serif;background:#F6F3EC;color:#1D1B16;font-variant-numeric:tabular-nums}
+a{color:#9A3412}a:hover{color:#7C2D12}
+</style>
+</helmet>
+<div style="width: 390px; height: 1180px; box-sizing: border-box; display: flex; flex-direction: column; background: #F6F3EC">
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 12px 12px 8px 12px">
+    <a href="Main.dc.html" aria-label="Back to results" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #1D1B16">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <span style="font-size: 14px; font-weight: 600; color: #5E5A50">GSA Auctions</span>
+    <button type="button" aria-label="Share lot" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #1D1B16">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v13"></path></svg>
+    </button>
+  </header>
+
+  <div style="height: 230px; margin: 0 16px; border-radius: 16px; background: #E9E3D6; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #5E5A50">Photo from the listing</div>
+
+  <section style="padding: 16px 20px 0 20px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; gap: 6px; align-items: center">
+      <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #FFFFFF; background: #1F4D3A; padding: 2px 6px; border-radius: 4px">Federal surplus</span>
+      <span style="font-size: 12px; color: #5E5A50">Sold by GSA, Phoenix office</span>
+    </div>
+    <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 28px; font-weight: 700; letter-spacing: -0.5px">Dell Laptops</h1>
+    <p style="margin: 0; font-size: 14px; color: #4A463D">Dell · Model 5320 · specs from the listing</p>
+    <div style="display: flex; align-items: baseline; gap: 10px; margin-top: 4px">
+      <span style="font-size: 30px; font-weight: 700">$85.00</span>
+      <span style="font-size: 14px; color: #5E5A50">current bid</span>
+    </div>
+  </section>
+
+  <section aria-label="Closing time" style="margin: 14px 20px 0 20px; padding: 12px 14px; border-radius: 12px; background: #FEF3C7; color: #78350F; font-size: 14px; line-height: 1.45">
+    <strong>Closes Thursday, Oct 2.</strong> GSA publishes the date, not the time, and a sale keeps extending while bids arrive. We remind you at 8:00 that morning.
+  </section>
+
+  <section style="margin: 12px 20px 0 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #4A463D">
+    <div><strong style="color: #1D1B16">Pickup only</strong> · 310 W. Wisconsin Ave, Milwaukee, WI 53203 · 1.4 mi from 53202 · removal by appointment</div>
+    <div><strong style="color: #1D1B16">Fees</strong> · no buyer's premium on GSA surplus</div>
+  </section>
+
+  <section aria-labelledby="walkaway" style="margin: 16px 16px 0 16px; padding: 16px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E2DDD0; display: flex; flex-direction: column; gap: 12px">
+    <h2 id="walkaway" style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 20px; font-weight: 600">Your walk-away number</h2>
+    <p style="margin: 0; font-size: 13px; line-height: 1.45; color: #5E5A50">Decide it now, from what the item sells for, then bid it once. Never raise it because other people are bidding.</p>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <label for="resale" style="font-size: 12px; font-weight: 600">It sells for</label>
+        <input id="resale" inputmode="decimal" placeholder="$ [YOUR ESTIMATE]" style="min-height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid #BDB4A2; border-radius: 10px; font: inherit; font-size: 15px">
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <label for="margin" style="font-size: 12px; font-weight: 600">Profit you want</label>
+        <input id="margin" inputmode="decimal" value="30%" style="min-height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid #BDB4A2; border-radius: 10px; font: inherit; font-size: 15px">
+      </div>
+    </div>
+    <dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 6px; font-size: 13px">
+      <dt style="color: #5E5A50">Buyer's premium</dt><dd style="margin: 0; text-align: right">0%</dd>
+      <dt style="color: #5E5A50">Card fee, tax</dt><dd style="margin: 0; text-align: right">[FROM TERMS]</dd>
+      <dt style="color: #5E5A50">Pickup, 1.4 mi</dt><dd style="margin: 0; text-align: right">[PICKUP COST]</dd>
+      <dt style="color: #5E5A50">Repairs</dt><dd style="margin: 0; text-align: right">[YOUR ESTIMATE]</dd>
+    </dl>
+    <div style="display: flex; justify-content: space-between; align-items: baseline; padding-top: 10px; border-top: 1px solid #E2DDD0">
+      <span style="font-size: 15px; font-weight: 600">Bid at most</span>
+      <span style="font-size: 26px; font-weight: 700; color: {{accent}}">[MAX BID]</span>
+    </div>
+    <p style="margin: 0; font-size: 12px; color: #5E5A50">Values the research could not verify are marked "unverified" wherever they are used.</p>
+  </section>
+
+  <section aria-labelledby="plan" style="margin: 12px 16px 0 16px; padding: 14px 16px; border-radius: 16px; background: #EEF3EF; display: flex; flex-direction: column; gap: 8px">
+    <h2 id="plan" style="margin: 0; font-size: 15px; font-weight: 700; color: #1F4D3A">The plan for this lot</h2>
+    <ul style="margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.5; color: #1D1B16">
+      <li>Enter your one maximum bid on the morning it closes.</li>
+      <li>Soft close: a late bid extends the sale, so a last-second bid gains nothing.</li>
+      <li>Pickup-only lots usually draw fewer bidders.</li>
+    </ul>
+  </section>
+
+  <div style="margin-top: auto; padding: 16px 16px 20px 16px; display: flex; flex-direction: column; gap: 10px; background: #F6F3EC">
+    <a href="https://www.gsaauctions.gov/auctions/preview/377882" style="display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; border-radius: 12px; background: {{accent}}; color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 700">
+      <span>Bid on GSA Auctions</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
+    </a>
+    <a href="Bids.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 48px; border-radius: 12px; border: 1.5px solid #1D1B16; color: #1D1B16; text-decoration: none; font-size: 15px; font-weight: 700">Watch and remind me</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C2410C","options":["#C2410C","#1F4D3A","#1D4ED8"]},"$preview":{"width":390,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#C2410C' };
+  }
+}
+</script>
+</body>
+</html>

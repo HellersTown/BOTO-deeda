@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Alerts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:"Public Sans",system-ui,sans-serif;background:#F6F3EC;color:#1D1B16;font-variant-numeric:tabular-nums}
+a{color:#9A3412}a:hover{color:#7C2D12}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F6F3EC">
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 8px 20px">
+    <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 28px; font-weight: 700">Alerts</h1>
+    <button type="button" style="min-height: 44px; padding: 0 12px; border: 0; background: transparent; font: inherit; font-size: 14px; font-weight: 600; color: #9A3412">Mark all read</button>
+  </header>
+
+  <main style="flex-grow: 1; overflow: hidden; display: flex; flex-direction: column">
+    <a href="Lot.dc.html" style="display: flex; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #E2DDD0; background: #FFFFFF; text-decoration: none; color: #1D1B16">
+      <span aria-label="Unread" style="width: 8px; height: 8px; margin-top: 7px; flex-shrink: 0; border-radius: 4px; background: {{accent}}"></span>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #92400E">Closing soon</span>
+        <span style="font-size: 15px; font-weight: 700">Dell Laptops</span>
+        <span style="font-size: 14px; line-height: 1.45; color: #4A463D">Closes today. The source does not publish the exact time, so place your bid early. Your walk-away number is [YOUR NUMBER].</span>
+        <span style="font-size: 12px; color: #5E5A50">8:00 AM</span>
+      </div>
+    </a>
+    <a href="Bids.dc.html" style="display: flex; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #E2DDD0; background: #FFFFFF; text-decoration: none; color: #1D1B16">
+      <span aria-label="Unread" style="width: 8px; height: 8px; margin-top: 7px; flex-shrink: 0; border-radius: 4px; background: {{accent}}"></span>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #9A3412">Outbid</span>
+        <span style="font-size: 15px; font-weight: 700">2013 Farber Bus</span>
+        <span style="font-size: 14px; line-height: 1.45; color: #4A463D">The current bid is $1,000.00, above your [YOUR BID]. Raise it only if your walk-away number allows.</span>
+        <span style="font-size: 12px; color: #5E5A50">Yesterday</span>
+      </div>
+    </a>
+    <a href="Hunts.dc.html" style="display: flex; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #E2DDD0; text-decoration: none; color: #1D1B16">
+      <span style="width: 8px; height: 8px; margin-top: 7px; flex-shrink: 0"></span>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #1F4D3A">Hunt</span>
+        <span style="font-size: 15px; font-weight: 700">Your hunt "Laptops near Milwaukee" found 2 lots</span>
+        <span style="font-size: 14px; line-height: 1.45; color: #4A463D">Here is everything that matches right now. New matches will arrive as they are listed.</span>
+        <span style="font-size: 12px; color: #5E5A50">Sep 29</span>
+      </div>
+    </a>
+    <a href="Bids.dc.html" style="display: flex; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #E2DDD0; text-decoration: none; color: #1D1B16">
+      <span style="width: 8px; height: 8px; margin-top: 7px; flex-shrink: 0"></span>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #4A463D">Closed</span>
+        <span style="font-size: 15px; font-weight: 700">White Boards</span>
+        <span style="font-size: 14px; line-height: 1.45; color: #4A463D">Final price [FINAL PRICE]. Record whether you won so your numbers improve.</span>
+        <span style="font-size: 12px; color: #5E5A50">Sep 27</span>
+      </div>
+    </a>
+  </main>
+
+  <nav aria-label="Primary" style="display: flex; border-top: 1px solid #E2DDD0; background: #FFFFFF; padding: 4px 6px 10px 6px">
+    <a href="Main.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <span>Search</span>
+    </a>
+    <a href="Hunts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+      <span>Hunts</span>
+    </a>
+    <a href="Bids.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5.5"></circle><path d="M12 13.5V22"></path></svg>
+      <span>Bids</span>
+    </a>
+    <a href="Alerts.dc.html" aria-current="page" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: {{accent}}; font-size: 11px; font-weight: 700">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+      <span>Alerts</span>
+    </a>
+    <a href="Profile.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
+      <span>Profile</span>
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C2410C","options":["#C2410C","#1F4D3A","#1D4ED8"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#C2410C' };
+  }
+}
+</script>
+</body>
+</html>

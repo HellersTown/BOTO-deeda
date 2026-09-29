@@ -1,0 +1,27 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-09-29T23:15:36Z" },
+  "title": "PaddleUp App Design",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "SignIn.dc.html":    { "x": 0,    "y": 0,    "w": 390,  "h": 844,  "title": "Sign in", "is_interactive": true },
+    "Main.dc.html":      { "x": 470,  "y": 0,    "w": 390,  "h": 844,  "title": "Search", "is_interactive": true },
+    "Lot.dc.html":       { "x": 940,  "y": 0,    "w": 390,  "h": 1180, "title": "Lot detail + walk-away number", "is_interactive": true },
+    "NewHunt.dc.html":   { "x": 1410, "y": 0,    "w": 390,  "h": 844,  "title": "New hunt (plain-language)", "is_interactive": true },
+    "Hunts.dc.html":     { "x": 1880, "y": 0,    "w": 390,  "h": 844,  "title": "Hunts", "is_interactive": true },
+    "Bids.dc.html":      { "x": 0,    "y": 1560, "w": 390,  "h": 844,  "title": "Bids & watchlist", "is_interactive": true },
+    "Alerts.dc.html":    { "x": 470,  "y": 1560, "w": 390,  "h": 844,  "title": "Alerts", "is_interactive": true },
+    "Profile.dc.html":   { "x": 940,  "y": 1560, "w": 390,  "h": 844,  "title": "Profile & plan", "is_interactive": true },
+    "Desktop.dc.html":   { "x": 1410, "y": 1560, "w": 1440, "h": 900,  "title": "Web: search (desktop)", "is_interactive": true }
+  },
+  "order": [
+    "SignIn.dc.html", "Main.dc.html", "Lot.dc.html", "NewHunt.dc.html", "Hunts.dc.html",
+    "Bids.dc.html", "Alerts.dc.html", "Profile.dc.html", "Desktop.dc.html"
+  ],
+  "notes": {
+    "rowMobile": { "x": 0, "y": -300, "text": "Mobile app: core flows", "kind": "title1", "maxW": 2270 },
+    "rowMore":   { "x": 0, "y": 1280, "text": "Bids, alerts, plan, and the web view", "kind": "title1", "maxW": 2850 }
+  },
+  "designSystems": []
+}

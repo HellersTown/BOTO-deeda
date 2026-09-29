@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:"Public Sans",system-ui,sans-serif;background:#F6F3EC;color:#1D1B16;font-variant-numeric:tabular-nums}
+a{color:#9A3412}a:hover{color:#7C2D12}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F6F3EC">
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 12px 20px">
+    <div style="font-family: Fraunces, Georgia, serif; font-size: 26px; font-weight: 700; letter-spacing: -0.5px">PaddleUp</div>
+    <button type="button" aria-label="Change location: ZIP 53202, 50 miles" style="display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid #D9D2C3; border-radius: 22px; background: #FFFFFF; font: inherit; font-size: 14px; font-weight: 600; color: #1D1B16">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
+      <span>53202 · 50 mi</span>
+    </button>
+  </header>
+
+  <form role="search" style="padding: 0 20px; display: flex; flex-direction: column; gap: 8px">
+    <label for="q" style="font-size: 13px; font-weight: 600; color: #5E5A50">Describe what you are looking for</label>
+    <div style="display: flex; gap: 8px">
+      <input id="q" type="search" value="laptop" style="flex-grow: 1; min-height: 48px; box-sizing: border-box; padding: 0 14px; border: 1.5px solid #1D1B16; border-radius: 12px; background: #FFFFFF; font: inherit; font-size: 16px; color: #1D1B16">
+      <button type="submit" aria-label="Search" style="width: 48px; height: 48px; border: 0; border-radius: 12px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      </button>
+    </div>
+    <p style="margin: 0; font-size: 13px; color: #5E5A50">Read as: <strong style="color: #1D1B16">laptop</strong> · within 50 mi of 53202 · every source type</p>
+  </form>
+
+  <div role="group" aria-label="Filters" style="display: flex; gap: 8px; padding: 14px 20px 6px 20px; overflow: hidden">
+    <button type="button" style="flex-shrink: 0; min-height: 36px; padding: 0 12px; border: 1px solid #1D1B16; border-radius: 18px; background: #1D1B16; color: #FFFFFF; font: inherit; font-size: 13px; font-weight: 600">Best match</button>
+    <button type="button" style="flex-shrink: 0; min-height: 36px; padding: 0 12px; border: 1px solid #D9D2C3; border-radius: 18px; background: #FFFFFF; font: inherit; font-size: 13px; font-weight: 500; color: #1D1B16">Closing soon</button>
+    <button type="button" style="flex-shrink: 0; min-height: 36px; padding: 0 12px; border: 1px solid #D9D2C3; border-radius: 18px; background: #FFFFFF; font: inherit; font-size: 13px; font-weight: 500; color: #1D1B16">Nearest</button>
+    <button type="button" style="flex-shrink: 0; min-height: 36px; padding: 0 12px; border: 1px solid #D9D2C3; border-radius: 18px; background: #FFFFFF; font: inherit; font-size: 13px; font-weight: 500; color: #1D1B16">Price</button>
+  </div>
+
+  <main style="flex-grow: 1; overflow: hidden; padding: 10px 20px 0 20px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 20px; font-weight: 600">2 lots within 50 mi</h1>
+      <span style="font-size: 13px; color: #5E5A50">Updated hourly</span>
+    </div>
+
+    <a href="Lot.dc.html" style="display: flex; gap: 12px; padding: 12px; background: #FFFFFF; border: 1px solid #E2DDD0; border-radius: 14px; text-decoration: none; color: #1D1B16">
+      <div style="width: 92px; height: 92px; flex-shrink: 0; border-radius: 10px; background: #E9E3D6; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5E5A50">Photo</div>
+      <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+        <div style="display: flex; gap: 6px; align-items: center">
+          <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #FFFFFF; background: #1F4D3A; padding: 2px 6px; border-radius: 4px">Federal</span>
+          <span style="font-size: 12px; color: #5E5A50">GSA Auctions</span>
+        </div>
+        <div style="font-size: 16px; font-weight: 700">Dell Laptops</div>
+        <div style="font-size: 13px; color: #5E5A50">Milwaukee, WI · 1.4 mi · pickup</div>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <span style="font-size: 16px; font-weight: 700">$85.00</span>
+          <span style="font-size: 12px; color: #92400E; background: #FEF3C7; padding: 2px 6px; border-radius: 4px">Closes Oct 2 · time unpublished</span>
+        </div>
+      </div>
+    </a>
+
+    <a href="Lot.dc.html" style="display: flex; gap: 12px; padding: 12px; background: #FFFFFF; border: 1px solid #E2DDD0; border-radius: 14px; text-decoration: none; color: #1D1B16">
+      <div style="width: 92px; height: 92px; flex-shrink: 0; border-radius: 10px; background: #E9E3D6; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5E5A50">Photo</div>
+      <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+        <div style="display: flex; gap: 6px; align-items: center">
+          <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #FFFFFF; background: #1F4D3A; padding: 2px 6px; border-radius: 4px">Federal</span>
+          <span style="font-size: 12px; color: #5E5A50">GSA Auctions</span>
+        </div>
+        <div style="font-size: 16px; font-weight: 700">Dell Laptops</div>
+        <div style="font-size: 13px; color: #5E5A50">Milwaukee, WI · 1.4 mi · pickup</div>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <span style="font-size: 16px; font-weight: 700">$10.00</span>
+          <span style="font-size: 12px; color: #92400E; background: #FEF3C7; padding: 2px 6px; border-radius: 4px">Closes Oct 2 · time unpublished</span>
+        </div>
+      </div>
+    </a>
+
+    <button type="button" style="display: flex; justify-content: space-between; align-items: center; min-height: 48px; padding: 0 14px; border: 1px dashed #BDB4A2; border-radius: 12px; background: transparent; font: inherit; font-size: 14px; color: #1D1B16">
+      <span>29 more matches farther than 50 mi</span>
+      <span style="font-weight: 700">Show</span>
+    </button>
+
+    <a href="NewHunt.dc.html" style="display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 14px; background: {{accent}}; color: #FFFFFF; text-decoration: none">
+      <span style="font-size: 16px; font-weight: 700">Save as a hunt</span>
+      <span style="font-size: 13px; color: #FFF1E8">Keeps searching every source and alerts you when a new match is listed.</span>
+    </a>
+  </main>
+
+  <nav aria-label="Primary" style="display: flex; border-top: 1px solid #E2DDD0; background: #FFFFFF; padding: 4px 6px 10px 6px">
+    <a href="Main.dc.html" aria-current="page" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: {{accent}}; font-size: 11px; font-weight: 700">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <span>Search</span>
+    </a>
+    <a href="Hunts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+      <span>Hunts</span>
+    </a>
+    <a href="Bids.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5.5"></circle><path d="M12 13.5V22"></path></svg>
+      <span>Bids</span>
+    </a>
+    <a href="Alerts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+      <span>Alerts</span>
+    </a>
+    <a href="Profile.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
+      <span>Profile</span>
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C2410C","options":["#C2410C","#1F4D3A","#1D4ED8"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#C2410C' };
+  }
+}
+</script>
+</body>
+</html>
