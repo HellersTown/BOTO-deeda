@@ -34,8 +34,9 @@ insert into sources (
  'Limits: 5,000 calls/day and 5 calls per 5 seconds, hence rate_limit_rpm 60. '
  'Takes NO filter parameters, so one request returns every listing from every agency and filtering happens in our own database - which means one request per crawl cycle and no pagination. '
  'TWO TRAPS: (1) PropertyState is where the item IS (pickup) while LocationST is the selling agency''s state - mapping the wrong one hides Wisconsin inventory from Wisconsin buyers. '
- '(2) AucEndDt is 10 chars, a DATE WITH NO TIME, and sales soft-close after InactivityTime minutes of no bidding, so the true close is indeterminate from the API alone. Do not promise second-level countdowns on GSA lots.',
- 60, false, false, 30, 0,
+ '(2) AucEndDt is 10 chars, a DATE WITH NO TIME, and sales soft-close after InactivityTime minutes of no bidding, so the true close is indeterminate from the API alone. Do not promise second-level countdowns on GSA lots. '
+ 'Cadence 60, not 30, while the crawler runs on api.data.gov''s shared DEMO_KEY (30 calls/hour and 50/day per IP, and Edge Function IPs are shared): 24 calls/day leaves headroom. Return it to 30 once GSA_API_KEY is set as a Supabase secret.',
+ 60, false, false, 60, 0,
  null, 'Federal surplus across all participating agencies.',
  'https://www.gsaauctions.gov/robots.txt', null),
 
