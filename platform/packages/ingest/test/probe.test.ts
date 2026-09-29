@@ -65,6 +65,47 @@ test('a site merely served THROUGH Cloudflare is not blocked', () => {
   assert.equal(s.challenge, false);
 });
 
+// Cloudflare's passive "JavaScript detections" snippet, which Cloudflare injects
+// into ordinary pages it serves (shape as Cloudflare serves it; values made up).
+// It loads /cdn-cgi/challenge-platform/scripts/jsd/main.js, and matching that
+// bare path marked a live, working auction site "blocked" on the first run.
+const CF_JSD_PAGE = `<!DOCTYPE html><html><head><title>Online Auctions Near Me – Example Auction &amp; Realty</title></head>
+<body><h1>Upcoming auctions</h1><a href="https://bids.example-auction.com/">Bid now</a>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');
+d.innerHTML="window.__CF$cv$params={r:'8c1f0000aaaa0000',t:'MTcyNzU3NjAwMA=='};var a=document.createElement('script');
+a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
+b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;
+a.style.visibility='hidden';document.body.appendChild(a);c()}})();</script></body></html>`;
+
+test("Cloudflare's passive JS-detection script on a real page is not a challenge", () => {
+  const s = detectBlock(200, { server: 'cloudflare', 'cf-ray': 'a428-PDX' }, CF_JSD_PAGE);
+  assert.equal(s.blockedBy, null);
+  assert.equal(s.challenge, false);
+  assert.equal(s.evidence, null);
+
+  // The interstitial's own orchestrate script is still recognised on its own,
+  // with the markup that matched kept as evidence.
+  const shell = `<html><head><title>example.com</title></head><body><script>var a=document.createElement('script');
+a.src='/cdn-cgi/challenge-platform/h/b/orchestrate/managed/v1?ray=8c1f';</script></body></html>`;
+  const c = detectBlock(200, { server: 'cloudflare' }, shell);
+  assert.equal(c.blockedBy, 'cloudflare');
+  assert.match(c.evidence ?? '', /orchestrate\/managed/);
+});
+
+test('every verdict carries the evidence that produced it', () => {
+  assert.equal(detectBlock(403, { server: 'AkamaiGHost' }, AKAMAI_DENIED).evidence, 'server: AkamaiGHost');
+  assert.match(detectBlock(403, {}, AKAMAI_PLAIN).evidence ?? '', /Reference #18\.4b2f1602/);
+  assert.match(detectBlock(200, {}, INCAPSULA).evidence ?? '', /_Incapsula_Resource/);
+  assert.match(detectBlock(200, { server: 'cloudflare' }, CF_CHALLENGE).evidence ?? '', /Just a moment/);
+  assert.equal(detectBlock(200, { 'cf-mitigated': 'challenge' }, '').evidence, 'cf-mitigated: challenge');
+  // Evidence is capped so a probe row never stores a page, even when the matched
+  // markup itself is long.
+  const long = `<script src="/challenge.js?${'x'.repeat(5000)}awswaf"></script>`;
+  const w = detectBlock(202, {}, long);
+  assert.equal(w.blockedBy, 'aws_waf');
+  assert.equal((w.evidence ?? '').length, 240);
+});
+
 test('Akamai Access Denied is detected with and without the AkamaiGHost header', () => {
   assert.equal(detectBlock(403, { server: 'AkamaiGHost' }, AKAMAI_DENIED).blockedBy, 'akamai');
   assert.equal(detectBlock(403, {}, AKAMAI_PLAIN).blockedBy, 'akamai');
@@ -157,6 +198,52 @@ test('blocked: a bare 403 on the home page is a refusal even without vendor mark
   const c = concludeProbe('https://x.test/', 'WaystockBot', [obs('robots', 404), obs('home', 403, '<h1>Forbidden</h1>')]);
   assert.equal(c.accessStatus, 'blocked');
   assert.match(c.note, /HTTP 403 refusal/);
+});
+
+test('a bare refusal names the edge that answered it', () => {
+  // Shapes seen live on 2026-09-29: AuctionZip behind CloudFront, K-BID behind an
+  // AWS load balancer. Neither serves a vendor page, both refuse our identity.
+  const cf = concludeProbe('https://x.test/', 'WaystockBot', [
+    obs('robots', 200, 'User-agent: *\nDisallow:\n'),
+    obs('home', 403, '<html><head><title>403 Forbidden</title></head></html>', { server: 'CloudFront', 'x-cache': 'Error from cloudfront' }),
+  ]);
+  assert.equal(cf.accessStatus, 'blocked');
+  assert.match(cf.note, /home: HTTP 403 refusal from CloudFront/);
+
+  const elb = concludeProbe('https://x.test/', 'WaystockBot', [
+    obs('robots', 403, '', { server: 'awselb/2.0' }),
+    obs('home', 403, '<html><head><title>403 Forbidden</title></head></html>', { server: 'awselb/2.0' }),
+  ]);
+  assert.equal(elb.accessStatus, 'blocked');
+  assert.match(elb.note, /home: HTTP 403 refusal from awselb\/2\.0/);
+});
+
+// Probe observations on named hosts, for the cross-host robots cases.
+const at = (target: ProbeObservation['target'], url: string, status: number, body = ''): ProbeObservation => ({
+  target, url, status, finalUrl: url, headers: {}, body, bytes: body.length, latencyMs: 10, error: null,
+});
+
+test('robots.txt is judged against a page on its own host, never another host', () => {
+  // A marketing site whose lots live on a bidding subdomain: the source URL's path
+  // is disallowed by the SUBDOMAIN's robots.txt, but that file does not govern
+  // www. What it governs is the subdomain page we fetched, which it allows.
+  const ok = concludeProbe('https://www.example-auction.com/auctions/current', 'WaystockBot', [
+    at('robots', 'https://bids.example-auction.com/robots.txt', 200, 'User-agent: *\nDisallow: /auctions/\nDisallow: /api/\n'),
+    at('home', 'https://www.example-auction.com/auctions/current', 200, NORMAL_PAGE),
+    at('listing', 'https://bids.example-auction.com/', 200, NORMAL_PAGE),
+  ]);
+  assert.equal(ok.accessStatus, 'open');
+  assert.equal(ok.robotsAllows, true);
+  assert.match(ok.note, /robots\.txt \(bids\.example-auction\.com\) permits our crawler on \//);
+
+  // And when the subdomain's rules do exclude the page we would crawl, we honour them.
+  const no = concludeProbe('https://www.example-auction.com/', 'WaystockBot', [
+    at('robots', 'https://bids.example-auction.com/robots.txt', 200, 'User-agent: WaystockBot\nDisallow: /\n'),
+    at('home', 'https://www.example-auction.com/', 200, NORMAL_PAGE),
+    at('listing', 'https://bids.example-auction.com/', 200, NORMAL_PAGE),
+  ]);
+  assert.equal(no.accessStatus, 'robots_disallowed');
+  assert.match(no.note, /disallows WaystockBot on bids\.example-auction\.com\//);
 });
 
 test('unreachable: every page failed at the network level', () => {

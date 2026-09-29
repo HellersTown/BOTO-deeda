@@ -32,7 +32,15 @@ export interface BlockSignal {
   challenge: boolean;
   /** Human-readable reason, stored with the probe for later audit. */
   reason: string | null;
+  /**
+   * The header, or the markup with a little context, that produced the verdict.
+   * Stored so a verdict can be audited without fetching the page again: the first
+   * live run marked a working site blocked, and only the evidence shows why.
+   */
+  evidence: string | null;
 }
+
+const NO_BLOCK: BlockSignal = { blockedBy: null, challenge: false, reason: null, evidence: null };
 
 /**
  * Did a bot manager intercept this response?
@@ -52,64 +60,102 @@ export function detectBlock(
   const b = body.slice(0, 200_000);
   const refused = status === 401 || status === 403 || status === 405 || status === 429 || status === 503;
 
-  // Cloudflare: the explicit header is authoritative; otherwise the challenge markup.
+  // The matched markup plus ~60 characters either side, whitespace-collapsed.
+  const find = (re: RegExp): string | null => {
+    const m = re.exec(b);
+    if (!m) return null;
+    return b.slice(Math.max(0, m.index - 60), m.index + m[0].length + 60).replace(/\s+/g, ' ').trim();
+  };
+  const block = (blockedBy: BlockVendor, challenge: boolean, reason: string, evidence: string | null): BlockSignal =>
+    ({ blockedBy, challenge, reason, evidence: evidence ? evidence.slice(0, 240) : null });
+
+  // Cloudflare: the explicit header is authoritative; otherwise the interstitial's
+  // own markup. NOT the bare /cdn-cgi/challenge-platform/ path: Cloudflare injects
+  // its passive "JavaScript detections" script (.../scripts/jsd/main.js) into
+  // ordinary pages, and matching that marked a live, working site as blocked
+  // (Beloit Auction & Realty, first live probe, 2026-09-29). A real interstitial
+  // loads an .../orchestrate/... script and sets window._cf_chl_opt.
   if (h('cf-mitigated').toLowerCase() === 'challenge') {
-    return { blockedBy: 'cloudflare', challenge: true, reason: 'cf-mitigated: challenge' };
+    return block('cloudflare', true, 'cf-mitigated: challenge', 'cf-mitigated: challenge');
   }
-  if (
-    /<title>\s*(just a moment\.\.\.|attention required! \| cloudflare)\s*<\/title>/i.test(b) ||
-    /\/cdn-cgi\/challenge-platform\//i.test(b) ||
-    /window\._cf_chl_opt/i.test(b)
-  ) {
-    return { blockedBy: 'cloudflare', challenge: true, reason: 'Cloudflare challenge page' };
-  }
-  if (server.includes('cloudflare') && refused && /cloudflare/i.test(b) && /(ray id|error code: 10\d\d)/i.test(b)) {
-    return { blockedBy: 'cloudflare', challenge: false, reason: `Cloudflare refusal HTTP ${status}` };
+  const cfChallenge = find(
+    /<title>\s*(?:just a moment\.\.\.|attention required! \| cloudflare)\s*<\/title>|\/cdn-cgi\/challenge-platform\/[^"'\s]*orchestrate\/|window\._cf_chl_opt/i,
+  );
+  if (cfChallenge) return block('cloudflare', true, 'Cloudflare challenge page', cfChallenge);
+  if (server.includes('cloudflare') && refused && /cloudflare/i.test(b)) {
+    const ray = find(/ray id|error code: 10\d\d/i);
+    if (ray) return block('cloudflare', false, `Cloudflare refusal HTTP ${status}`, ray);
   }
 
   // Akamai: "Access Denied ... Reference #18.xxxx" from AkamaiGHost.
-  if ((server.includes('akamaighost') || /errors\.edgesuite\.net/i.test(b)) && refused) {
-    return { blockedBy: 'akamai', challenge: false, reason: `Akamai refusal HTTP ${status}` };
+  if (refused && server.includes('akamaighost')) {
+    return block('akamai', false, `Akamai refusal HTTP ${status}`, `server: ${h('server')}`);
   }
-  if (refused && /<title>\s*access denied\s*<\/title>/i.test(b) && /reference\s*#\d+\.[0-9a-f.]+/i.test(b)) {
-    return { blockedBy: 'akamai', challenge: false, reason: 'Akamai Access Denied page' };
+  if (refused) {
+    const edgesuite = find(/errors\.edgesuite\.net/i);
+    if (edgesuite) return block('akamai', false, `Akamai refusal HTTP ${status}`, edgesuite);
+    if (/<title>\s*access denied\s*<\/title>/i.test(b)) {
+      const ref = find(/reference\s*#\d+\.[0-9a-f.]+/i);
+      if (ref) return block('akamai', false, 'Akamai Access Denied page', ref);
+    }
   }
 
   // PerimeterX / HUMAN.
-  if (/(px-captcha|_pxCaptcha|perimeterx|human security)/i.test(b) && (refused || /px-captcha/i.test(b))) {
-    return { blockedBy: 'perimeterx', challenge: true, reason: 'PerimeterX challenge' };
-  }
+  const px = find(/px-captcha|_pxCaptcha|perimeterx|human security/i);
+  if (px && (refused || /px-captcha/i.test(b))) return block('perimeterx', true, 'PerimeterX challenge', px);
 
   // DataDome.
   if (h('x-datadome') || server.includes('datadome') || /geo\.captcha-delivery\.com/i.test(b)) {
     if (refused || /captcha-delivery/i.test(b)) {
-      return { blockedBy: 'datadome', challenge: true, reason: 'DataDome challenge' };
+      const dd = find(/captcha-delivery\.com/i) ?? (h('x-datadome') ? `x-datadome: ${h('x-datadome')}` : `server: ${h('server')}`);
+      return block('datadome', true, 'DataDome challenge', dd);
     }
   }
 
   // Imperva / Incapsula.
-  if (/(incapsula incident id|_incapsula_resource)/i.test(b) || (h('x-iinfo') && refused)) {
-    return { blockedBy: 'incapsula', challenge: true, reason: 'Imperva/Incapsula interstitial' };
-  }
+  const incapsula = find(/incapsula incident id|_incapsula_resource/i);
+  if (incapsula) return block('incapsula', true, 'Imperva/Incapsula interstitial', incapsula);
+  if (h('x-iinfo') && refused) return block('incapsula', true, 'Imperva/Incapsula interstitial', `x-iinfo: ${h('x-iinfo')}`);
 
   // AWS WAF: challenge responses are often HTTP 202 with an integration script.
-  if (h('x-amzn-waf-action') || /(awswafintegration|aws-waf-token|challenge\.js.*awswaf)/i.test(b)) {
+  const waf = find(/awswafintegration|aws-waf-token|challenge\.js.*awswaf/i);
+  if (h('x-amzn-waf-action') || waf) {
     if (refused || status === 202 || /awswafintegration/i.test(b)) {
-      return { blockedBy: 'aws_waf', challenge: true, reason: `AWS WAF challenge HTTP ${status}` };
+      return block('aws_waf', true, `AWS WAF challenge HTTP ${status}`, waf ?? `x-amzn-waf-action: ${h('x-amzn-waf-action')}`);
     }
   }
 
   // Sucuri.
-  if (h('x-sucuri-block') || /sucuri website firewall - access denied/i.test(b)) {
-    return { blockedBy: 'sucuri', challenge: false, reason: 'Sucuri firewall block' };
+  const sucuri = find(/sucuri website firewall - access denied/i);
+  if (h('x-sucuri-block') || sucuri) {
+    return block('sucuri', false, 'Sucuri firewall block', sucuri ?? `x-sucuri-block: ${h('x-sucuri-block')}`);
   }
 
   // A CAPTCHA wall with a refusal status, vendor unknown.
-  if (refused && /(g-recaptcha|hcaptcha\.com|cf-turnstile|captcha)/i.test(b)) {
-    return { blockedBy: 'captcha', challenge: true, reason: `CAPTCHA wall HTTP ${status}` };
+  if (refused) {
+    const captcha = find(/g-recaptcha|hcaptcha\.com|cf-turnstile|captcha/i);
+    if (captcha) return block('captcha', true, `CAPTCHA wall HTTP ${status}`, captcha);
   }
 
-  return { blockedBy: null, challenge: false, reason: null };
+  return NO_BLOCK;
+}
+
+/**
+ * Who answered a bare refusal, for the audit note: CloudFront marks its own
+ * error responses "x-cache: Error from cloudfront"; otherwise the server header
+ * (an AWS load balancer answers as awselb/2.0).
+ */
+function edgeOf(headers: Record<string, string>): string | null {
+  if (/error from cloudfront/i.test(headers['x-cache'] ?? '')) return 'CloudFront';
+  return headers['server'] || null;
+}
+
+function hostOf(url: string): string | null {
+  try {
+    return new URL(url).host.toLowerCase();
+  } catch {
+    return null;
+  }
 }
 
 /** Every schema.org @type published in the page's JSON-LD (Product, Event, Offer...). */
@@ -206,6 +252,19 @@ export function concludeProbe(
   const blocks: string[] = [];
   const rows: Record<string, unknown>[] = [];
 
+  // robots.txt governs only its own host. When it was fetched from another host
+  // than the source URL (a marketing site whose lots live on bids.example.com),
+  // judge the page we fetched on THAT host, never one host's rules against
+  // another host's path.
+  const robotsHost = hostOf(observations.find((o) => o.target === 'robots')?.url ?? '');
+  const sourceHost = hostOf(sourceUrl);
+  const crossHost = robotsHost !== null && sourceHost !== null && robotsHost !== sourceHost;
+  const pageOnRobotsHost = observations.find((o) => o.target !== 'robots' && hostOf(o.url) === robotsHost);
+  const robotsPath = crossHost
+    ? robotsPathOf(pageOnRobotsHost?.url ?? `https://${robotsHost}/`)
+    : robotsPathOf(sourceUrl);
+  const robotsWhere = crossHost ? `${robotsHost}${robotsPath}` : robotsPath;
+
   for (const o of observations) {
     const block = detectBlock(o.status, o.headers, o.body);
     if (block.blockedBy || block.challenge) blocks.push(`${o.target}: ${block.reason}`);
@@ -224,6 +283,7 @@ export function concludeProbe(
       error: o.error,
       detail: {
         reason: block.reason,
+        evidence: block.evidence,
         cf_ray: o.headers['cf-ray'] ?? null,
         x_cache: o.headers['x-cache'] ?? null,
         // Evidence that we saw the real page (or the real refusal), kept short.
@@ -236,7 +296,7 @@ export function concludeProbe(
       const v = block.blockedBy ? 'unreachable' : robotsVerdictFromStatus(o.status);
       if (v === 'rules') {
         parsed = parseRobots(o.body);
-        const allowed = isAllowed(parsed, token, robotsPathOf(sourceUrl));
+        const allowed = isAllowed(parsed, token, robotsPath);
         robotsVerdict = allowed ? 'allowed' : 'disallowed';
         sitemaps = parsed.sitemaps.slice(0, 20);
         crawlDelaySec = groupFor(parsed, token)?.crawlDelaySec ?? null;
@@ -262,7 +322,8 @@ export function concludeProbe(
   // two are judged differently.
   for (const o of pages) {
     if ((o.status === 401 || o.status === 403 || o.status === 429) && !detectBlock(o.status, o.headers, o.body).blockedBy) {
-      blocks.push(`${o.target}: HTTP ${o.status} refusal (vendor not identified)`);
+      const edge = edgeOf(o.headers);
+      blocks.push(`${o.target}: HTTP ${o.status} refusal${edge ? ` from ${edge}` : ''} (no bot-manager page identified)`);
     }
   }
   const reachablePage = pages.some((o) => o.status >= 200 && o.status < 400);
@@ -288,13 +349,14 @@ export function concludeProbe(
   } else if (robotsVerdict === 'disallowed') {
     accessStatus = 'robots_disallowed';
     robotsAllows = false;
-    note = `robots.txt disallows ${token} on ${robotsPathOf(sourceUrl)}.`;
+    note = `robots.txt disallows ${token} on ${robotsWhere}.`;
   } else if (reachablePage) {
     accessStatus = 'open';
     robotsAllows = true;
+    const on = crossHost ? ` (${robotsHost})` : '';
     note = robotsVerdict === 'absent'
-      ? 'No robots.txt (4xx): crawling permitted per RFC 9309. Pages load without a challenge.'
-      : 'robots.txt permits our crawler and pages load without a challenge.';
+      ? `No robots.txt${on} (4xx): crawling permitted per RFC 9309. Pages load without a challenge.`
+      : `robots.txt${on} permits our crawler on ${robotsPath} and pages load without a challenge.`;
   } else {
     accessStatus = 'unknown';
     robotsAllows = null;
