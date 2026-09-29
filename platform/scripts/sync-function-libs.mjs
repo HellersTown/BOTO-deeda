@@ -20,6 +20,7 @@ export const FUNCTION_LIBS = {
   'probe-sources': ['http.ts', 'robots.ts', 'probe.ts', 'jsonld.ts', 'money.ts', 'types.ts'],
   'crawl-worker': ['http.ts', 'types.ts', 'money.ts', 'adapters/gsa.ts'],
   'load-gazetteer': ['http.ts'],
+  'inspect-page': ['http.ts', 'robots.ts', 'probe.ts', 'jsonld.ts', 'money.ts', 'types.ts'],
 };
 
 export const HEADER = (file) =>
