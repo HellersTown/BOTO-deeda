@@ -1,0 +1,252 @@
+<!--
+  REAL CAPTURE, TRIMMED. Public Surplus region search, Wisconsin, page=1 (displayed
+  as "2"):
+    https://www.publicsurplus.com/sms/all,wi/browse/search?posting=y&endHours=-1&startHours=-1&page=1
+  fetched 2026-09-30 (server time 1790783669146) as WaystockBot via inspect_url.
+  One raw slice (offset 64000-84000): the search form (its hidden `page` input is how
+  the site's srchPage() paginates), the pagination block above the results, and the
+  first two grid cards. The category/"ending in"/price/zip controls of the form were
+  cut, as were the "Located" and all non-WI region <option>s. The slice ended inside
+  the second card after its time-left script; the closing tags after that point
+  are added to make the document well formed. Nothing else is added.
+-->
+<html>
+<head><title>Public Surplus: Search an auction</title></head>
+<body>
+	<h1 class="nav-sub-head fs-6">
+		Search Auctions
+	</h1>
+
+	<div class="py-4 px-3 px-lg-4">
+
+		<form action="/sms/all,wi/browse/search" method="GET" name="search">
+			<input type="hidden" name="posting" value="y"/>
+			<input type="hidden" name="slth" value=""/>
+			<input type="hidden" name="page"
+				   value="1"/>
+			<input type="hidden" name="sortBy" value=""/>
+ 			<input type="hidden" name="sortDesc" value="N" />
+
+			<div class="row mb-4 align-items-center">
+				<div class="col col-lg-4">
+					<select id="inRegion" class="form-select" name="region">
+						<option value="" >All</option>
+    <option value="all,wi" selected>
+        Wisconsin
+    </option>
+					</select>
+				</div>
+			</div>
+		</form>
+	</div>
+		<div class="me-col">
+	<div class="ajax-loading-pagination">
+			<div class="d-flex justify-content-center align-items-center mt-2">
+					<span class="fw-bold me-2" role="button" onclick="srchPage('0');">
+						<span class="small">&laquo;</span>
+					</span>
+					<span class="fw-bold me-2" role="button" onclick="srchPage('0');">
+						<span class="small me-1">&#139;</span>Prev
+					</span>
+					<span class="me-2" role="button" onclick="srchPage('0');">
+						1
+					</span>
+								<strong class="me-2">
+						2
+					</strong>
+								<span class="me-2" role="button" onclick="srchPage('2');">
+						3
+					</span>
+								<span class="me-2" role="button" onclick="srchPage('3');">
+						4
+					</span>
+			&nbsp;
+				<span class="fw-bold me-2" role="button" onclick="srchPage('2');">
+					 Next<span class="small ms-1">&#155;</span>
+				</span>
+				<span class="fw-bold me-2" role="button" onclick="srchPage('3');">
+					<span class="small">&raquo;</span>
+				</span>
+		  </div>
+	</div>
+
+		</div>
+
+                        </section>
+                    </div>
+
+
+		<div class="wide-content-container w-100">
+			<div class="w-100 ps-border-bottom-gross d-none d-md-block"></div>
+				<div id="auctionGridView" class="w-100 p-2" >
+		<div class="mb-2 auction-items__container" id="auction_item">
+			<section class="w-100 ps-card-feat"  id="auctionsListContainer">
+
+
+				<div class="auction-item" id="4095281searchGrid">
+					<div class="auction-item-img">
+						<a
+								href="/sms/all,wi/auction/view?auc=4095281"
+						>
+									<div class="position-relative lazy-loading-container lazy-loading-container-loader">
+										<img
+											class="lazy-img-loading"
+											loading="lazy"
+											src="https://d37qv0n5b4mbzm.cloudfront.net/sms/docviewer/cdnmainaucdoc/thumb-b/4095281/70616916"
+											alt="Picture"
+										/>
+<div class="loading-spinner lazy-loading-icon" style="" role="status" aria-hidden="true">
+<div class="load-spinner__roller">
+<div><div></div></div><div><div></div></div><div><div></div></div><div><div></div></div><div><div></div></div><div><div></div></div><div><div></div></div><div><div></div></div>
+</div>
+</div>									</div>
+						</a>
+						<span class="auction-item-state">
+							WI
+						</span>
+					</div>
+					<div class="auction-item-body px-0">
+						<div id="ai_4095281searchGrid" class="hidden">
+							<div class="d-flex align-items-center">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+							</div>
+						</div>
+
+						<h6 class="w-100 card-title ps-card-feat__body--title ps-1 mb-2">
+							<a
+									href="/sms/all,wi/auction/view?auc=4095281"
+								title="#4095281 - Polycom Trio Conference Phone"
+							>
+								#4095281 - Polycom Trio Conference Phone
+							</a>
+						</h6>
+
+						<div class="w-100 ps-card__body--children px-1">
+								Price:
+								<b id="val_4095281searchGrid">
+										$25.00
+								</b>
+								<br/>
+
+								<div class="fw-bold">
+	<div id="timeLeft4095281searchGrid" class="d-inline w-100 auction-time_left">
+			<label class="text-nowrap w-auto align-self-center fw-normal">
+				Time Left:
+			</label>
+			<span id="timeLeftValue4095281searchGrid" class="">
+					5 days 9 hours
+			</span>
+	</div>
+
+		<script>
+			updateTimeLeftSpan(timeLeftInfoMap, 4095281, "4095281searchGrid",
+				1790783669146, 1791248400000, 0,
+				0, "", "", "searchList"
+				, timeLeftCallback);
+		</script>
+								</div>
+						</div>
+
+						<div id="buttons" class="d-flex w-100 justify-content-end align-items-center mt-auto">
+						</div>
+					</div>
+				</div>
+
+
+				<div class="auction-item" id="4095282searchGrid">
+					<div class="auction-item-img">
+						<a
+								href="/sms/all,wi/auction/view?auc=4095282"
+						>
+									<div class="position-relative lazy-loading-container lazy-loading-container-loader">
+										<img
+											class="lazy-img-loading"
+											loading="lazy"
+											src="https://d37qv0n5b4mbzm.cloudfront.net/sms/docviewer/cdnmainaucdoc/thumb-b/4095282/68563688"
+											alt="Picture"
+										/>
+<div class="loading-spinner lazy-loading-icon" style="" role="status" aria-hidden="true">
+<div class="load-spinner__roller">
+<div><div></div></div><div><div></div></div><div><div></div></div><div><div></div></div><div><div></div></div><div><div></div></div><div><div></div></div><div><div></div></div>
+</div>
+</div>									</div>
+						</a>
+						<span class="auction-item-state">
+							WI
+						</span>
+					</div>
+					<div class="auction-item-body px-0">
+						<div id="ai_4095282searchGrid" class="hidden">
+							<div class="d-flex align-items-center">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+							</div>
+						</div>
+
+						<h6 class="w-100 card-title ps-card-feat__body--title ps-1 mb-2">
+							<a
+									href="/sms/all,wi/auction/view?auc=4095282"
+								title="#4095282 - Cable Carrier"
+							>
+								#4095282 - Cable Carrier
+							</a>
+						</h6>
+
+						<div class="w-100 ps-card__body--children px-1">
+								Price:
+								<b id="val_4095282searchGrid">
+										$50.00
+								</b>
+								<br/>
+
+								<div class="fw-bold">
+	<div id="timeLeft4095282searchGrid" class="d-inline w-100 auction-time_left">
+			<label class="text-nowrap w-auto align-self-center fw-normal">
+				Time Left:
+			</label>
+			<span id="timeLeftValue4095282searchGrid" class="">
+					5 days 9 hours
+			</span>
+	</div>
+
+		<script>
+			updateTimeLeftSpan(timeLeftInfoMap, 4095282, "4095282searchGrid",
+				1790783669146, 1791248400000, 0,
+				0, "", "", "searchList"
+				, timeLeftCallback);
+		</script>
+								</div>
+						</div>
+					</div>
+				</div>
+			</section>
+		</div>
+				</div>
+		</div>
+</body>
+</html>

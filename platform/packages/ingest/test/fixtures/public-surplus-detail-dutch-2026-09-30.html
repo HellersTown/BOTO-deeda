@@ -1,0 +1,389 @@
+<!--
+  REAL CAPTURE, PARTIAL. Public Surplus auction detail page for a DUTCH auction
+  (quantity 3, price per unit "EACH"), seller Northcentral Technical College:
+    https://www.publicsurplus.com/sms/all,wi/auction/view?auc=4093846  (77,308 bytes)
+  fetched 2026-09-30 as WaystockBot via inspect_url, from two raw slices of that
+  page: offset 38000-58000 and 58000-end. The capture starts AFTER the page header,
+  so this file deliberately has no title span, no time-left script and no agency
+  block: it doubles as the "partial page" case, which must yield warnings, not a
+  throw. Removed: bid-form JavaScript, bidder-badge popups, the important-notice
+  modal, the uShip widget body, the translation widget, the Payment block, the
+  print-only duplicate of the dates, footer scripts, and five of the description's
+  nine paragraphs. Everything kept is verbatim.
+-->
+<html>
+<body>
+<!-- TIMELEFT -->
+	<div class="icon-info-common d-print-none">
+		<div style="display: inline-flex;">
+			<div>
+<i aria-hidden="true" class="bi bi-calendar3 " style="color: var(--ps-color-blue-bid-page-icon); "></i>			</div>
+			<div>
+					<!-- OPEN AUCTION DATES -->
+						<div class="align-items-start">
+							<div class="auctitle w-100 pe-0 me-0">
+									Auction Started
+							</div>
+							<div class="d-flex">
+									Sep 24, 2026 01:27 PM MDT
+							</div>
+							<div class="auctitle">
+								Auction Ends
+							</div>
+							<div>
+								Oct 1, 2026 02:00 PM MDT
+	<div class="text-danger fw-normal d-flex align-items-center">
+		This auction might extend
+	</div>
+							</div>
+						</div>
+			</div>
+		</div>
+	</div>
+
+
+				<div class="icon-info-common auction-print-details-item">
+					<div class="d-inline-flex">
+						<div>
+<i title="Pick-up Location" data-bs-toggle="tooltip" aria-label="Pick-up Location" data-bs-custom-class="icon-tooltip" class="bi bi-geo-alt " style="color: var(--ps-color-blue-bid-page-icon); "></i>						</div>
+						<div>
+							<div class="align-items-start">
+								<div class="auctitle">
+									Pick-up Location
+								</div>
+								<div>
+									<div>
+											NORTHCENTRAL TECHNICAL COLLEGE (1-Wausau)
+									</div>
+
+									<div class="overflow-wrap-anywhere">
+										<button
+												class="ps-button fw-bold text-start ms-0"
+												type="button"
+												color="link"
+												data-bs-toggle="modal"
+												data-bs-target="#iframeModal"
+												onclick="iframeModalBootstrap('iframeModal', '/sms/all,wi/auction/mapit?auc=4093846');"
+										><span class="text-black">[</span>1000 W CAMPUS DR
+											WAUSAU,
+												WI
+											54401<span class="text-black">]</span>
+										</button>
+										<div class="auction-print-address d-none d-print-block">
+											<div>1000 W CAMPUS DR</div>
+											<div>WAUSAU,
+												WI
+											54401</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="icon-info-common auction-print-details-item">
+					<div class="d-inline-flex">
+						<div>
+<i title="Auction Contact" data-bs-toggle="tooltip" aria-label="Auction Contact" data-bs-custom-class="icon-tooltip" class="bi bi-file-person " style=""></i>						</div>
+						<div>
+							<div class="align-items-start">
+								<div class="auctitle">
+									Auction Contact
+								</div>
+								<div>
+										<span class="small">Please login to view contact</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="icon-info-common auction-print-details-item">
+					<div class="d-inline-flex">
+						<div>
+<i title="Shipping" data-bs-toggle="tooltip" aria-label="Shipping" data-bs-custom-class="icon-tooltip" class="bi bi-truck " style=""></i>						</div>
+						<div>
+						<div class="align-items-start">
+							<div class="auctitle">
+								Shipping
+							</div>
+							<div>
+									Buyer must pickup item(s)
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+
+			<!-- RIGHT INFO -->
+			<div class="p-0 auction-ops border-top pt-2">
+			</div>
+                        <section class="lightbox border-bottom w-100 d-inline-flex flex-wrap">
+                            <section class="l-images p-0">
+
+		<iframe src="/sms/all,wi/auction/auctiongallery?txnId=&auc=4093846" frameborder="0" style="width: 100%;height: 100%;"></iframe>
+
+                            </section>
+                            <section class="bidonitem">
+
+	<form
+		action="/sms/all,wi/4093846/bid/verify"
+		name="theform"
+		method="post"
+		class="d-flex bid-on-item-form--en"
+	>
+		<input type=hidden name="auc" value="4093846"/>
+
+<input type="hidden" id="previousTotalAmount" value=""/>
+
+
+
+<div class="tab-bid w-100" id="bid-info">
+	<div class="bid-title--header bg-primary"></div>
+	<div class="d-flex justify-content-between align-items-center mb-2 bid-title text-white">
+		<div class="auc-head text-white ps-2">
+				Bid on Item
+		</div>
+
+		<div class="d-flex justify-content-between pe-2">
+			<div class="bid-info flex-nowrap">
+				<div class="justify-content-end">Region:</div>
+				<div>
+					<strong>WI</strong>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<!-- FIXED PRICE -->
+
+
+
+	<!-- BID ON ITEM -->
+		<div class="bid-info border-top">
+
+				<div class="justify-content-end border-end bidder-tooltip-selector">
+						High Bidder
+				</div>
+
+				<div class="fw-bold flex-wrap" id="highBidders">
+
+	<div class="user-ribbon-icon">
+		a******3
+
+	</div>
+
+				</div>
+
+
+			<!-- BID COUNT -->
+				<div class="justify-content-end border-end">
+					# of Bids
+				</div>
+				<div>
+					<span class="fw-bold" id="noOfBids">
+							1
+					</span>
+				</div>
+
+
+	<div class="justify-content-end border-end">
+				Current Price:
+	</div>
+	<div class="flex-wrap">
+		<strong id="val_4093846">
+				$5.00
+		</strong>
+	</div>
+
+
+
+					<div class="justify-content-end border-end">
+						Increment:
+					</div>
+					<div id="valIncrement_4093846">
+						$0.50
+					</div>
+
+					<div class="justify-content-end border-end">
+						Minimum bid:
+					</div>
+					<div id="minBid_4093846">
+						$5.00
+					</div>
+
+
+			<!-- QTY -->
+				<div class="justify-content-end border-end">
+					Quantity
+				</div>
+				<div>
+					3
+					<button type="button" class="ps-button ms-1" color="link" data-bs-toggle="modal" data-bs-target="#iframeModal"
+							onclick="iframeModalBootstrap('iframeModal', '/sms/all,wi/help/mainhelp.ftlh?frame1=public/gloss.ftlh&frame2=public/gloss_dutch.ftlh');"
+					>
+<img src="/sms/20260805/images/auction/dutch.gif" alt="dutch" class="align-baseline" style="" width="25" height="14"/>					</button>
+				</div>
+
+						<div class="justify-content-end border-end">
+							<label for="quantity">
+								Your Quantity:
+							</label>
+						</div>
+						<div>
+							<span class="invisible me-1">$</span>
+							<input
+									type="text"
+									id="quantity"
+									name="quantity"
+									class="form-control"
+									size="8"
+									maxlength="8"
+									onkeypress="validateBidAmount()"
+									onkeyup="validateBidAmount()"
+
+							/>
+						</div>
+
+						<div class="justify-content-end border-end">
+							<span class="text-danger">*</span>
+							<label for="maxBidAmount">
+									Your proxy bid:
+							</label>
+						</div>
+						<div class="flex-wrap">
+								<div class="d-flex align-items-center w-100">
+									<span class="me-1" id="maxBidAmountText">$</span>
+									<input type="text"
+										   class="form-control"
+										   name="maxBidAmount"
+										   value=""
+										   size="8"
+										   maxlength="18"
+										   id="maxBidAmount"
+										   aria-describedby="maxBidAmountText"
+
+									/>
+								</div>
+									<br />
+									<span class="text-center w-100">
+										EACH
+									</span>
+						</div>
+		</div>
+
+
+
+			<div class="bid-info">
+				<div class="justify-content-end border-end">
+					Currency:
+				</div>
+
+				<div>
+					USD
+
+				</div>
+
+					<div class="justify-content-end border-end">
+						Bid Deposit:
+					</div>
+					<div>
+		May Apply
+
+					</div>
+
+				<!-- BUY IT NOW PRICE -->
+
+			</div>
+
+</div>
+
+	</form>
+
+			<form name="uship" id="uship" action="https://www.uship.com/priceestimator2/" method="get" target="_blank">
+				<input name="z1" value="54401" type="hidden"/>
+				<input name="iurl" value="" type="hidden"/>
+				<input name="r" value="1493669" type="hidden"/>
+			</form>
+
+                            </section>
+                        </section>
+
+                        <section class="description">
+
+
+		<div class="p-2">
+			<!-- DESCR BOX -->
+			<div class="">
+				<div class="auc-head pb-1" >Description </div>
+				<div class="col">
+					<div>
+
+
+						<div class="d-flex mb-3 flex-wrap flex-sm-nowrap">
+							<div class="w-auto mt-2">
+
+									<div>
+										<span class="auctitle">Condition:</span>
+										<span>
+												FAIR
+										</span>
+									</div>
+
+								<!-- Fixed bug 5284 -->
+
+							</div>
+
+							<div class="w-auto mt-2 ms-0 ms-md-5">
+							</div>
+						</div>
+
+						<div style="overflow-wrap: anywhere">
+							  <div><div><span style="text-decoration: underline; font-size: 16px;"><strong><span style="font-family: arial, helvetica, sans-serif;">Aluminum Survey Tripod</span></strong></span></div><div><span style="font-size: 14px; font-family: arial, helvetica, sans-serif;">Collapsible Surveying Aluminum Tripod</span></div><div><p><span style="font-size: 14px; font-family: arial, helvetica, sans-serif;"><span style="color: #ff0000; font-size: 16px;"><strong><span style="text-decoration: underline;">ITEMS MUST BE PICKED UP WITHIN TEN (10) BUSINESS DAYS OF NOTICE OF AWARD!</span></strong></span><strong><span style="text-decoration: underline;"><br /> </span></strong>** Items must be paid for within five (5) business days.&nbsp; Items not paid for within the given time frame will be forfeited.</span><br /><span style="font-size: 14px; font-family: arial, helvetica, sans-serif;"> <strong>** Items paid for but</strong> <strong>not picked up within the given time frame will be forfeited</strong>. </span><br /><span style="font-size: 14px; font-family: arial, helvetica, sans-serif;"> ** No&nbsp;refunds, credits or exchanges.</span></p><p><span style="font-size: 14px; font-family: arial, helvetica, sans-serif;"><strong><span style="text-decoration: underline;">PICK-UP</span></strong><strong><span style="text-decoration: underline;"><br /> </span></strong>** Pick-up is Monday &ndash; Friday, 8:00 am &ndash; 3:00 pm at our Wausau campus, unless otherwise noted in the auction. </span></p><p><span style="font-size: 14px; font-family: arial, helvetica, sans-serif;"><strong><span style="text-decoration: underline;">NO SHIPPING<br /> </span></strong>** We do&nbsp;<span style="text-decoration: underline;">not&nbsp;provide</span> packaging or shipping (no exceptions)</span></p><p><span style="font-size: 14px; font-family: arial, helvetica, sans-serif;"><strong><span style="text-decoration: underline;">AS-IS, WHERE-IS</span></strong><strong><br /> </strong>All auction items may have general wear and tear from use.&nbsp; All items are offered in &ldquo;as-is, where-is&rdquo; condition without warranties or guarantees.&nbsp; No refunds, credits or exchanges.&nbsp; All sales are final.</span></p></div></div>
+						</div>
+
+
+					</div>
+				</div>
+			</div>
+
+			<!-- DOCUMENTS -->
+					<div class="auction-print-images d-none d-print-block border-top-0">
+						<div class="auc-head pb-1">
+							Pictures
+						</div>
+						<ul>
+								<li>
+										<img
+											class="img-thumbnail"
+											loading="eager"
+											src="https://d37qv0n5b4mbzm.cloudfront.net/sms/docviewer/cdnaucdoc/thumb-b/4093846/71867117"
+											alt="Picture"
+										/>
+								</li>
+						</ul>
+					</div>
+
+			<!-- ADDENDUMS -->
+		</div>
+
+                        </section>
+
+                        <section class="disclaimer">
+
+			<div class="col-12 p-2 overflow-wrap-anywhere">
+				<div class="auc-head pb-1 d-none d-print-block">
+					Disclaimer
+				</div>
+				The successful bidder is responsible for removal of item(s) from the agency's premises. The buyer is responsible for packing, loading, removing &amp; transporting of all property awarded to them. Please allow 24 hours after auction payment before attempting to pick up your item(s).<br>Removal must occur within ten (10) business days after notification of award of the winning bid. The Notice of Award, Payment Receipt, &amp; personal identification, must be presented at the time of pick-up, or the items will not be released to you. Items may be picked up from Central Services (Receiving) at the Wausau Campus Monday - Friday, 8:00 am to 3:00 pm, unless otherwise indicated on the auction posting.Payment for an awarded item must be received within five (5) business days after notice of award of the winning bid.Bid Deposits: NTC may require bid deposits to ensure fairness to all buyers.PayMac, handles all payments for NTC. Acceptable forms of payment are: Wire Transfer or Credit Card. NO CASH, CHECKS, OR MONEY ORDERS WILL BE ACCEPTED!NTC will charge a sales tax of 5.5%. The tax rate will be calculated at the time of bidding. When sales tax is included, the buyer shall add &amp; include the sales tax amount when making payment.Buyers Premium: A Buyers Premium of 10% will be added to the final sale price with a $1 minimum charge per auction for payment collections. This premium if applicable will be visible during the bidding process &amp; added to the total bid.All sales are final.
+				<div class="auction-print-footer-logo d-none d-print-block">
+					<img src="/sms/20260805/images/logoPS.png" alt="Public Surplus Logo"/>
+				</div>
+			</div>
+
+                        </section>
+</body>
+</html>
