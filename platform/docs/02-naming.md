@@ -1,5 +1,7 @@
 # Naming
 
+> **Decision (2026-09-30):** the owner named the product **Skeuos**. The research below, which recommended PaddleUp, is kept as it was written.
+
 Domain availability below was checked live against the registrar on
 2026-09-26. Availability moves; re-check before buying.
 

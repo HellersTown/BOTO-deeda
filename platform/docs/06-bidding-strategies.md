@@ -1,6 +1,6 @@
 # Bidding strategies
 
-What PaddleUp should tell a user about a lot: how high to go, when to bid, and
+What Skeuos should tell a user about a lot: how high to go, when to bid, and
 when to walk away. It also covers why each rule is there and how strong the
 evidence behind it is. Section 9 is a JSON rules spec the app can evaluate for
 every lot.
@@ -27,7 +27,7 @@ every lot.
 > | **[SE-2nd]** | Stated in an extract of a **secondary or third-party** page, for example a guide summarising a platform's rules. Confirm against the primary source before relying on it. |
 > | **UNVERIFIED** | No source this session. It comes from background knowledge, or is a common practitioner claim that could not be checked. Never show it to users as fact. |
 > | **PLACEHOLDER** | A parameter value that makes the calculator runnable. **It is not a measurement.** Replace it with a calibrated value before users see it as advice. |
-> | **INTERNAL** | Taken from PaddleUp's own code or docs, not from outside evidence. |
+> | **INTERNAL** | Taken from Skeuos's own code or docs, not from outside evidence. |
 > | **DESIGN** | A product choice, not a claim about the world. |
 >
 > **The biggest gap:** the brief asked for practitioner evidence from Reddit, reseller
@@ -43,7 +43,7 @@ every lot.
 
 ## 1. Executive summary
 
-PaddleUp cannot place bids itself: eBay's `placeProxyBid` is Limited Release, and no
+Skeuos cannot place bids itself: eBay's `placeProxyBid` is Limited Release, and no
 other platform has a bidding API (see [`00-architecture.md` §8](00-architecture.md)).
 So every strategy here takes the form *compute a number, pick a moment, alert the
 user, and deep-link to the lot*. That fits how the evidence says to bid anyway: one
@@ -65,7 +65,7 @@ number, entered once, at the right time.
      2002) [SE]. The measured saving is **small**: a statistically significant but small
      surplus gain in one field experiment (Ely & Hossain 2009) [SE], and 2.54% lower
      prices that were *not* significant in another (Gray & Reiley 2013) [SE].
-   - **Extending close (almost everything else PaddleUp indexes):** sniping is
+   - **Extending close (almost everything else Skeuos indexes):** sniping is
      neutralised. The theory says its advantage is "eliminated or severely attenuated"
      (Ockenfels & Roth 2006) [SE]. Enter your full ceiling as a proxy bid **before** the
      extension window opens. Windows found: GovDeals 3 min [SE-2nd; another guide
@@ -97,7 +97,7 @@ number, entered once, at the right time.
    Motors, photos and text disclosures "significantly influence" prices (Lewis 2011)
    [SE]. A CUNY thesis on eBay Motors (Nizard) reports that an additional photo raised
    prices, bidder counts and the probability of sale [SE]. Fewer photos means fewer rivals, but also more
-   risk. That is exactly the logic of PaddleUp's existing `compute_sleeper()`.
+   risk. That is exactly the logic of Skeuos's existing `compute_sleeper()`.
    *Confidence: medium.*
 7. **Treat a secret reserve as a floor you probably won't like.** In a field
    experiment, secret reserves reduced the chance of sale, deterred serious bidders
@@ -108,10 +108,10 @@ number, entered once, at the right time.
    $10.01 (Bazerman & Samuelson 1983) [SE-2nd]. On eBay coin auctions, bidders'
    expected profit falls 3.2% for each extra expected bidder (Bajari & Hortaçsu 2003)
    [SE]. Haircut mixed lots, untested electronics, vehicles and equipment. *Confidence:
-   high that the effect exists; the size of PaddleUp's haircut is a PLACEHOLDER.*
+   high that the effect exists; the size of Skeuos's haircut is a PLACEHOLDER.*
 
 **What to ship first.** Build the calculator (§4) and rules R02, R10, R11, R12, R30,
-R35 and R36 in §9. These rest on the strongest evidence and need only data PaddleUp
+R35 and R36 in §9. These rest on the strongest evidence and need only data Skeuos
 already stores (`lots.current_bid_cents`, `bid_count`, `closes_at`,
 `auctions.buyer_premium_pct`, `image_count`, `desc_richness`). Pre-fill
 `watchlist.max_bid_cents` with the computed ceiling and `watchlist.remind_seconds_before`
@@ -250,7 +250,7 @@ in §9.
 
 - **Applies to:** all online formats.
 - **Rule:** at most one bid per lot, at `H_max`. A second bid is allowed only after
-  new information about the item. PaddleUp should never show "+1 increment" as a
+  new information about the item. Skeuos should never show "+1 increment" as a
   suggested action.
 - **Expected effect:** you stop being the target that sniping strategies are built to
   beat, and your valuation doesn't drift upward with competition.
@@ -334,7 +334,7 @@ in §9.
 
 ### S11. Hunt misspelled and miscategorised lots
 
-- **Applies to:** eBay and any keyword-searched platform. PaddleUp's image search
+- **Applies to:** eBay and any keyword-searched platform. Skeuos's image search
   (00-architecture §6) is the systematic version of this.
 - **Rule:** run typo variants and category-agnostic image matches for every standing
   hunt. Treat a hit like S10: few rivals, so identify it carefully.
@@ -476,7 +476,7 @@ in §9.
     Keep exposure ≤ budget unless the user explicitly accepts the risk of winning
     everything.
   - To bid on more lots than the budget covers, use **expected spend** =
-    Σ `p_win,i × E[price_i | win]`, where `p_win` comes from PaddleUp's own history of
+    Σ `p_win,i × E[price_i | win]`, where `p_win` comes from Skeuos's own history of
     outcomes against ceilings (`watchlist.outcome`, `lots.sold_price_cents`).
   - Share one trip: pickup cost `T` is per **site**, so lots at the same site should
     split it (the §9 spec, which is per-lot, charges it to each lot).
@@ -504,9 +504,9 @@ in §9.
 ### S21. Practitioner rules of thumb (all UNVERIFIED in this pass)
 
 These are widely repeated in reseller communities. None could be sourced this
-session. PaddleUp may show them only as labelled cross-checks, never as the ceiling.
+session. Skeuos may show them only as labelled cross-checks, never as the ceiling.
 
-| Heuristic | Form | How PaddleUp uses it |
+| Heuristic | Form | How Skeuos uses it |
 |---|---|---|
 | Rule of thirds | Pay ≈ ⅓ of resale; ⅓ covers costs; ⅓ is profit | Display `thirds_rule_cents` next to `H_max`. It roughly equals the §4 formula when fees + costs + risk ≈ ⅓ of resale. |
 | "Buy at a percentage of sold comps" | Pay a fixed percentage of the median sold price | Not used. The §4 formula makes the same thing explicit per category. |
@@ -646,7 +646,7 @@ them as advice, as follows:
 
 - Take `f` from the current eBay or marketplace fee schedule per category.
 - Take `m` and `Pmin` from the user's own settings.
-- Take `u` and `r` from PaddleUp outcomes: realised resale versus `expected_resale_cents`.
+- Take `u` and `r` from Skeuos outcomes: realised resale versus `expected_resale_cents`.
 
 | Category | f | s | r | u | m | Pmin | Herd threshold (bids) |
 |---|---|---|---|---|---|---|---|
@@ -681,7 +681,7 @@ shipping.
   - WorthPoint (a paid price archive).
   - For coins and bullion: metal content × spot as a floor.
   - For vehicles and equipment: auction results of comparable units.
-- **Product note:** PaddleUp's own closed-lot history (`lots.sold_price_cents`) can
+- **Product note:** Skeuos's own closed-lot history (`lots.sold_price_cents`) can
   become a comps source for categories eBay covers poorly, such as farm equipment and
   municipal surplus.
 
@@ -768,7 +768,7 @@ shipping.
   - Municibid: tiered 9/6/4% [3P].
   - Wisconsin Surplus: "0–10%, set per seller (median ~7%)" [3P].
 - **Everything else is UNVERIFIED.** HiBid, K-BID and Proxibid premiums are set by
-  each auction house, so PaddleUp must read `auctions.buyer_premium_pct` per sale. The
+  each auction house, so Skeuos must read `auctions.buyer_premium_pct` per sale. The
   schema already has the column.
 - **Tax on the premium.** The §4 cost multiplier applies tax to hammer + premium. That
   matches MaxSold's stated practice; for other sellers it is conservative.
@@ -807,7 +807,7 @@ shipping.
   (Katkar & Reiley) [SE]. Sellers of higher-book-value coins favour secret reserves
   with low openings (Bajari & Hortaçsu) [SE].
 - **Absolute (no-reserve) auctions:** the price is set purely by competition, and low
-  openings escalate (S9). Purple Wave is recorded in PaddleUp's seed as "No-reserve
+  openings escalate (S9). Purple Wave is recorded in Skeuos's seed as "No-reserve
   absolute auctions, ag and construction equipment" (INTERNAL).
 
 ### 5.5 Absentee, max and sealed bids
@@ -849,7 +849,7 @@ shipping.
 
 ## 6. Per-format playbooks
 
-Each playbook ends with the alert PaddleUp should arm (`watchlist.remind_seconds_before`)
+Each playbook ends with the alert Skeuos should arm (`watchlist.remind_seconds_before`)
 and the rule codes that fire.
 
 ### 6.1 Hard-close online (eBay)
@@ -962,7 +962,7 @@ The **Evidence** lines are sourced. The **Practice** lines are UNVERIFIED rules 
 thumb from background knowledge; verify them before shipping.
 
 **Tools**
-- Evidence: PaddleUp's `compute_sleeper()` treats a thin description ("Box of misc
+- Evidence: Skeuos's `compute_sleeper()` treats a thin description ("Box of misc
   tools") as the strongest sleeper signal (INTERNAL). S10 supports thin listings in
   general.
 - Practice (UNVERIFIED):
@@ -1015,7 +1015,7 @@ thumb from background knowledge; verify them before shipping.
   - eBay coin auctions show winner's-curse shading (Bajari & Hortaçsu) [SE].
   - Longer auctions fetch more, and negative seller feedback costs more than positive
     feedback earns (Lucking-Reiley et al.) [SE].
-  - PaddleUp's thesis: the opportunity is in general estate and municipal auctions,
+  - Skeuos's thesis: the opportunity is in general estate and municipal auctions,
     where "lot of assorted coins" hides varieties (INTERNAL, `01-sources.md` Tier 7).
 - Practice (UNVERIFIED):
   - Melt value (metal content × spot) is the floor for bullion and common silver.
@@ -1066,7 +1066,7 @@ thumb from background knowledge; verify them before shipping.
 
 ### 8.2 Psychological traps
 
-| Trap | Mechanism | Countermeasure in PaddleUp | Evidence |
+| Trap | Mechanism | Countermeasure in Skeuos | Evidence |
 |---|---|---|---|
 | Auction fever / competitive arousal | Rivalry, time pressure and an audience raise bids | Pre-computed ceiling; absentee bids; one bid (S1, S6, R14) | Ku, Malhotra & Murnighan 2005 [SE] |
 | Quasi-endowment | Leading for longer makes you value it more | Don't bid early (S7) | Heyman, Orhun & Ariely 2004 [SE] |
@@ -1115,7 +1115,7 @@ thumb from background knowledge; verify them before shipping.
   unguarded null.
 - **Schema mapping.**
 
-  | Spec field | PaddleUp column |
+  | Spec field | Skeuos column |
   |---|---|
   | `current_bid_cents` | `lots.current_bid_cents` |
   | `bid_count` | `lots.bid_count` |
@@ -1136,13 +1136,13 @@ thumb from background knowledge; verify them before shipping.
 
 ```json
 {
-  "spec": "paddleup.bidding-rules",
+  "spec": "skeuos.bidding-rules",
   "version": "1.0.0",
   "as_of": "2026-09-27",
   "status_legend": {
     "SE": "Stated in a search-engine extract of the cited page; the page itself could not be fetched from the research environment.",
     "SE-2nd": "Stated in a search-engine extract of a secondary or third-party page; confirm against the primary source.",
-    "INTERNAL": "Aligned with PaddleUp's own compute_sleeper() thresholds (migration 0006); not an external finding.",
+    "INTERNAL": "Aligned with Skeuos's own compute_sleeper() thresholds (migration 0006); not an external finding.",
     "DESIGN": "A product design choice, not a claim about the world.",
     "PLACEHOLDER": "Not a measured value. Must be replaced by a sourced or calibrated value before it is shown to users as advice.",
     "UNVERIFIED": "Not confirmed by any source in this research pass."
@@ -1544,7 +1544,7 @@ thumb from background knowledge; verify them before shipping.
   },
   "categories_meta": {
     "status": "PLACEHOLDER",
-    "note": "EVERY VALUE IN THIS TABLE IS A PLACEHOLDER. None was measured or sourced in this research pass. Replace with values calibrated from PaddleUp's own outcomes (watchlist.outcome, lots.sold_price_cents) and a sourced selling-fee schedule before showing them as advice."
+    "note": "EVERY VALUE IN THIS TABLE IS A PLACEHOLDER. None was measured or sourced in this research pass. Replace with values calibrated from Skeuos's own outcomes (watchlist.outcome, lots.sold_price_cents) and a sourced selling-fee schedule before showing them as advice."
   },
   "derived": [
     {"name": "close_type", "expr": {"platform_attr": ["close_type"]}},
@@ -1692,7 +1692,7 @@ thumb from background knowledge; verify them before shipping.
       "confidence": "high",
       "evidence": [],
       "when": {"!": [{"var": "is_open"}]},
-      "text": "This lot has closed. Record the result (won, lost, price) so PaddleUp can calibrate your ceilings.",
+      "text": "This lot has closed. Record the result (won, lost, price) so Skeuos can calibrate your ceilings.",
       "numbers": ["current_bid_cents", "bid_count", "max_hammer_cents"]
     },
     {
@@ -1736,7 +1736,7 @@ thumb from background knowledge; verify them before shipping.
       "confidence": "medium",
       "evidence": ["roth_ockenfels_2002", "ockenfels_roth_2006", "ely_hossain_2009", "gray_reiley_2013", "engelberg_williams_2009", "heyman_orhun_ariely_2004"],
       "when": {"and": [{"var": "is_open"}, {"var": "is_hard_close"}, {"!=": [{"var": "max_hammer_cents"}, null]}, {">": [{"var": "max_hammer_cents"}, 0]}, {"<=": [{"var": "next_min_bid_cents"}, {"var": "max_hammer_cents"}]}]},
-      "text": "Hard close: the clock will not extend. Don't bid yet. PaddleUp will alert you {alert_seconds_before} seconds before the end; then place ONE bid of {max_hammer_cents|usd} with about {constants.manual_snipe_seconds} seconds left. Bidding early mainly helps incremental bidders and shill bidders find your number.",
+      "text": "Hard close: the clock will not extend. Don't bid yet. Skeuos will alert you {alert_seconds_before} seconds before the end; then place ONE bid of {max_hammer_cents|usd} with about {constants.manual_snipe_seconds} seconds left. Bidding early mainly helps incremental bidders and shill bidders find your number.",
       "numbers": ["max_hammer_cents", "minutes_to_close", "alert_seconds_before", "headroom_cents", "all_in_at_max_cents"]
     },
     {
@@ -1769,7 +1769,7 @@ thumb from background knowledge; verify them before shipping.
       "confidence": "medium",
       "evidence": ["hibid_softclose_examples", "proxibid_timed"],
       "when": {"and": [{"var": "is_open"}, {"var": "is_extending_close"}, {"==": [{"var": "window_min"}, null]}]},
-      "text": "This lot extends on late bids, but its extension window was not captured. Read the auction terms. Until then PaddleUp assumes up to {constants.unknown_window_assumed_minutes} minutes.",
+      "text": "This lot extends on late bids, but its extension window was not captured. Read the auction terms. Until then Skeuos assumes up to {constants.unknown_window_assumed_minutes} minutes.",
       "numbers": ["effective_window_min", "minutes_to_close"]
     },
     {
@@ -1846,7 +1846,7 @@ thumb from background knowledge; verify them before shipping.
       "confidence": "high",
       "evidence": ["lee_malmendier_2011"],
       "when": {"and": [{"var": "is_open"}, {"and": [{"!": [{"var": "has_value"}]}, {"!": [{"var": "has_budget"}]}]}]},
-      "text": "No ceiling yet. Add the median of recent SOLD prices (not asking prices) for this item in this condition, or the most you will pay, and PaddleUp will compute a walk-away number. Every $100 bid here costs about {cost_per_100_cents|usd} before pickup.",
+      "text": "No ceiling yet. Add the median of recent SOLD prices (not asking prices) for this item in this condition, or the most you will pay, and Skeuos will compute a walk-away number. Every $100 bid here costs about {cost_per_100_cents|usd} before pickup.",
       "numbers": ["cost_per_100_cents", "bp_pct", "tax_rate", "card_fee_rate"]
     },
     {
@@ -2170,7 +2170,7 @@ change the product.
    - GSA liquidated damages: 20% or $200.
    - GovDeals: 3-minute window.
 7. **Typo listings:** look for a peer-reviewed estimate. None was found.
-8. **Calibration data** (PaddleUp's own, once live):
+8. **Calibration data** (Skeuos's own, once live):
    - Realised resale against `expected_resale_cents` sets `u` and `r`.
    - The `bid_count` distribution per category sets the herd threshold.
    - Win rates against ceilings set `p_win` for S19.
@@ -2261,7 +2261,7 @@ is relied on.
 51. National Auction Association, What Is A Soft Close Or Dynamic Ending Of An Online Auction? https://www.auctioneers.org/auctionswork/what-is-a-soft-close-or-dynamic-ending-of-an-online-auction [listed]
 52. AuctionMethod, When to Use Soft Close Groups. https://www.auctionmethod.com/blog/when-to-use-soft-close-groups-in-your-online-auction [listed]
 
-**Internal (PaddleUp repository)**
+**Internal (Skeuos repository)**
 
 53. `platform/docs/00-architecture.md` §8–9: bidding API limits, rival intelligence.
 54. `platform/docs/01-sources.md`: tiers, the coin thesis, estate sales as fixed-price events.

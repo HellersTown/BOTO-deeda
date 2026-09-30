@@ -2,94 +2,117 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Bids and watchlist</title>
+<title>Bids</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Zilla+Slab:wght@600;700&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:"Public Sans",system-ui,sans-serif;background:#F6F3EC;color:#1D1B16;font-variant-numeric:tabular-nums}
-a{color:#9A3412}a:hover{color:#7C2D12}
+body{margin:0;font-family:"Public Sans",system-ui,sans-serif;background:#F3EEE3;color:#1E1B16;font-variant-numeric:tabular-nums}
+a{color:#8C3514}a:hover{color:#6E2A10}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F6F3EC">
-  <header style="padding: 20px 20px 8px 20px; display: flex; flex-direction: column; gap: 12px">
-    <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 28px; font-weight: 700">Bids</h1>
-    <div role="tablist" aria-label="Bid status" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #E9E3D6">
-      <button type="button" role="tab" aria-selected="true" style="min-height: 40px; border: 0; border-radius: 9px; background: #FFFFFF; font: inherit; font-size: 13px; font-weight: 700; color: #1D1B16">Watching 2</button>
-      <button type="button" role="tab" aria-selected="false" style="min-height: 40px; border: 0; border-radius: 9px; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: #4A463D">Bid placed 1</button>
-      <button type="button" role="tab" aria-selected="false" style="min-height: 40px; border: 0; border-radius: 9px; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: #4A463D">Closed</button>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F3EEE3">
+  <header style="padding: 18px 20px 8px 20px; display: flex; flex-direction: column; gap: 12px">
+    <h1 style="margin: 0; font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 30px; font-weight: 700">Bids</h1>
+    <div role="tablist" aria-label="Bid status" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #E6DDCB">
+      <button type="button" role="tab" aria-selected="true" style="min-height: 40px; border: 0; border-radius: 9px; background: #FFFDF8; font: inherit; font-size: 13px; font-weight: 700; color: #1E1B16">Watching 3</button>
+      <button type="button" role="tab" aria-selected="false" style="min-height: 40px; border: 0; border-radius: 9px; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: #3E3A31">Bid placed 1</button>
+      <button type="button" role="tab" aria-selected="false" style="min-height: 40px; border: 0; border-radius: 9px; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: #3E3A31">Won 2</button>
     </div>
   </header>
 
-  <main style="flex-grow: 1; overflow: hidden; padding: 4px 20px 0 20px; display: flex; flex-direction: column; gap: 12px">
-    <article style="padding: 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E2DDD0; display: flex; flex-direction: column; gap: 10px">
-      <a href="Lot.dc.html" style="display: flex; gap: 12px; text-decoration: none; color: #1D1B16">
-        <div style="width: 64px; height: 64px; flex-shrink: 0; border-radius: 10px; background: #E9E3D6; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #5E5A50">Photo</div>
-        <div style="display: flex; flex-direction: column; gap: 3px">
-          <span style="font-size: 16px; font-weight: 700">Dell Laptops</span>
-          <span style="font-size: 13px; color: #5E5A50">GSA Auctions · Milwaukee, WI</span>
-          <span style="font-size: 12px; color: #92400E; background: #FEF3C7; padding: 2px 6px; border-radius: 4px; align-self: flex-start">Reminder Oct 2, 8:00 AM</span>
+  <main style="flex-grow: 1; overflow: hidden; padding: 4px 20px 0 20px; display: flex; flex-direction: column; gap: 10px">
+    <section aria-labelledby="owe" style="padding: 12px 14px; border-radius: 12px; background: #1E1B16; color: #FFFDF8; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline"><span id="owe" style="font-size: 13px">If every bid wins, you owe</span><span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 18px; font-weight: 600">$1,215</span></div>
+      <div role="progressbar" aria-label="Share of your October budget" aria-valuemin="0" aria-valuemax="2000" aria-valuenow="1215" style="height: 6px; border-radius: 3px; background: #4A443A; overflow: hidden"><div style="width: 61%; height: 6px; background: #E0B457"></div></div>
+      <span style="font-size: 12px; color: #D6CBB5">of your $2,000 budget for October, fees included</span>
+    </section>
+
+    <article style="padding: 12px; border-radius: 14px; background: #FFFDF8; border: 1px solid #D6CBB5; display: flex; flex-direction: column; gap: 10px">
+      <a href="Lot.dc.html" style="display: flex; gap: 12px; text-decoration: none; color: #1E1B16">
+        <div style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 10px; background: #E6DDCB; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #5A5346">Photo</div>
+        <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+          <span style="font-size: 15px; font-weight: 700">Generac 7,500 W portable generator</span>
+          <span style="font-size: 12px; color: #5A5346">GSA Auctions · Milwaukee, WI</span>
         </div>
       </a>
-      <dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
-        <div style="padding: 10px; border-radius: 10px; background: #F6F3EC"><dt style="font-size: 12px; color: #5E5A50">Current bid</dt><dd style="margin: 2px 0 0 0; font-size: 18px; font-weight: 700">$85.00</dd></div>
-        <div style="padding: 10px; border-radius: 10px; background: #F6F3EC"><dt style="font-size: 12px; color: #5E5A50">Your walk-away</dt><dd style="margin: 2px 0 0 0; font-size: 18px; font-weight: 700; color: {{accent}}">[YOUR NUMBER]</dd></div>
+      <dl style="margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+        <div style="padding: 8px; border-radius: 8px; background: #F3EEE3"><dt style="font-size: 11px; color: #5A5346">Now</dt><dd style="margin: 2px 0 0 0; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 15px; font-weight: 600">$310</dd></div>
+        <div style="padding: 8px; border-radius: 8px; background: #F3EEE3"><dt style="font-size: 11px; color: #5A5346">Walk-away</dt><dd style="margin: 2px 0 0 0; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 15px; font-weight: 600; color: {{accent}}">$470</dd></div>
+        <div style="padding: 8px; border-radius: 8px; background: #F6E3B4"><dt style="font-size: 11px; color: #6A3A0E">Reminder</dt><dd style="margin: 2px 0 0 0; font-size: 13px; font-weight: 700; color: #6A3A0E">Fri 8:00 AM</dd></div>
       </dl>
-      <button type="button" style="min-height: 44px; border: 1.5px solid #1D1B16; border-radius: 10px; background: transparent; font: inherit; font-size: 14px; font-weight: 700; color: #1D1B16">I placed my bid</button>
     </article>
 
-    <article style="padding: 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E2DDD0; display: flex; flex-direction: column; gap: 10px">
-      <div style="display: flex; gap: 12px">
-        <div style="width: 64px; height: 64px; flex-shrink: 0; border-radius: 10px; background: #E9E3D6; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #5E5A50">Photo</div>
-        <div style="display: flex; flex-direction: column; gap: 3px">
-          <span style="font-size: 16px; font-weight: 700">2013 Farber Bus</span>
-          <span style="font-size: 13px; color: #5E5A50">GSA Auctions · Zablocki VA Medical Center</span>
-          <span style="font-size: 12px; color: #92400E; background: #FEF3C7; padding: 2px 6px; border-radius: 4px; align-self: flex-start">Reminder Oct 2, 8:00 AM</span>
+    <article style="padding: 12px; border-radius: 14px; background: #FFFDF8; border: 1px solid #D6CBB5; display: flex; flex-direction: column; gap: 10px">
+      <a href="Lot.dc.html" style="display: flex; gap: 12px; text-decoration: none; color: #1E1B16">
+        <div style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 10px; background: #E6DDCB; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #5A5346">Photo</div>
+        <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+          <span style="font-size: 15px; font-weight: 700">Stihl MS 250 chainsaws, lot of 3</span>
+          <span style="font-size: 12px; color: #5A5346">Public Surplus · Oconomowoc, WI</span>
         </div>
-      </div>
-      <dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
-        <div style="padding: 10px; border-radius: 10px; background: #F6F3EC"><dt style="font-size: 12px; color: #5E5A50">Current bid</dt><dd style="margin: 2px 0 0 0; font-size: 18px; font-weight: 700">$1,000.00</dd></div>
-        <div style="padding: 10px; border-radius: 10px; background: #F6F3EC"><dt style="font-size: 12px; color: #5E5A50">Your walk-away</dt><dd style="margin: 2px 0 0 0; font-size: 18px; font-weight: 700; color: {{accent}}">[YOUR NUMBER]</dd></div>
+      </a>
+      <dl style="margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+        <div style="padding: 8px; border-radius: 8px; background: #F3EEE3"><dt style="font-size: 11px; color: #5A5346">Now</dt><dd style="margin: 2px 0 0 0; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 15px; font-weight: 600">$95</dd></div>
+        <div style="padding: 8px; border-radius: 8px; background: #F3EEE3"><dt style="font-size: 11px; color: #5A5346">Walk-away</dt><dd style="margin: 2px 0 0 0; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 15px; font-weight: 600; color: {{accent}}">$240</dd></div>
+        <div style="padding: 8px; border-radius: 8px; background: #F6E3B4"><dt style="font-size: 11px; color: #6A3A0E">Reminder</dt><dd style="margin: 2px 0 0 0; font-size: 13px; font-weight: 700; color: #6A3A0E">Thu 6:45 PM</dd></div>
       </dl>
     </article>
 
-    <section style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 12px; background: #1D1B16; color: #FFFFFF">
-      <span style="font-size: 13px">If every bid wins, you owe</span>
-      <span style="font-size: 18px; font-weight: 700">[TOTAL WITH FEES]</span>
-    </section>
+    <article style="padding: 12px; border-radius: 14px; background: #FFFDF8; border: 1px solid #D6CBB5; display: flex; flex-direction: column; gap: 10px">
+      <a href="Lot.dc.html" style="display: flex; gap: 12px; text-decoration: none; color: #1E1B16">
+        <div style="width: 56px; height: 56px; flex-shrink: 0; border-radius: 10px; background: #E6DDCB; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #5A5346">Photo</div>
+        <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+          <span style="font-size: 15px; font-weight: 700">Chest freezer, 15 cu ft</span>
+          <span style="font-size: 12px; color: #5A5346">Municibid · Waukesha, WI</span>
+        </div>
+      </a>
+      <dl style="margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+        <div style="padding: 8px; border-radius: 8px; background: #F3EEE3"><dt style="font-size: 11px; color: #5A5346">Now</dt><dd style="margin: 2px 0 0 0; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 15px; font-weight: 600">$60</dd></div>
+        <div style="padding: 8px; border-radius: 8px; background: #F3EEE3"><dt style="font-size: 11px; color: #5A5346">Walk-away</dt><dd style="margin: 2px 0 0 0; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 15px; font-weight: 600; color: {{accent}}">$150</dd></div>
+        <div style="padding: 8px; border-radius: 8px; background: #F6E3B4"><dt style="font-size: 11px; color: #6A3A0E">Reminder</dt><dd style="margin: 2px 0 0 0; font-size: 13px; font-weight: 700; color: #6A3A0E">Sat 5:30 PM</dd></div>
+      </dl>
+    </article>
+
+    <a href="Pickup.dc.html" style="display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 56px; padding: 0 14px; border-radius: 14px; border: 1.5px solid #24402E; background: #FFFDF8; text-decoration: none; color: #24402E">
+      <span style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2z"></path><path d="M14 10h4l3 3v3h-7"></path><circle cx="6.5" cy="17.5" r="2"></circle><circle cx="17" cy="17.5" r="2"></circle></svg>
+        2 won lots to pick up
+      </span>
+      <span style="font-size: 14px; font-weight: 700">Plan the run</span>
+    </a>
   </main>
 
-  <nav aria-label="Primary" style="display: flex; border-top: 1px solid #E2DDD0; background: #FFFFFF; padding: 4px 6px 10px 6px">
-    <a href="Main.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+  <nav aria-label="Primary" style="display: flex; border-top: 1px solid #D6CBB5; background: #FFFDF8; padding: 4px 6px 10px 6px">
+    <a href="Main.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
       <span>Search</span>
     </a>
-    <a href="Hunts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+    <a href="Hunts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z"></path></svg>
       <span>Hunts</span>
     </a>
-    <a href="Bids.dc.html" aria-current="page" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: {{accent}}; font-size: 11px; font-weight: 700">
+    <a href="Bids.dc.html" aria-current="page" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #24402E; font-size: 11px; font-weight: 700">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5.5"></circle><path d="M12 13.5V22"></path></svg>
       <span>Bids</span>
     </a>
-    <a href="Alerts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+    <a href="Alerts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
       <span>Alerts</span>
     </a>
-    <a href="Profile.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+    <a href="Profile.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
       <span>Profile</span>
     </a>
   </nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C2410C","options":["#C2410C","#1F4D3A","#1D4ED8"]},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#B3431B","options":["#B3431B","#24402E","#1F4E79"]},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    return { accent: this.props.accent ?? '#C2410C' };
+    return { accent: this.props.accent ?? '#B3431B' };
   }
 }
 </script>

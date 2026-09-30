@@ -1,6 +1,6 @@
 # Platform access: lawful ingestion, platform by platform
 
-Research date: **2026-09-27**. Scope: the twenty platforms PaddleUp needs for
+Research date: **2026-09-27**. Scope: the twenty platforms Skeuos needs for
 Wisconsin coverage, assessed against the ingestion ladder in
 `00-architecture.md` §2 and the legal line in `03-legal-and-tos.md`:
 
@@ -33,7 +33,7 @@ Ladder numbering used throughout (matches the `ingest_method` enum):
   Those results are tagged **[IDX]**.
 - **What was used instead:** GitHub code search over public repositories
   (third-party scrapers, source audits, and one repository owned by Municibid
-  itself), the Supabase documentation search tool, and PaddleUp's own earlier
+  itself), the Supabase documentation search tool, and Skeuos's own earlier
   research in `04-universal-extraction.md`.
 
 Consequences:
@@ -53,7 +53,7 @@ Evidence tags:
 | **[OFF]** | First-party: the platform's own repository or vendor documentation | High |
 | **[3P, date]** | A third party's recorded observation in public code or docs, with their date where given | Medium: real observations, but their vantage point and client, not ours |
 | **[IDX]** | Web-search index rendering of a page; wording may be paraphrased | Medium-low for exact wording |
-| **[PRIOR]** | PaddleUp's earlier research (`04-universal-extraction.md`), not re-verified | Medium |
+| **[PRIOR]** | Skeuos's earlier research (`04-universal-extraction.md`), not re-verified | Medium |
 | **UNVERIFIED** | Not established by any source this session | None |
 
 Bracketed IDs such as [G12] or [O6] resolve to URLs in §8.
@@ -80,7 +80,7 @@ datacenter IP with a non-browser TLS fingerprint. **This is almost certainly
 why the previous attempt kept getting blocked.** The public projects that
 still reach these sites do it with Chrome TLS impersonation (`curl_cffi`),
 Playwright-minted clearance cookies, residential IPs, or copied login tokens
-[G2, G4, G5, G10, G24]. Under PaddleUp's rule each of those is bypassing bot
+[G2, G4, G5, G10, G24]. Under Skeuos's rule each of those is bypassing bot
 protection. HiBid's terms also forbid bypassing its "robot exclusion headers"
 and aggregating its data (§3.1).
 
@@ -238,7 +238,7 @@ application, so one adapter or one partnership covers them all.
   Service, but both carry catalogs *into* HiBid from auctioneers [IDX I9;
   PRIOR P7]. Routes: business development with HiBid/Auction Flex for a
   syndication or affiliate feed, and **auctioneer opt-in**, where Wisconsin
-  houses send PaddleUp their own catalog exports (auctioneers own their
+  houses send Skeuos their own catalog exports (auctioneers own their
   catalogs; see `04` on export formats).
 - **g) Terms.** `https://hibid.com/home/termsofuse`, with identical tenant
   copies such as `farrellauctionservice.hibid.com/home/termsofuse`. The
@@ -257,7 +257,7 @@ application, so one adapter or one partnership covers them all.
   derivative works from, or publicly displaying any Auction Information or
   content … for public or commercial purposes, including generating reports or
   **aggregating data or content**", and on imposing "an unreasonable or
-  disproportionately large load". **Verdict:** this prohibits PaddleUp's
+  disproportionately large load". **Verdict:** this prohibits Skeuos's
   business model on HiBid data specifically.
 - **h) Bot protection.**
   - "Cloudflare began 403ing plain httpx on hibid.com/graphql (observed
@@ -1070,7 +1070,7 @@ host. Stop at the first blocked signal.
 | www.usmarshals.gov | `/robots.txt`, sitemap from robots | 200 |
 | www.irsauctions.gov | `/robots.txt`, sitemap from robots | 200, not the Akamai "Access Denied" page |
 
-**robots.txt handling.** This follows PaddleUp policy, which is stricter than
+**robots.txt handling.** This follows Skeuos policy, which is stricter than
 RFC 9309:
 
 - 200: parse it and honor `Disallow`, `Crawl-delay` and `Sitemap`.
@@ -1229,7 +1229,7 @@ HTTP 200 with a challenge body **is blocked**; HiBid does exactly this [G18].
 | I18 | https://www.allsurplus.com/account/terms-and-conditions | AllSurplus terms location |
 | I19 | https://news.ycombinator.com/item?id=47662945 | GovAuctions.app Show HN |
 
-### 8.P Prior PaddleUp research (`docs/04-universal-extraction.md`; not re-verified)
+### 8.P Prior Skeuos research (`docs/04-universal-extraction.md`; not re-verified)
 
 | ID | URL | Supports |
 |---|---|---|

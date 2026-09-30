@@ -8,85 +8,93 @@
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Zilla+Slab:wght@600;700&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:"Public Sans",system-ui,sans-serif;background:#F6F3EC;color:#1D1B16;font-variant-numeric:tabular-nums}
-a{color:#9A3412}a:hover{color:#7C2D12}
+body{margin:0;font-family:"Public Sans",system-ui,sans-serif;background:#F3EEE3;color:#1E1B16;font-variant-numeric:tabular-nums}
+a{color:#8C3514}a:hover{color:#6E2A10}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F6F3EC">
-  <header style="display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 8px 20px">
-    <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 28px; font-weight: 700">Hunts</h1>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F3EEE3">
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 4px 20px">
+    <h1 style="margin: 0; font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 30px; font-weight: 700">Hunts</h1>
     <a href="NewHunt.dc.html" style="display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border-radius: 22px; background: {{accent}}; color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 700">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
       <span>New</span>
     </a>
   </header>
 
-  <main style="flex-grow: 1; overflow: hidden; padding: 4px 20px 0 20px; display: flex; flex-direction: column; gap: 12px">
+  <main style="flex-grow: 1; overflow: hidden; padding: 4px 20px 0 20px; display: flex; flex-direction: column; gap: 14px">
+    <p style="margin: 0; font-size: 14px; line-height: 1.45; color: #3E3A31">What you are gathering. Each hunt keeps looking after you close the app.</p>
+
     <div style="display: flex; flex-direction: column; gap: 6px">
-      <div style="display: flex; justify-content: space-between; font-size: 13px"><span style="font-weight: 600">2 of 3 hunts</span><a href="Profile.dc.html">Free plan · upgrade</a></div>
-      <div role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="2" aria-label="Hunts used" style="height: 8px; border-radius: 4px; background: #E2DDD0; overflow: hidden"><div style="width: 66%; height: 8px; background: #1D1B16"></div></div>
+      <div style="display: flex; justify-content: space-between; font-size: 13px"><span style="font-weight: 700">3 of 3 hunts · Traveler</span><a href="Profile.dc.html" style="font-weight: 600">Upgrade to Outfitter</a></div>
+      <div role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="3" aria-label="Hunts used" style="height: 8px; border-radius: 4px; background: #E6DDCB; overflow: hidden"><div style="width: 100%; height: 8px; background: #24402E"></div></div>
     </div>
 
-    <article style="padding: 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E2DDD0; display: flex; flex-direction: column; gap: 8px">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
-        <h2 style="margin: 0; font-size: 17px; font-weight: 700">Laptops near Milwaukee</h2>
-        <span style="font-size: 12px; font-weight: 700; color: #1F4D3A; background: #E3EFE8; padding: 3px 8px; border-radius: 10px">Active</span>
-      </div>
-      <p style="margin: 0; font-size: 13px; color: #5E5A50">laptop · within 50 mi of 53202 · every source type</p>
-      <div style="display: flex; justify-content: space-between; align-items: center">
-        <a href="Main.dc.html" style="font-size: 15px; font-weight: 700; text-decoration: none; color: #1D1B16">2 matches</a>
-        <span style="font-size: 12px; color: #5E5A50">Checked 3 min ago</span>
-      </div>
-    </article>
+    <section aria-label="Your hunts" style="border-radius: 14px; background: #FFFDF8; border: 1px solid #D6CBB5; display: flex; flex-direction: column">
+      <a href="Main.dc.html" style="display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 14px; border-bottom: 1px dashed #BFB199; text-decoration: none; color: #1E1B16">
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 600; color: #5A5346; padding-top: 3px">01</span>
+        <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+          <span style="font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 19px; font-weight: 700">Generator, up to $800</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11.5px; color: #5A5346">GENERATOR · UP TO $800 · 60 MI</span>
+          <span style="font-size: 12px; color: #5A5346">Checked 12 min ago</span>
+        </span>
+        <span style="font-size: 13px; font-weight: 700; color: #FFFDF8; background: #24402E; padding: 4px 9px; border-radius: 10px">3 found</span>
+      </a>
+      <a href="Main.dc.html" style="display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 14px; border-bottom: 1px dashed #BFB199; text-decoration: none; color: #1E1B16">
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 600; color: #5A5346; padding-top: 3px">02</span>
+        <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+          <span style="font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 19px; font-weight: 700">Pressure canner</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11.5px; color: #5A5346">ALL AMERICAN OR PRESTO · UP TO $150</span>
+          <span style="font-size: 12px; color: #5A5346">Nothing yet. Still looking, every hour.</span>
+        </span>
+        <span style="font-size: 13px; font-weight: 700; color: #24402E; border: 1.5px solid #24402E; padding: 3px 8px; border-radius: 10px">Watching</span>
+      </a>
+      <a href="Main.dc.html" style="display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 14px; text-decoration: none; color: #1E1B16">
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 600; color: #5A5346; padding-top: 3px">03</span>
+        <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+          <span style="font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 19px; font-weight: 700">Woodstove, EPA-certified</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11.5px; color: #5A5346">WOODSTOVE · EPA · 100 MI</span>
+          <span style="font-size: 12px; color: #5A5346">Checked 12 min ago</span>
+        </span>
+        <span style="font-size: 13px; font-weight: 700; color: #FFFDF8; background: #24402E; padding: 4px 9px; border-radius: 10px">1 found</span>
+      </a>
+    </section>
 
-    <article style="padding: 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E2DDD0; display: flex; flex-direction: column; gap: 8px">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
-        <h2 style="margin: 0; font-size: 17px; font-weight: 700">Thermal drone</h2>
-        <span style="font-size: 12px; font-weight: 700; color: #1F4D3A; background: #E3EFE8; padding: 3px 8px; border-radius: 10px">Active</span>
-      </div>
-      <p style="margin: 0; font-size: 13px; color: #5E5A50">DJI · drones · thermal · up to $1,500 · 50 mi of 53202</p>
-      <div style="display: flex; justify-content: space-between; align-items: center">
-        <span style="font-size: 15px; font-weight: 700">No matches yet</span>
-        <span style="font-size: 12px; color: #5E5A50">Still looking, every hour</span>
-      </div>
-    </article>
-
-    <section aria-labelledby="how" style="padding: 14px; border-radius: 14px; background: #EEF3EF; display: flex; flex-direction: column; gap: 6px">
-      <h2 id="how" style="margin: 0; font-size: 14px; font-weight: 700; color: #1F4D3A">How hunts work</h2>
-      <p style="margin: 0; font-size: 13px; line-height: 1.5">A hunt keeps searching every monitored site after you close the app, including items nobody has listed yet. You get one summary for what already exists and a single alert for each new match.</p>
+    <section aria-labelledby="how" style="padding: 14px; border-radius: 14px; background: #E4ECE5; display: flex; flex-direction: column; gap: 6px">
+      <h2 id="how" style="margin: 0; font-size: 14px; font-weight: 700; color: #24402E">How hunts work</h2>
+      <p style="margin: 0; font-size: 13px; line-height: 1.5">A hunt searches every source, including things nobody has listed yet. You get one summary of what exists today, then one alert for each new find.</p>
     </section>
   </main>
 
-  <nav aria-label="Primary" style="display: flex; border-top: 1px solid #E2DDD0; background: #FFFFFF; padding: 4px 6px 10px 6px">
-    <a href="Main.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+  <nav aria-label="Primary" style="display: flex; border-top: 1px solid #D6CBB5; background: #FFFDF8; padding: 4px 6px 10px 6px">
+    <a href="Main.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
       <span>Search</span>
     </a>
-    <a href="Hunts.dc.html" aria-current="page" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: {{accent}}; font-size: 11px; font-weight: 700">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+    <a href="Hunts.dc.html" aria-current="page" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #24402E; font-size: 11px; font-weight: 700">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z"></path></svg>
       <span>Hunts</span>
     </a>
-    <a href="Bids.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+    <a href="Bids.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5.5"></circle><path d="M12 13.5V22"></path></svg>
       <span>Bids</span>
     </a>
-    <a href="Alerts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+    <a href="Alerts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
       <span>Alerts</span>
     </a>
-    <a href="Profile.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+    <a href="Profile.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
       <span>Profile</span>
     </a>
   </nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C2410C","options":["#C2410C","#1F4D3A","#1D4ED8"]},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#B3431B","options":["#B3431B","#24402E","#1F4E79"]},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    return { accent: this.props.accent ?? '#C2410C' };
+    return { accent: this.props.accent ?? '#B3431B' };
   }
 }
 </script>

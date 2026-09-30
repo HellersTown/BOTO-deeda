@@ -1,27 +1,33 @@
 {
   "v": 3,
   "createdOnFiles": { "v": 1, "at": "2026-09-29T23:15:36Z" },
-  "title": "PaddleUp App Design",
+  "title": "Skeuos App Design",
   "launch": { "view": "canvas" },
   "pages": [],
   "boards": {
-    "SignIn.dc.html":    { "x": 0,    "y": 0,    "w": 390,  "h": 844,  "title": "Sign in", "is_interactive": true },
-    "Main.dc.html":      { "x": 470,  "y": 0,    "w": 390,  "h": 844,  "title": "Search", "is_interactive": true },
-    "Lot.dc.html":       { "x": 940,  "y": 0,    "w": 390,  "h": 1180, "title": "Lot detail + walk-away number", "is_interactive": true },
-    "NewHunt.dc.html":   { "x": 1410, "y": 0,    "w": 390,  "h": 844,  "title": "New hunt (plain-language)", "is_interactive": true },
-    "Hunts.dc.html":     { "x": 1880, "y": 0,    "w": 390,  "h": 844,  "title": "Hunts", "is_interactive": true },
-    "Bids.dc.html":      { "x": 0,    "y": 1560, "w": 390,  "h": 844,  "title": "Bids & watchlist", "is_interactive": true },
-    "Alerts.dc.html":    { "x": 470,  "y": 1560, "w": 390,  "h": 844,  "title": "Alerts", "is_interactive": true },
-    "Profile.dc.html":   { "x": 940,  "y": 1560, "w": 390,  "h": 844,  "title": "Profile & plan", "is_interactive": true },
-    "Desktop.dc.html":   { "x": 1410, "y": 1560, "w": 1440, "h": 900,  "title": "Web: search (desktop)", "is_interactive": true }
+    "Brand.dc.html":   { "x": 0,    "y": 0,    "w": 1440, "h": 900,  "title": "Brand: Provisioned" },
+    "Kit.dc.html":     { "x": 1520, "y": 0,    "w": 1440, "h": 900,  "title": "Signature pieces and voice" },
+    "SignIn.dc.html":  { "x": 0,    "y": 1400, "w": 390,  "h": 844,  "title": "Sign in", "is_interactive": true },
+    "Onboard.dc.html": { "x": 470,  "y": 1400, "w": 390,  "h": 844,  "title": "Before you set out", "is_interactive": true },
+    "Main.dc.html":    { "x": 940,  "y": 1400, "w": 390,  "h": 844,  "title": "Search", "is_interactive": true },
+    "Lot.dc.html":     { "x": 1410, "y": 1400, "w": 390,  "h": 1260, "title": "Lot: count the cost", "is_interactive": true },
+    "NewHunt.dc.html": { "x": 1880, "y": 1400, "w": 390,  "h": 844,  "title": "New hunt", "is_interactive": true },
+    "Hunts.dc.html":   { "x": 2350, "y": 1400, "w": 390,  "h": 844,  "title": "Hunts", "is_interactive": true },
+    "Bids.dc.html":    { "x": 0,    "y": 3060, "w": 390,  "h": 844,  "title": "Bids", "is_interactive": true },
+    "Pickup.dc.html":  { "x": 470,  "y": 3060, "w": 390,  "h": 844,  "title": "Pickup run", "is_interactive": true },
+    "Alerts.dc.html":  { "x": 940,  "y": 3060, "w": 390,  "h": 844,  "title": "Alerts", "is_interactive": true },
+    "Profile.dc.html": { "x": 1410, "y": 3060, "w": 390,  "h": 844,  "title": "Profile and plans", "is_interactive": true },
+    "Desktop.dc.html": { "x": 1880, "y": 3060, "w": 1440, "h": 900,  "title": "Web: search", "is_interactive": true }
   },
   "order": [
-    "SignIn.dc.html", "Main.dc.html", "Lot.dc.html", "NewHunt.dc.html", "Hunts.dc.html",
-    "Bids.dc.html", "Alerts.dc.html", "Profile.dc.html", "Desktop.dc.html"
+    "Brand.dc.html", "Kit.dc.html",
+    "SignIn.dc.html", "Onboard.dc.html", "Main.dc.html", "Lot.dc.html", "NewHunt.dc.html", "Hunts.dc.html",
+    "Bids.dc.html", "Pickup.dc.html", "Alerts.dc.html", "Profile.dc.html", "Desktop.dc.html"
   ],
   "notes": {
-    "rowMobile": { "x": 0, "y": -300, "text": "Mobile app: core flows", "kind": "title1", "maxW": 2270 },
-    "rowMore":   { "x": 0, "y": 1280, "text": "Bids, alerts, plan, and the web view", "kind": "title1", "maxW": 2850 }
+    "rowBrand":  { "x": 0, "y": -300, "text": "Skeuos: equip for the long road", "kind": "title1", "maxW": 2960 },
+    "rowMobile": { "x": 0, "y": 1100, "text": "Find it, count the cost, keep watch", "kind": "title1", "maxW": 2740 },
+    "rowMore":   { "x": 0, "y": 2760, "text": "Bids, the pickup run, alerts, plans and the web", "kind": "title1", "maxW": 3320 }
   },
   "designSystems": []
 }

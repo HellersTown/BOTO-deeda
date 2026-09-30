@@ -168,7 +168,7 @@ export interface ParsedQuery {
   sort: SortKey;
   tiers: SourceTier[];
   minSleeperScore: number | null;
-  /** True when the query is for something PaddleUp does not list (real estate). */
+  /** True when the query is for something Skeuos does not list (real estate). */
   outOfScope: boolean;
   /** Safe for websearch_to_tsquery('english', ...): no synonym groups. Empty when there is nothing to match. */
   websearchQuery: string;
@@ -2538,7 +2538,7 @@ function assemble(p: Parser, input: string, opts: ParseOptions, defaultRadius: n
   if (p.sort !== 'relevance') explanation.push(`Sorted by ${SORT_WORDS[p.sort]} (from “${p.sortText}”).`);
   if (p.minSleeper !== null) explanation.push(`Sleeper score at least ${p.minSleeper}.`);
   if (p.quantityTexts.length) explanation.push(`Quantity (${listWords(p.quantityTexts.map((q) => `“${q}”`))}) noted, but lots are not searchable by quantity.`);
-  if (outOfScope) explanation.push('Real estate is out of scope: PaddleUp covers things sold at auction, not land or buildings.');
+  if (outOfScope) explanation.push('Real estate is out of scope: Skeuos covers things sold at auction, not land or buildings.');
   const ignored = p.tokens.filter((t) => t.role === 'filler' && !/^\W+$/.test(t.text)).map((t) => t.text);
   if (ignored.length) explanation.push(`Ignored as filler: ${listWords([...new Set(ignored)].map((w) => `“${w}”`))}.`);
   explanation.push(...setupNotes, ...p.notes);

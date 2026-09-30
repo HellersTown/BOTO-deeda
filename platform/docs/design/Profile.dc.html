@@ -2,90 +2,90 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Profile and plan</title>
+<title>Profile and plans</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Zilla+Slab:wght@600;700&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:"Public Sans",system-ui,sans-serif;background:#F6F3EC;color:#1D1B16;font-variant-numeric:tabular-nums}
-a{color:#9A3412}a:hover{color:#7C2D12}
+body{margin:0;font-family:"Public Sans",system-ui,sans-serif;background:#F3EEE3;color:#1E1B16;font-variant-numeric:tabular-nums}
+a{color:#8C3514}a:hover{color:#6E2A10}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F6F3EC">
-  <header style="padding: 20px 20px 8px 20px">
-    <h1 style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 28px; font-weight: 700">Profile</h1>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F3EEE3">
+  <header style="padding: 18px 20px 8px 20px">
+    <h1 style="margin: 0; font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 30px; font-weight: 700">Profile</h1>
   </header>
 
   <main style="flex-grow: 1; overflow: hidden; padding: 4px 20px 0 20px; display: flex; flex-direction: column; gap: 14px">
-    <section aria-labelledby="home" style="padding: 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E2DDD0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
-      <h2 id="home" style="grid-column: 1 / -1; margin: 0; font-size: 15px; font-weight: 700">Where you bid from</h2>
+    <section aria-labelledby="home" style="padding: 14px; border-radius: 14px; background: #FFFDF8; border: 1px solid #D6CBB5; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <h2 id="home" style="grid-column: 1 / -1; margin: 0; font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 18px; font-weight: 700">Where you set out from</h2>
       <div style="display: flex; flex-direction: column; gap: 4px">
-        <label for="zip" style="font-size: 12px; font-weight: 600">Home ZIP</label>
-        <input id="zip" inputmode="numeric" value="53202" style="min-height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid #BDB4A2; border-radius: 10px; font: inherit; font-size: 15px">
+        <label for="zip" style="font-size: 12px; font-weight: 700">Home ZIP</label>
+        <input id="zip" inputmode="numeric" value="53202" style="min-height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid #BFB199; border-radius: 10px; background: #FFFDF8; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 15px">
       </div>
       <div style="display: flex; flex-direction: column; gap: 4px">
-        <label for="radius" style="font-size: 12px; font-weight: 600">Drive up to</label>
-        <select id="radius" style="min-height: 44px; box-sizing: border-box; padding: 0 8px; border: 1px solid #BDB4A2; border-radius: 10px; font: inherit; font-size: 15px; background: #FFFFFF"><option>25 mi</option><option selected>50 mi</option><option>100 mi</option><option>200 mi</option></select>
+        <label for="radius" style="font-size: 12px; font-weight: 700">How far you will travel</label>
+        <select id="radius" style="min-height: 44px; box-sizing: border-box; padding: 0 8px; border: 1px solid #BFB199; border-radius: 10px; font: inherit; font-size: 15px; background: #FFFDF8"><option>25 mi</option><option selected>60 mi</option><option>100 mi</option><option>200 mi</option></select>
       </div>
     </section>
 
-    <section aria-labelledby="notify" style="padding: 14px; border-radius: 14px; background: #FFFFFF; border: 1px solid #E2DDD0; display: flex; flex-direction: column; gap: 4px">
-      <h2 id="notify" style="margin: 0 0 4px 0; font-size: 15px; font-weight: 700">Notifications</h2>
+    <section aria-labelledby="notify" style="padding: 12px 14px; border-radius: 14px; background: #FFFDF8; border: 1px solid #D6CBB5; display: flex; flex-direction: column">
+      <h2 id="notify" style="margin: 0 0 2px 0; font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 18px; font-weight: 700">Notifications</h2>
       <label style="display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-size: 14px">In the app <input type="checkbox" checked disabled style="width: 20px; height: 20px"></label>
-      <label style="display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-size: 14px">Email <input type="checkbox" checked style="width: 20px; height: 20px; accent-color: #C2410C"></label>
-      <div style="display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-size: 14px"><span>Quiet hours</span><button type="button" style="min-height: 36px; padding: 0 10px; border: 1px solid #D9D2C3; border-radius: 8px; background: #F6F3EC; font: inherit; font-size: 13px">10 PM – 7 AM</button></div>
+      <label style="display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-size: 14px">Email <input type="checkbox" checked style="width: 20px; height: 20px; accent-color: #24402E"></label>
+      <div style="display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-size: 14px"><span>Quiet hours</span><button type="button" style="min-height: 36px; padding: 0 10px; border: 1px solid #D6CBB5; border-radius: 8px; background: #F3EEE3; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12.5px; color: #1E1B16">10 PM – 7 AM</button></div>
     </section>
 
-    <section aria-labelledby="planh" style="display: flex; flex-direction: column; gap: 8px">
-      <h2 id="planh" style="margin: 0; font-size: 15px; font-weight: 700">Plan</h2>
-      <div style="padding: 12px 14px; border-radius: 12px; background: #FFFFFF; border: 2px solid #1D1B16; display: flex; justify-content: space-between; gap: 10px">
-        <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Free <span style="font-size: 12px; font-weight: 600; color: #1F4D3A">· current</span></span><span style="font-size: 13px; color: #4A463D">3 hunts · alerts within the hour · 25 watched lots</span></div>
-        <span style="font-weight: 700">$0</span>
+    <section aria-labelledby="plans" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 id="plans" style="margin: 0; font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 18px; font-weight: 700">Plan</h2>
+      <div style="padding: 11px 14px; border-radius: 12px; background: #FFFDF8; border: 2px solid #24402E; display: flex; justify-content: space-between; gap: 10px">
+        <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Traveler <span style="font-size: 12px; font-weight: 700; color: #24402E">· current</span></span><span style="font-size: 13px; color: #3E3A31">3 hunts · alerts within the hour · 25 watched lots</span></div>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600">$0</span>
       </div>
-      <div style="padding: 12px 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E2DDD0; display: flex; justify-content: space-between; gap: 10px">
-        <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Pro</span><span style="font-size: 13px; color: #4A463D">25 hunts · alerts within a minute · photo hunts · who's bidding</span></div>
-        <span style="font-weight: 700; white-space: nowrap">$12/mo</span>
+      <div style="padding: 11px 14px; border-radius: 12px; background: #FFFDF8; border: 1px solid #D6CBB5; display: flex; justify-content: space-between; gap: 10px">
+        <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Outfitter</span><span style="font-size: 13px; color: #3E3A31">25 hunts · alerts within a minute · photo hunts · who is bidding</span></div>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600; white-space: nowrap">$12/mo</span>
       </div>
-      <div style="padding: 12px 14px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E2DDD0; display: flex; justify-content: space-between; gap: 10px">
-        <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Dealer</span><span style="font-size: 13px; color: #4A463D">250 hunts · 30-second alerts · CSV export · API</span></div>
-        <span style="font-weight: 700; white-space: nowrap">$49/mo</span>
+      <div style="padding: 11px 14px; border-radius: 12px; background: #FFFDF8; border: 1px solid #D6CBB5; display: flex; justify-content: space-between; gap: 10px">
+        <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Quartermaster</span><span style="font-size: 13px; color: #3E3A31">250 hunts · 30-second alerts · CSV export · API</span></div>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600; white-space: nowrap">$49/mo</span>
       </div>
     </section>
 
-    <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4A463D">41 auction sites are checked every hour. 22 can be searched here; 17 turn away automated visitors, so for those we open the site for you instead.</p>
+    <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #3E3A31">Every source is checked every hour. Sites that turn away automated visitors open in their own tab instead.</p>
   </main>
 
-  <nav aria-label="Primary" style="display: flex; border-top: 1px solid #E2DDD0; background: #FFFFFF; padding: 4px 6px 10px 6px">
-    <a href="Main.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+  <nav aria-label="Primary" style="display: flex; border-top: 1px solid #D6CBB5; background: #FFFDF8; padding: 4px 6px 10px 6px">
+    <a href="Main.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
       <span>Search</span>
     </a>
-    <a href="Hunts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+    <a href="Hunts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z"></path></svg>
       <span>Hunts</span>
     </a>
-    <a href="Bids.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+    <a href="Bids.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5.5"></circle><path d="M12 13.5V22"></path></svg>
       <span>Bids</span>
     </a>
-    <a href="Alerts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5E5A50; font-size: 11px; font-weight: 600">
+    <a href="Alerts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
       <span>Alerts</span>
     </a>
-    <a href="Profile.dc.html" aria-current="page" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: {{accent}}; font-size: 11px; font-weight: 700">
+    <a href="Profile.dc.html" aria-current="page" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #24402E; font-size: 11px; font-weight: 700">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
       <span>Profile</span>
     </a>
   </nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C2410C","options":["#C2410C","#1F4D3A","#1D4ED8"]},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#B3431B","options":["#B3431B","#24402E","#1F4E79"]},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    return { accent: this.props.accent ?? '#C2410C' };
+    return { accent: this.props.accent ?? '#B3431B' };
   }
 }
 </script>

@@ -15,13 +15,13 @@
 import type { EvidenceLabel, RulesSpec } from './types.ts';
 
 export const SPEC: RulesSpec = {
-  "spec": "paddleup.bidding-rules",
+  "spec": "skeuos.bidding-rules",
   "version": "1.0.0",
   "as_of": "2026-09-27",
   "status_legend": {
     "SE": "Stated in a search-engine extract of the cited page; the page itself could not be fetched from the research environment.",
     "SE-2nd": "Stated in a search-engine extract of a secondary or third-party page; confirm against the primary source.",
-    "INTERNAL": "Aligned with PaddleUp's own compute_sleeper() thresholds (migration 0006); not an external finding.",
+    "INTERNAL": "Aligned with Skeuos's own compute_sleeper() thresholds (migration 0006); not an external finding.",
     "DESIGN": "A product design choice, not a claim about the world.",
     "PLACEHOLDER": "Not a measured value. Must be replaced by a sourced or calibrated value before it is shown to users as advice.",
     "UNVERIFIED": "Not confirmed by any source in this research pass."
@@ -423,7 +423,7 @@ export const SPEC: RulesSpec = {
   },
   "categories_meta": {
     "status": "PLACEHOLDER",
-    "note": "EVERY VALUE IN THIS TABLE IS A PLACEHOLDER. None was measured or sourced in this research pass. Replace with values calibrated from PaddleUp's own outcomes (watchlist.outcome, lots.sold_price_cents) and a sourced selling-fee schedule before showing them as advice."
+    "note": "EVERY VALUE IN THIS TABLE IS A PLACEHOLDER. None was measured or sourced in this research pass. Replace with values calibrated from Skeuos's own outcomes (watchlist.outcome, lots.sold_price_cents) and a sourced selling-fee schedule before showing them as advice."
   },
   "derived": [
     {"name": "close_type", "expr": {"platform_attr": ["close_type"]}},
@@ -571,7 +571,7 @@ export const SPEC: RulesSpec = {
       "confidence": "high",
       "evidence": [],
       "when": {"!": [{"var": "is_open"}]},
-      "text": "This lot has closed. Record the result (won, lost, price) so PaddleUp can calibrate your ceilings.",
+      "text": "This lot has closed. Record the result (won, lost, price) so Skeuos can calibrate your ceilings.",
       "numbers": ["current_bid_cents", "bid_count", "max_hammer_cents"]
     },
     {
@@ -615,7 +615,7 @@ export const SPEC: RulesSpec = {
       "confidence": "medium",
       "evidence": ["roth_ockenfels_2002", "ockenfels_roth_2006", "ely_hossain_2009", "gray_reiley_2013", "engelberg_williams_2009", "heyman_orhun_ariely_2004"],
       "when": {"and": [{"var": "is_open"}, {"var": "is_hard_close"}, {"!=": [{"var": "max_hammer_cents"}, null]}, {">": [{"var": "max_hammer_cents"}, 0]}, {"<=": [{"var": "next_min_bid_cents"}, {"var": "max_hammer_cents"}]}]},
-      "text": "Hard close: the clock will not extend. Don't bid yet. PaddleUp will alert you {alert_seconds_before} seconds before the end; then place ONE bid of {max_hammer_cents|usd} with about {constants.manual_snipe_seconds} seconds left. Bidding early mainly helps incremental bidders and shill bidders find your number.",
+      "text": "Hard close: the clock will not extend. Don't bid yet. Skeuos will alert you {alert_seconds_before} seconds before the end; then place ONE bid of {max_hammer_cents|usd} with about {constants.manual_snipe_seconds} seconds left. Bidding early mainly helps incremental bidders and shill bidders find your number.",
       "numbers": ["max_hammer_cents", "minutes_to_close", "alert_seconds_before", "headroom_cents", "all_in_at_max_cents"]
     },
     {
@@ -648,7 +648,7 @@ export const SPEC: RulesSpec = {
       "confidence": "medium",
       "evidence": ["hibid_softclose_examples", "proxibid_timed"],
       "when": {"and": [{"var": "is_open"}, {"var": "is_extending_close"}, {"==": [{"var": "window_min"}, null]}]},
-      "text": "This lot extends on late bids, but its extension window was not captured. Read the auction terms. Until then PaddleUp assumes up to {constants.unknown_window_assumed_minutes} minutes.",
+      "text": "This lot extends on late bids, but its extension window was not captured. Read the auction terms. Until then Skeuos assumes up to {constants.unknown_window_assumed_minutes} minutes.",
       "numbers": ["effective_window_min", "minutes_to_close"]
     },
     {
@@ -725,7 +725,7 @@ export const SPEC: RulesSpec = {
       "confidence": "high",
       "evidence": ["lee_malmendier_2011"],
       "when": {"and": [{"var": "is_open"}, {"and": [{"!": [{"var": "has_value"}]}, {"!": [{"var": "has_budget"}]}]}]},
-      "text": "No ceiling yet. Add the median of recent SOLD prices (not asking prices) for this item in this condition, or the most you will pay, and PaddleUp will compute a walk-away number. Every $100 bid here costs about {cost_per_100_cents|usd} before pickup.",
+      "text": "No ceiling yet. Add the median of recent SOLD prices (not asking prices) for this item in this condition, or the most you will pay, and Skeuos will compute a walk-away number. Every $100 bid here costs about {cost_per_100_cents|usd} before pickup.",
       "numbers": ["cost_per_100_cents", "bp_pct", "tax_rate", "card_fee_rate"]
     },
     {

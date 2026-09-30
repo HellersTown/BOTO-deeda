@@ -1,6 +1,6 @@
 # Market research: competitors, user pain, and what to build differently
 
-Research date: **2026-09-27**. Prepared for PaddleUp (formerly "Waystock").
+Research date: **2026-09-27**. Prepared for Skeuos (working names before that: Skeuos, Waystock).
 
 > **Read §0 first.** This pass could not open any web page directly, and the
 > session's shared search budget ran out before the review-mining plan was
@@ -52,7 +52,7 @@ judgment, not measurement.
    alerts, deal scores, sold comps and AI-assisted search [1P]. A third
    "28 sites" aggregator reached Hacker News weeks later, where a commenter asked
    whether it was a "Clone of 'GovAuctions' from 3 weeks ago?" [3P].
-2. **They are thin exactly where PaddleUp plans to be thick.** GovAuctions.app's
+2. **They are thin exactly where Skeuos plans to be thick.** GovAuctions.app's
    Wisconsin page counts **189** open lots in total: GovDeals 116, Public Surplus
    30, GSA 18, Purple Wave 11, and three other platforms [1P]. No estate-sale
    platform appears in either aggregator's source list as surfaced in this pass
@@ -65,7 +65,7 @@ judgment, not measurement.
    Where cadence is documented, auction incumbents send daily or slower digests
    (AuctionZip overnight, BidSpotter and Invaluable daily, Bid4Assets weekly)
    [1P/3P], which is tolerable for lots that stay open for days (inference).
-   PaddleUp's tiers currently differ only by hunt count.
+   Skeuos's tiers currently differ only by hunt count.
 4. **Alert tools fail silently, and users notice.** Swoopa reviewers report alerts
    arriving 15+ minutes late, and coverage falling to a quarter of listings after
    the trial [3P]. A Flipify reviewer says it "missed half the items" [3P].
@@ -81,7 +81,7 @@ judgment, not measurement.
 7. **Photo *valuation* is commoditised and error-prone; photo search *across live
    lots* was not found elsewhere.** EstateSaleFinder.net offers free, unlimited AI
    photo appraisals [1P]. CoinSnap users report a single 2003 quarter valued
-   anywhere from $0.58 to $400 [3P]. PaddleUp's image search should find lots and
+   anywhere from $0.58 to $400 [3P]. Skeuos's image search should find lots and
    show comp bands, and should not pronounce values.
 
 ### Top 15 improvements, ranked by impact × feasibility
@@ -97,7 +97,7 @@ pg_cron and pgmq, and a crawl budget driven by closing time.
 | 3 | **Make private-house and estate-sale depth the headline**, not "every government auction in one place". | 5 | 4 | **20** | Government search is already free at GovAuctions.app and BidProwl [1P]. Their Wisconsin inventory is 189 government lots [1P]. Neither surfaced source list includes an estate-sale platform [1P]. BidProwl refreshes listings every 12 hours [1P]. |
 | 4 | **Close-rule-aware bid reminders.** Store each source's close rule. Remind at T-minus-X, re-fire when the close extends, show the minimum next bid and increment, and give a per-lot countdown on staggered sales. | 4 | 4 | **16** | Soft close: HiBid +3 minutes [1P, auctioneer FAQ on HiBid]; GovDeals extends "2-5 minutes" [3P]; MaxSold 2 minutes with lots closing 10 seconds apart [1P]; AuctionNinja has extended bidding [1P]. AuctionTime reminds by push, email and text two hours before close [1P]. BidSlammer names the minimum bid increment as the "number one" cause of misunderstood snipes [1P]. |
 | 5 | **Pickup-first logistics.** Pickup window as a badge and a filter; warnings for overlapping pickups; calendar export; a route planner for an estate-sale Saturday or a run of won lots. | 4 | 4 | **16** | MaxSold: one pickup date, and if you miss it "you have lost your money" [3P]. AuctionNinja: a chaotic pickup where items could not be found [3P]. CTBids: $15 per pickup [3P]. K-BID is praised for scheduled pickups [3P]. Route optimisation is a paid feature at Yard Sale Treasure Map ($5/yr, up to 25 stops) [1P] and MapMySales ($5.99/mo) [1P]. |
-| 6 | **Comps and a deal band from PaddleUp's own closed lots**, shown as a 25th–75th percentile band with the number of comps and their date range, never as one number. | 4 | 4 | **16** | GovAuctions' Flip Score with a 25th/median/75th band [1P]; BidProwl's deal score against a 90-day median [1P]; Municibid's ChatGPT app returns sold comps [1P]. Free 130point and Terapeak set expectations [1P]. WorthPoint's $29.99/mo draws price complaints [3P]. |
+| 6 | **Comps and a deal band from Skeuos's own closed lots**, shown as a 25th–75th percentile band with the number of comps and their date range, never as one number. | 4 | 4 | **16** | GovAuctions' Flip Score with a 25th/median/75th band [1P]; BidProwl's deal score against a 90-day median [1P]; Municibid's ChatGPT app returns sold comps [1P]. Free 130point and Terapeak set expectations [1P]. WorthPoint's $29.99/mo draws price complaints [3P]. |
 | 7 | **Natural-language search that compiles into a visible, editable hunt.** | 4 | 4 | **16** | NL search is now table stakes: Municibid's ChatGPT app [1P], BidProwl Pro's AI-assisted search [1P], GovAuctions Pro's AI assistant [1P]. Swoopa is criticised for loose filters that alert outside the user's price or mileage [3P]. `hunts.parsed` (`00-architecture.md` §5) already supports showing the parse. |
 | 8 | **Fast, state-preserving browsing.** Back returns to the same scroll position and filters; results arrive in one round trip. | 3 | 5 | **15** | GovAuctions' founder described government auction sites as "extremely tedious", with "interminable page loading times" and back buttons that return to the homepage [3P, Show HN]. |
 | 9 | **Trust-safe billing.** No card for the free tier, a reminder 24 hours before any trial converts, one-tap cancel, and an annual plan. | 3 | 5 | **15** | WorthPoint: charged after cancelling, a double charge, no trial-ending reminder [3P]. CoinSnap: a 7-day trial rolls into a yearly fee without notice [3P]. Annual plans are normal: BidProwl $79/yr [1P], WorthPoint $249.99/yr [3P], Gixen $11.99/yr [1P]. |
@@ -173,7 +173,7 @@ BP = buyer's premium. App store IDs are in §3.
 
 Each entry covers: what it is and who it serves · platforms · coverage · pricing ·
 alerts · search · bidding · strengths · documented weaknesses · take-away for
-PaddleUp. "—" means not found in this pass. Full URLs are in §9.
+Skeuos. "—" means not found in this pass. Full URLs are in §9.
 
 ### 3.1 Private auction platforms
 
@@ -198,7 +198,7 @@ PaddleUp. "—" means not found in this pass. Full URLs are in §9.
 - **Strengths:** breadth of small houses; outbid push inside its own app.
 - **Documented weaknesses:** not mined this pass (gap).
 - **Take-away:** HiBid's own app already handles outbid and watch notifications.
-  PaddleUp cannot see a user's bids without logging in, so it should *hand off*
+  Skeuos cannot see a user's bids without logging in, so it should *hand off*
   outbid alerts ("turn on HiBid's outbid push for this lot") and own discovery,
   hunts and all-in cost.
 
@@ -338,7 +338,7 @@ PaddleUp. "—" means not found in this pass. Full URLs are in §9.
   still happen on Municibid.com" [1P].
 - **Bidding:** max bids, watchlists [1P].
 - **Take-away:** a source has already shipped conversational search and comps on
-  its own data. NL search alone will not set PaddleUp apart; NL hunts that span
+  its own data. NL search alone will not set Skeuos apart; NL hunts that span
   sources might.
 
 #### GSA Auctions
@@ -925,7 +925,7 @@ price is UNVERIFIED.
 | EZsniper | 1% per win, or $79.99/yr [1P] |
 
 Snipers can charge per win because they place the bid and see the result.
-PaddleUp only deep-links, cannot observe wins, and so cannot use this model.
+Skeuos only deep-links, cannot observe wins, and so cannot use this model.
 
 ### 5.3 Comps and valuation
 
@@ -1009,7 +1009,7 @@ feasibility on a 1–5 scale. IDs are for reference only.
 | A4 | Alert on **updates**, not only new lots: price drop, relist, date change, photos added, pickup window posted | GovDeals New/Updated; EstateSales.NET photo and date alerts; Swoopa price-drop alerts | 4 |
 | A5 | Configurable pre-close reminders (default 2 hours and 15 minutes) | AuctionTime 2 hours; LiveAuctioneers "almost up"; Municibid closing soon; EstateSales.org custom reminder times | 5 |
 | A6 | Quiet hours and daily caps per hunt | Proxibid frequency; BidSpotter chosen days. No spam complaints found, so this is design hygiene | 5 |
-| A7 | Outbid hand-off: a link that turns on the source's own outbid push | HiBid, AuctionTime and Municibid alert outbids in-app; PaddleUp can't see bids without logging in | 5 |
+| A7 | Outbid hand-off: a link that turns on the source's own outbid push | HiBid, AuctionTime and Municibid alert outbids in-app; Skeuos can't see bids without logging in | 5 |
 | A8 | Group hunts: "got one, silence the rest" | Gixen group bidding | 5 |
 | A9 | Explain cadence at sign-up, so free users know theirs is a digest | BidProwl states free alerts "wait for the next morning's digest" | 5 |
 | A10 | Photo-reference hunts: alert when something *looks like* this appears | Not found at any competitor in this pass (absence UNVERIFIED); `00-architecture.md` §6 | 3 |
@@ -1095,7 +1095,7 @@ feasibility on a 1–5 scale. IDs are for reference only.
 | $5 | Distribution through AI assistants (a ChatGPT app or public MCP server) as an acquisition channel | Municibid ChatGPT app; BidProwl MCP | 3 |
 | $6 | Later B2B: anonymised demand insights for Wisconsin houses and agencies ("37 hunters want skid steers within 60 miles"), guarding neutrality | The GSA OES no-bid problem; Sandhills sells apps to auctioneers; EstateSales.NET and LiveAuctioneers sell advertising | 2 |
 | $7 | Programmatic SEO pages per WI county, city and source, with live counts | GovAuctions' and BidProwl's state and platform pages are their acquisition engine | 4 |
-| $8 | Don't copy sniper per-win pricing, because PaddleUp cannot observe wins | §5.2 | — |
+| $8 | Don't copy sniper per-win pricing, because Skeuos cannot observe wins | §5.2 | — |
 
 ---
 
@@ -1159,7 +1159,7 @@ Each item is a concrete task for the next pass.
 9. **Current prices where sources conflict:** AuctionSniper's percentage, Swoopa's
    keyword counts, PriceCharting's tiers, WorthPoint's tiers, BidSpotter's alert cap.
 10. **Wisconsin inventory per source** (HiBid WI, K-BID WI, Wisconsin Surplus,
-    EstateSales.NET WI), to put a real number on PaddleUp's coverage edge.
+    EstateSales.NET WI), to put a real number on Skeuos's coverage edge.
 
 ---
 

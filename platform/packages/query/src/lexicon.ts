@@ -72,7 +72,7 @@ export interface Category {
    * They are dropped from the text query whenever a more specific word remains.
    */
   broad?: readonly string[];
-  /** Matched so the parser can say so, but not something PaddleUp lists. */
+  /** Matched so the parser can say so, but not something Skeuos lists. */
   outOfScope?: boolean;
 }
 

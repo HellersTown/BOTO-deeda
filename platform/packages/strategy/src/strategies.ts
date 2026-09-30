@@ -3,7 +3,7 @@
  * into: a walk-away number, a moment to act, the strategies that apply, and the
  * reasons, in plain words.
  *
- * PaddleUp cannot bid, so every strategy ends the same way: compute a number,
+ * Skeuos cannot bid, so every strategy ends the same way: compute a number,
  * pick a moment, alert the user, deep-link to the lot. The strategies differ in
  * which moment and why.
  *
@@ -571,7 +571,7 @@ function planTiming(t: TimingInput): Timing {
   const proxyLeadSeconds = toNumber(proxyLead) * 60;
   const windowPhrase = `${formatPlain(W)} minute${windowMinutes === 1 ? '' : 's'}`;
   const windowAdjective = `${formatPlain(W)}-minute`;
-  const assumedNote = windowAssumed ? ` The window was not captured, so PaddleUp assumes ${windowPhrase}; check the auction terms.` : '';
+  const assumedNote = windowAssumed ? ` The window was not captured, so Skeuos assumes ${windowPhrase}; check the auction terms.` : '';
   const inactivityNote =
     type === 'inactivity'
       ? ` It closes only after ${windowPhrase} with no bids, and changing your own proxy bid late restarts that clock too.`
@@ -592,7 +592,7 @@ function planTiming(t: TimingInput): Timing {
       alertSecondsBefore: null,
       alertAt: null,
       bidAt: null,
-      instruction: 'This lot has closed. Record the result (won, lost, price) so PaddleUp can calibrate your ceilings.',
+      instruction: 'This lot has closed. Record the result (won, lost, price) so Skeuos can calibrate your ceilings.',
     };
   }
 
@@ -637,7 +637,7 @@ function planTiming(t: TimingInput): Timing {
       alertAt: alertAt(s),
       bidAt: bidBy(snipe),
       instruction:
-        `${prefix}Hard close: the clock will not extend. Don't bid while watching. PaddleUp alerts you at T-${secondsPhrase(s)}; ` +
+        `${prefix}Hard close: the clock will not extend. Don't bid while watching. Skeuos alerts you at T-${secondsPhrase(s)}; ` +
         `then place ONE bid of ${bid} with about ${snipe} seconds left (T-${snipe} s). Don't go later by hand: very late bids can fail to register.`,
     };
   }
@@ -983,7 +983,7 @@ export interface ExposureResult {
  * exposure within the budget unless the user accepts winning everything. T is
  * charged once per pickup site, since one trip collects every lot there (the
  * doc notes the per-lot spec overcharges it). A lot with no bid to place adds
- * nothing. Expected spend (the doc's p_win version) needs win rates PaddleUp does
+ * nothing. Expected spend (the doc's p_win version) needs win rates Skeuos does
  * not have yet, so it is not computed.
  */
 export function portfolioExposure(entries: readonly ExposureEntry[], budgetCents: number | null = null): ExposureResult {
