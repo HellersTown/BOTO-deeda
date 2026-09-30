@@ -67,7 +67,7 @@ export const PersonIcon = (p: IconProps) => (
 /** The trail: distance, and where you set out from. */
 export const TrailIcon = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M6 21c0-5 12-4 12-9s-8-4-8-9" strokeDasharray="2.5 3.5" strokeLinejoin="miter" />
+    <path d="M6 21c0-5 12-4 12-9s-8-4-8-9" strokeDasharray="2.5 3.5" />
     <circle cx="10" cy="3.5" r="1.6" fill="currentColor" stroke="none" />
   </Svg>
 );

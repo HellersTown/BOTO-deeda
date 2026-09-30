@@ -1,7 +1,8 @@
 /**
  * The public schema as the browser sees it, hand-written from
  * platform/supabase/migrations (0002 tables, 0004 and 0010 views, 0005/0006
- * search_lots, 0013 run_my_hunt) in the shape `supabase gen types` produces.
+ * search_lots, 0013 run_my_hunt, 0016 pickup_geo_source, 0018 p_tsquery) in
+ * the shape `supabase gen types` produces.
  *
  * Two things are encoded here on purpose, so the compiler enforces the
  * backend's rules instead of the reviewer:
@@ -54,6 +55,13 @@ export type AlertKind =
 export type SearchSort = 'relevance' | 'closing' | 'nearest' | 'cheapest' | 'sleeper' | 'newest';
 export type MatchBasis = 'nearby' | 'in_state' | 'ships_to_you' | 'other';
 
+/**
+ * How a pickup point was found (0016): coordinates the source published, the
+ * ZIP's centroid, or the city's centroid. A distance to a 'city' point is
+ * approximate.
+ */
+export type PickupGeoSource = 'source' | 'postal_code' | 'city';
+
 /** Values of sources.access_status (0010 check constraint). */
 export type AccessStatus = 'open' | 'blocked' | 'robots_disallowed' | 'unreachable' | 'deeplink_only' | 'unknown';
 
@@ -91,6 +99,7 @@ export type AuctionRow = {
   pickup_state: string | null;
   pickup_postal_code: string | null;
   pickup_required: boolean | null;
+  pickup_geo_source: PickupGeoSource | null;
   ships: boolean | null;
   ships_note: string | null;
   seller_name: string | null;
@@ -133,6 +142,7 @@ export type LotRow = {
   pickup_city: string | null;
   pickup_state: string | null;
   pickup_postal_code: string | null;
+  pickup_geo_source: PickupGeoSource | null;
   ships: boolean | null;
   primary_image_url: string | null;
   image_urls: string[] | null;
@@ -414,6 +424,12 @@ export type SearchLotsArgs = {
   p_sort?: SearchSort;
   p_limit?: number;
   p_offset?: number;
+  /**
+   * 0018: the parser's grouped to_tsquery string (synonyms, model variants).
+   * Preferred over p_query when it parses; the server falls back to p_query
+   * when it does not, so sending both is always safe.
+   */
+  p_tsquery?: string | null;
 }
 
 /** One search_lots() row. */
@@ -442,6 +458,8 @@ export type SearchLotRow = {
   sleeper_reasons: Json | null;
   relevance: number | null;
   match_basis: MatchBasis;
+  /** 0018. Optional only so rows shaped before 0018 (and fixtures) still type-check. */
+  pickup_geo_source?: PickupGeoSource | null;
 }
 
 type Rel<Name extends string, Cols extends string, To extends string> = {
