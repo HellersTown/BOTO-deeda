@@ -43,6 +43,12 @@ export interface SourceConfig {
   name: string;
   url: string;
   apiBase?: string | null;
+  /**
+   * Where the source's robots.txt lives. For white-label and tenant-hosted
+   * sites this names the host the bidding actually happens on (a HiBid tenant
+   * such as bids.beloitauction.com), which is often not the host in `url`.
+   */
+  robotsUrl?: string | null;
   tier: SourceTier;
   ingest: IngestMethod;
   platform?: string | null;
