@@ -618,14 +618,35 @@ function endMs(a: BwRecord): number {
   return e ? Date.parse(e) : Number.POSITIVE_INFINITY;
 }
 
+const GOLDEN = 0.6180339887498949;
+const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+
+/**
+ * How far the rotation's starting point moves between two hourly runs over n
+ * sales: the whole number nearest n times the golden ratio's fraction that
+ * shares no factor with n. Successive windows then land far apart and barely
+ * overlap, and because the step is coprime with n every starting point comes
+ * round within n runs. Moving by one sale an hour (the first version) left the
+ * far half of Hansen's ~50 sales waiting a day when a run reached ~25 of them.
+ */
+export function rotationStride(n: number): number {
+  if (n <= 1) return 0;
+  const s = Math.max(1, Math.round(n * GOLDEN));
+  for (let d = 0; d < n; d++) {
+    for (const c of [s + d, s - d]) if (c >= 1 && c < n && gcd(c, n) === 1) return c;
+  }
+  return 1;
+}
+
 /**
  * Decide which auctions to fetch items for, and in what order.
  *
  * Open auctions in scope are split into URGENT (closing within urgentWindowMs,
- * soonest first) and the REST. The rest is rotated by the hour of `now`, so a
- * budget that cannot cover every auction still reaches each of them within a
- * few runs instead of starving the ones that close last. Stateless and
- * deterministic for a given `now`, which keeps it testable.
+ * soonest first) and the REST. The rest is rotated by the hour of `now`, the
+ * start moving rotationStride(n) sales each hour, so a budget that cannot cover
+ * every auction still reaches each of them within a few runs (3 runs for 50
+ * sales when a run reaches 20) instead of starving the ones that close last.
+ * Stateless and deterministic for a given `now`, which keeps it testable.
  */
 export function planAuctions(
   auctions: BwRecord[],
@@ -666,7 +687,8 @@ export function planAuctions(
     (a) => str(a.status) === 'accepting_bids' && endMs(a) - t <= urgentWindowMs,
   );
   const rest = fetchable.filter((a) => !urgent.includes(a));
-  const offset = rest.length ? Math.floor(t / 3_600_000) % rest.length : 0;
+  const n = rest.length;
+  const offset = n ? ((Math.floor(t / 3_600_000) % n) * rotationStride(n)) % n : 0;
   const rotated = [...rest.slice(offset), ...rest.slice(0, offset)];
 
   return { queue: [...urgent, ...rotated], inScope, outOfScope, undeclaredState, notOpen };

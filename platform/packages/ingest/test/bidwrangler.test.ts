@@ -22,6 +22,7 @@ import {
   parseCardFeePct,
   parseItemsPage,
   planAuctions,
+  rotationStride,
   runBidwrangler,
   scopeStates,
   tenantApiBase,
@@ -319,6 +320,48 @@ test('the non-urgent remainder rotates by the hour so every sale gets a turn', (
   const h1 = planAuctions(all, ['WI'], new Date('2026-09-30T19:00:00Z')).queue.map((a) => a.id);
   assert.notDeepEqual(h0, h1);
   assert.deepEqual([...h0].sort(), [...h1].sort());
+});
+
+test('a run that reaches only part of the rest still covers every sale within a few hours', () => {
+  // 50 open Wisconsin sales (Hansen had ~50 on 2026-09-30, and a 70-request
+  // run reached 20 to 25 of them), all closing a month out so none turns
+  // urgent while the simulated hours pass: this measures the rotation alone.
+  const start = Date.parse('2026-10-01T00:00:00Z');
+  const sales = Array.from({ length: 50 }, (_, i) => ({
+    id: 900_000 + i,
+    status: 'accepting_bids',
+    published_items_count: 12,
+    location: { state: 'WI' },
+    scheduled_end_time: new Date(start + (30 * 24 + i) * 3_600_000).toISOString(),
+  }));
+  const reach = 20;
+  const now0 = Date.parse('2026-09-30T00:00:00Z');
+  for (let h = 0; h < 200; h++) {
+    const seen = new Set<unknown>();
+    let runs = 0;
+    while (seen.size < 50 && runs < 60) {
+      const queue = planAuctions(sales, ['WI'], new Date(now0 + (h + runs) * 3_600_000)).queue;
+      assert.equal(queue.length, 50);
+      for (const a of queue.slice(0, reach)) seen.add(a.id);
+      runs++;
+    }
+    // Moving one sale an hour took 31 runs here; the ideal is 3.
+    assert.ok(runs <= 3, `from hour ${h}: every sale reached only after ${runs} runs`);
+  }
+});
+
+test('the rotation step is coprime with the number of sales and near 0.618 of it', () => {
+  assert.equal(rotationStride(0), 0);
+  assert.equal(rotationStride(1), 0);
+  assert.equal(rotationStride(2), 1);
+  assert.equal(rotationStride(3), 2);
+  const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+  for (let n = 2; n <= 400; n++) {
+    const s = rotationStride(n);
+    assert.ok(s >= 1 && s < n, `n=${n}`);
+    assert.equal(gcd(s, n), 1, `n=${n}: step ${s} shares a factor`);
+    assert.ok(Math.abs(s - n * 0.618) <= Math.max(3, n * 0.05), `n=${n}: step ${s}`);
+  }
 });
 
 // ---------------------------------------------------------- raw hygiene
