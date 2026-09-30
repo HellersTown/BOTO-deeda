@@ -50,6 +50,7 @@ import {
   zoneForState,
 } from '../src/adapters/hibid.ts';
 import type { AdapterContext, Fetcher, SourceConfig } from '../src/types.ts';
+import { CrawlRefused } from '../src/gate.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fx = (name: string) => readFileSync(join(here, 'fixtures', name), 'utf8');
@@ -411,6 +412,39 @@ test('portal run: pages to the end, stops on the short page, links every lot to 
   assert.match(r.warnings.join('\n'), /WI: read 3 of 82 open auctions/);
   assert.match(r.warnings.join('\n'), /built minimal records from lot fields/);
   assert.match(r.warnings.join('\n'), /fractional quantity/);
+});
+
+test('portal run: a gate budget refusal keeps the lots already read', async () => {
+  const { fetch: served, calls } = router({ auctions: [WI_AUCTIONS], lots: [WI_LOTS] });
+  let n = 0;
+  const fetch: Fetcher = async (url, init) => {
+    // The auction page and the first lot page get through; then the run's time is up.
+    if (++n > 2) throw new CrawlRefused('time budget for this run is used up', 'budget');
+    return served(url, init);
+  };
+  const r = await runHibid(ctx(fetch, {}, '2026-09-30T16:02:16Z'), { ...fast, lotPageLength: 6 });
+  assert.equal(calls.length, 2);
+  assert.equal(r.lots.length, 6);
+  assert.equal(r.completeSnapshot, false);
+  assert.match(r.warnings.join('\n'), /stopped at the crawl gate's budget/);
+});
+
+test('portal run: a refusal that is not about budget still fails the run', async () => {
+  const fetch: Fetcher = async () => {
+    throw new CrawlRefused('robots.txt disallows WaystockBot on /graphql at hibid.com', 'robots');
+  };
+  await assert.rejects(runHibid(ctx(fetch), fast), /robots\.txt disallows/);
+});
+
+test("portal run: stops before the worker's deadline instead of running into it", async () => {
+  const { fetch, calls } = router({ auctions: [WI_AUCTIONS], lots: [WI_LOTS] });
+  const c = ctx(fetch, {}, '2026-09-30T16:02:16Z');
+  // The worker's deadline has already passed when the run starts.
+  c.deadline = Date.now() - 1;
+  const r = await runHibid(c, { ...fast, lotPageLength: 6 });
+  assert.equal(calls.length, 0);
+  assert.equal(r.lots.length, 0);
+  assert.match(r.warnings.join('\n'), /stopped at the worker's time budget/);
 });
 
 test('portal run: soonest-closing lots first, budget respected, the 10,000 cap reported', async () => {

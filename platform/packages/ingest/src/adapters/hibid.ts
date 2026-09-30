@@ -79,6 +79,7 @@ import type {
   SourceConfig,
 } from '../types.ts';
 import { parseMoneyToCents } from '../money.ts';
+import { isBudgetRefusal } from '../gate.ts';
 
 // ------------------------------------------------------------------ constants
 
@@ -1129,6 +1130,8 @@ export async function runHibid(ctx: AdapterContext, options: HibidRunOptions = {
     if (requests >= o.maxRequests) return `request budget (${o.maxRequests})`;
     if (bytes >= o.maxBytes) return `byte budget (${Math.round(o.maxBytes / 1e6)} MB)`;
     if (Date.now() - started >= o.timeBudgetMs) return `time budget (${Math.round(o.timeBudgetMs / 1000)} s)`;
+    // The crawl worker's deadline: one more request needs a full gap before it.
+    if (ctx.deadline !== undefined && Date.now() + minInterval >= ctx.deadline) return "worker's time budget";
     return null;
   };
 
@@ -1177,7 +1180,16 @@ export async function runHibid(ctx: AdapterContext, options: HibidRunOptions = {
         stopReason = stopReason ?? over;
         return { ended: false, capped: total !== null && total >= HIBID_SEARCH_WINDOW, seen, total };
       }
-      const r = await post(field, body(pageNumber), `${label} page ${pageNumber}`);
+      let r: Awaited<ReturnType<typeof post>>;
+      try {
+        r = await post(field, body(pageNumber), `${label} page ${pageNumber}`);
+      } catch (e) {
+        // The crawl gate's request or time budget is spent: keep what was read.
+        // A robots or bot-protection refusal still fails the run.
+        if (!isBudgetRefusal(e)) throw e;
+        stopReason = stopReason ?? "crawl gate's budget";
+        return { ended: false, capped: total !== null && total >= HIBID_SEARCH_WINDOW, seen, total };
+      }
       if (!r.page) {
         const msg = `${label} page ${pageNumber}: ${r.errors.join('; ')}`;
         if (succeeded === 0) throw new Error(`HiBid ${msg}`);
