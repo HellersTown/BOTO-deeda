@@ -50,15 +50,39 @@ export function jsonLdTypes(html: string): string[] {
 }
 
 /** RSS/Atom feeds the page itself advertises via <link rel="alternate">. */
+/**
+ * An attribute's value in one tag, quoted or not: minified pages write
+ * rel=alternate and href=/ad/x/ (irsauctions.gov). "&amp;" is decoded.
+ */
+export function attrValue(tag: string, name: string): string | null {
+  const m = tag.match(new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'<>` + '`' + `]+))`, 'i'));
+  if (!m) return null;
+  return (m[1] ?? m[2] ?? m[3] ?? '').replace(/&amp;/g, '&');
+}
+
+/** Every href in a page, quoted or not, without its #fragment, in page order and once each. */
+export function linkHrefs(html: string, max = 2000): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const m of html.matchAll(/\shref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>`]+))/gi)) {
+    const v = (m[1] ?? m[2] ?? m[3] ?? '').replace(/&amp;/g, '&').split('#')[0].trim();
+    if (!v || seen.has(v)) continue;
+    seen.add(v);
+    out.push(v);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
 export function feedLinks(html: string, baseUrl: string): string[] {
   const out = new Set<string>();
   const re = /<link\b[^>]*>/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html.slice(0, 300_000))) !== null) {
     const tag = m[0];
-    if (!/rel\s*=\s*["']?alternate/i.test(tag)) continue;
-    if (!/type\s*=\s*["']application\/(rss|atom)\+xml/i.test(tag)) continue;
-    const href = tag.match(/href\s*=\s*["']([^"']+)["']/i)?.[1];
+    if (!/\balternate\b/i.test(attrValue(tag, 'rel') ?? '')) continue;
+    if (!/^application\/(rss|atom)\+xml$/i.test((attrValue(tag, 'type') ?? '').trim())) continue;
+    const href = attrValue(tag, 'href');
     if (!href) continue;
     try {
       out.add(new URL(href, baseUrl).toString());

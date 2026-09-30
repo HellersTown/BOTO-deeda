@@ -4,6 +4,8 @@ import {
   detectBlock,
   jsonLdTypes,
   feedLinks,
+  linkHrefs,
+  attrValue,
   robotsPathOf,
   concludeProbe,
   heldVerdict,
@@ -274,4 +276,18 @@ test('a held source: the robots verdict is current, the access verdict is the la
   const fresh = heldVerdict('allowed', { accessStatus: null, robotsAllows: null }, 'unknown');
   assert.equal(fresh.accessStatus, 'unknown');
   assert.match(fresh.note, /last full probe: none\.$/);
+});
+
+test('minified markup: attributes without quotes are read like quoted ones', () => {
+  // irsauctions.gov's head, as served on 2026-09-30.
+  const head = '<link rel=alternate type=application/rss+xml href=https://www.irsauctions.gov/rss.xml title="IRS Auctions">'
+    + '<link rel=alternate type=application/json href=https://www.irsauctions.gov/index.json title="IRS Auctions">';
+  assert.deepEqual(feedLinks(head, 'https://www.irsauctions.gov/'), ['https://www.irsauctions.gov/rss.xml']);
+  assert.equal(attrValue('<a href=/ad/x/ class=link>', 'href'), '/ad/x/');
+  assert.equal(attrValue('<a class="c" href="/b?x=1&amp;y=2">', 'href'), '/b?x=1&y=2');
+  assert.equal(attrValue('<a data-href=/no>', 'href'), null, 'data-href is another attribute');
+
+  const body = '<a href=/ad/rare-river/ class=card><a href="/faq">FAQ</a><a href=\'/b#top\'>'
+    + '<a data-href=/no><a href=#main-content>skip</a><a href=/ad/rare-river/>again</a>';
+  assert.deepEqual(linkHrefs(body), ['/ad/rare-river/', '/faq', '/b']);
 });

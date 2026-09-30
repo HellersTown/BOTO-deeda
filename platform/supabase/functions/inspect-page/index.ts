@@ -29,7 +29,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { politeFetch, CRAWLER_TOKEN } from './lib/http.ts';
 import { isAllowed, parseRobots, robotsVerdictFromStatus } from './lib/robots.ts';
-import { detectBlock, feedLinks, jsonLdTypes, pageTitle, robotsPathOf } from './lib/probe.ts';
+import { detectBlock, feedLinks, jsonLdTypes, linkHrefs, pageTitle, robotsPathOf } from './lib/probe.ts';
 import { extractJsonLdBlocks, flattenNodes } from './lib/jsonld.ts';
 import { awaitTurn, crawlDelayOf, hostState, isCacheableRobots, turnGapSec, type TurnOutcome } from './lib/politeness.ts';
 
@@ -243,9 +243,10 @@ Deno.serve(async (req) => {
   if (linkRe) {
     const re = linkRe;
     const seen = new Set<string>();
-    for (const m of html.matchAll(/href\s*=\s*["']([^"'#]+)["']/gi)) {
+    // Quoted or not: minified pages write href=/ad/x/ (linkHrefs, tested in probe.ts).
+    for (const href of linkHrefs(html)) {
       try {
-        const abs = new URL(m[1], r.finalUrl || target.toString()).toString();
+        const abs = new URL(href, r.finalUrl || target.toString()).toString();
         if (re.test(abs) && !seen.has(abs)) seen.add(abs);
       } catch { /* skip */ }
       if (seen.size >= Math.min(body.maxLinks ?? 60, 300)) break;
