@@ -754,14 +754,17 @@ export async function runBidwrangler(
   let foreignItems = 0;
   let outOfScopeItems = 0;
 
+  let itemRequests = 0;
   for (const a of plan.queue) {
     const auctionId = int(a.id)!;
     if (!byId.has(auctionId)) continue;
     const expected = int(a.published_items_count) ?? int(a.items_count) ?? 0;
     const pagesNeeded = Math.max(1, Math.ceil(expected / perPage));
-    const fetchedSomething = lots.length > 0 || stats.httpRequests > 1;
+    // The first auction in the queue is always attempted, so a run whose
+    // budget is too small for everything still makes progress on the most
+    // urgent sale instead of fetching nothing.
     if (
-      fetchedSomething &&
+      itemRequests > 0 &&
       (stats.bytesIn + expected * BW_EST_BYTES_PER_ITEM > maxBytes ||
         stats.httpRequests + pagesNeeded > maxRequests)
     ) {
@@ -775,6 +778,7 @@ export async function runBidwrangler(
     let total: number | null = null;
     for (let page = 1; page <= pagesNeeded + 1; page++) {
       if (stats.httpRequests >= maxRequests) break;
+      itemRequests++;
       const res = await get(itemsUrl(base, auctionId, page, perPage));
       if (res.status !== 200) {
         warnings.push(`Items for auction ${auctionId} page ${page}: HTTP ${res.status}.`);

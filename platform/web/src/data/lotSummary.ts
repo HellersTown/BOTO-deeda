@@ -3,7 +3,8 @@
  * search_lots(), a hunt match or the watchlist. Mapping lives here so each
  * source of lots is converted in exactly one place.
  */
-import type { Json, MatchBasis, SearchLotRow, SourceTier } from './database.types';
+import { isApproximateGeo } from '../lib/distance';
+import type { Json, MatchBasis, PickupGeoSource, SearchLotRow, SourceTier } from './database.types';
 import { readClosePrecise, type LotCloseInfo } from './search';
 
 /** 'unknown' when the precision lookup failed: render the date only, never a countdown. */
@@ -27,6 +28,8 @@ export interface LotSummary {
   readonly postalCode: string | null;
   readonly ships: boolean;
   readonly distanceMiles: number | null;
+  /** True when the distance was measured to the city's centroid (pickup_geo_source 'city', 0016). */
+  readonly distanceApprox: boolean;
   readonly sourceName: string | null;
   readonly sourceTier: SourceTier | null;
   readonly sleeperScore: number | null;
@@ -51,6 +54,7 @@ export function fromSearchRow(row: SearchLotRow, info: LotCloseInfo | undefined)
     postalCode: row.pickup_postal_code,
     ships: row.ships === true,
     distanceMiles: row.distance_miles === null ? null : Number(row.distance_miles),
+    distanceApprox: isApproximateGeo(row.pickup_geo_source),
     sourceName: row.source_name,
     sourceTier: row.source_tier,
     sleeperScore: row.sleeper_score === null ? null : Number(row.sleeper_score),
@@ -74,6 +78,8 @@ export interface EmbeddedLot {
   pickup_postal_code: string | null;
   ships: boolean | null;
   sleeper_score: number | null;
+  /** 0016. Optional so fixtures shaped before it still type-check. */
+  pickup_geo_source?: PickupGeoSource | null;
   precise: Json;
   source: { name: string; tier: SourceTier | null } | null;
   auction: { timezone: string | null; pickup_postal_code: string | null } | null;
@@ -97,6 +103,7 @@ export function fromEmbeddedLot(lot: EmbeddedLot, distanceMiles: number | null =
     postalCode: lot.pickup_postal_code ?? lot.auction?.pickup_postal_code ?? null,
     ships: lot.ships === true,
     distanceMiles,
+    distanceApprox: isApproximateGeo(lot.pickup_geo_source),
     sourceName: lot.source?.name ?? null,
     sourceTier: lot.source?.tier ?? null,
     sleeperScore: lot.sleeper_score === null ? null : Number(lot.sleeper_score),
