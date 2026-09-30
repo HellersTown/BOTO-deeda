@@ -12,6 +12,7 @@ import {
   parsePickupAddress,
   normalizePublicSurplus,
   createPublicSurplusAdapter,
+  detailQuota,
   publicSurplusAdapter,
   searchUrl,
   auctionUrl,

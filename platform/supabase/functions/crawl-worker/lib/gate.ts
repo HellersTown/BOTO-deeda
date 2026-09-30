@@ -32,7 +32,7 @@
 import { CRAWLER_TOKEN } from './http.ts';
 import { groupFor, isAllowed, parseRobots, robotsVerdictFromStatus } from './robots.ts';
 import type { ParsedRobots } from './robots.ts';
-import { detectBlock, robotsPathOf } from './probe.ts';
+import { detectBlock, robotsPathOf } from './block.ts';
 import type { Fetcher } from './types.ts';
 
 export interface RawResponse {

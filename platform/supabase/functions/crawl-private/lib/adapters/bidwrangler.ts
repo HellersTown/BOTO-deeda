@@ -150,7 +150,7 @@ export function textFromHtml(html: unknown): string | null {
       .replace(/<\s*(br|\/p|\/li|\/div|\/h[1-6])\s*\/?>/gi, '\n')
       .replace(/<[^>]+>/g, ''),
   )
-    .replace(/[ \t ]+/g, ' ')
+    .replace(/[ \t\u00a0]+/g, ' ')
     .replace(/\s*\n\s*/g, '\n')
     .trim();
   return t === '' ? null : t;
