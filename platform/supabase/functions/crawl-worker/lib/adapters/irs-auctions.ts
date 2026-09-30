@@ -245,6 +245,7 @@ export function normalizeIrsCard(card: IrsCard, now: Date, base: string = IRS_BA
   };
 
   const format = formatFrom(title, card.content ?? '');
+  const startingBidCents = minimumBid ? parseMoneyToCents(minimumBid) : null;
   const auction: NormalizedAuction = {
     externalId: slug,
     title,
@@ -274,9 +275,11 @@ export function normalizeIrsCard(card: IrsCard, now: Date, base: string = IRS_BA
     title,
     description: KIND_NOTE[kind],
     quantity: 1,
-    startingBidCents: minimumBid ? parseMoneyToCents(minimumBid) : null,
+    startingBidCents,
     currentBidCents: null,
-    nextBidCents: null,
+    // The minimum bid is the lowest first bid the IRS accepts, which is what a
+    // next bid means everywhere else: the app shows it as "Opens at".
+    nextBidCents: startingBidCents,
     bidCount: null,
     closesAt,
     closed: Date.parse(closesAt) <= now.getTime(),

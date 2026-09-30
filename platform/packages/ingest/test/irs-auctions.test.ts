@@ -106,6 +106,7 @@ test('a sale placed from its notice: minimum bid, local time, city-less place, n
   assert.equal(lot.title, 'Half interest in a house and acreage!!!');
   assert.equal(lot.url, 'https://www.irsauctions.gov/ad/half-interest-house-acreage/');
   assert.equal(lot.startingBidCents, 8_148_000);
+  assert.equal(lot.nextBidCents, 8_148_000, 'the minimum bid is the lowest first bid: "Opens at"');
   assert.equal(lot.currentBidCents, null);
   assert.equal(lot.closesAt, '2026-10-28T12:00:00-04:00', 'noon in North Carolina, still on daylight time');
   assert.equal(lot.closed, false);
@@ -139,6 +140,7 @@ test('sales placed from their cards, in their own states\' zones', () => {
 
   const bentley = normalizeIrsCard(card('2016-bentley-continental-gt-convertible-brand-new'), EARLY)!.lot;
   assert.equal(bentley.startingBidCents, null, 'the card gives no minimum bid');
+  assert.equal(bentley.nextBidCents, null);
   assert.equal(bentley.closesAt, '2026-09-15T11:00:00-05:00', 'Houston: central daylight time');
   const meta = (bentley.raw as { _meta: Record<string, unknown> })._meta;
   assert.deepEqual([meta.closeTimePrecise, meta.timezoneBasis], [false, 'state-primary'], 'Texas spans two zones');
