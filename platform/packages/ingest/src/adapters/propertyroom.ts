@@ -531,9 +531,13 @@ export async function runPropertyRoom(ctx: AdapterContext, opts: PrRunOptions = 
   };
 
   const overBudget = () => ctx.now().getTime() - startedAt + spacing > budgetMs;
-  /** Whether a page says more pages follow. No pager at all means a single page. */
-  const hasMore = (r: { pager: PrPager; found: number }) =>
-    r.pager.hasNext ?? (r.pager.present ? r.found >= PR_PAGE_SIZE : false);
+  /**
+   * Whether more pages follow: true or false only when the site says so, null
+   * when it cannot be told. Only an explicit "no next page" may end a sweep as
+   * complete, because a complete snapshot closes every lot it did not see.
+   */
+  const nextState = (r: { pager: PrPager; found: number }): boolean | null =>
+    r.pager.present ? (r.pager.hasNext ?? (r.found >= PR_PAGE_SIZE ? true : null)) : null;
 
   const first = await fetchPage(1);
   let complete = false;
@@ -543,11 +547,12 @@ export async function runPropertyRoom(ctx: AdapterContext, opts: PrRunOptions = 
   if (first && first.found === 0) {
     warnings.push('Page 1 held no listing cards; the list is empty or its markup changed.');
   } else if (first && maxPage <= perRun) {
-    // The whole catalogue fits: page until the site says there is no next page.
-    let more = hasMore(first);
+    // The whole catalogue fits: page until the site marks a page as the last.
+    // A first page with no pager at all is a single-page list.
+    let more: boolean | null = first.pager.present ? nextState(first) : false;
     let page = 2;
     let failed = false;
-    while (more && page <= perRun + 2) {
+    while (more === true && page <= perRun + 2) {
       if (overBudget()) {
         warnings.push(`Stopped at page ${page - 1} of ${maxPage}: run time budget reached.`);
         failed = true;
@@ -563,11 +568,21 @@ export async function runPropertyRoom(ctx: AdapterContext, opts: PrRunOptions = 
         failed = true;
         break;
       }
-      more = hasMore(r);
+      // A site that ignores page=N serves page 1 again: stop rather than loop.
+      if (r.pager.current !== null && r.pager.current !== page) {
+        warnings.push(`Asked for page ${page} and got page ${r.pager.current}; stopped paging.`);
+        failed = true;
+        break;
+      }
+      more = nextState(r);
       page++;
     }
-    complete = !failed && !more;
-    if (more && !failed) warnings.push(`Stopped at the ${perRun + 1}-page cap with pages still to come.`);
+    if (!failed && more === null) {
+      warnings.push(`Page ${page - 1} did not say whether more pages follow; no complete snapshot.`);
+    } else if (!failed && more === true) {
+      warnings.push(`Stopped at the ${perRun + 2}-page cap with pages still to come.`);
+    }
+    complete = !failed && more === false;
   } else if (first) {
     mode = 'rotate';
     const slotMs = Math.max(5, ctx.source.crawlCadenceMin || 60) * 60_000;
@@ -580,6 +595,10 @@ export async function runPropertyRoom(ctx: AdapterContext, opts: PrRunOptions = 
       const r = await fetchPage(page);
       if (!r) break;
       if (r.found === 0) break; // the list shrank below this page since page 1 was read
+      if (r.pager.current !== null && r.pager.current !== page) {
+        warnings.push(`Asked for page ${page} and got page ${r.pager.current}; stopped paging.`);
+        break;
+      }
     }
   }
 

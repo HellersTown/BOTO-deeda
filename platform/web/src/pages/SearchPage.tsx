@@ -1,6 +1,6 @@
 import { parseQuery, type ParsedQuery } from '@platform/query';
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { FilterPanel } from '../components/FilterPanel';
 import { CloseIcon, FilterIcon, SearchIcon } from '../components/Icons';
 import { LocationButton } from '../components/LocationDialog';
@@ -35,7 +35,7 @@ interface Results {
   readonly info: ReadonlyMap<string, LotCloseInfo>;
 }
 
-/** The design's "Read as: laptop · within 50 mi of 53202 · every source type". */
+/** The design's "Read as generator · up to $800 · within 60 mi of 53202". */
 function ReadAs({ parse, filters, origin }: { parse: ParsedQuery; filters: SearchFilters; origin: string | null }) {
   const words = [
     ...parse.terms,
@@ -51,13 +51,13 @@ function ReadAs({ parse, filters, origin }: { parse: ParsedQuery; filters: Searc
   if (filters.radius === 'anywhere' || (!origin && parse.location.states.length === 0)) parts.push('anywhere');
   else if (origin) parts.push(`within ${filters.radius} mi of ${origin}`);
   if (parse.location.states.length) parts.push(`in ${parse.location.states.join(', ')}`);
-  parts.push(filters.tiers === null ? 'every source type' : filters.tiers.map((t) => TIER_LABEL[t]).join(', ') || 'no seller type');
+  if (filters.tiers !== null) parts.push(filters.tiers.map((t) => TIER_LABEL[t]).join(', ') || 'no seller type');
   if (!filters.includeShippable) parts.push('pickup nearby only');
   if (parse.timing.closingWithinHours !== null) parts.push(`closing within ${parse.timing.closingWithinHours} h`);
   return (
     <div className="read-as">
       <p className="read-as__line">
-        Read as: <strong>{words || 'everything'}</strong>
+        Read as <strong>{words || 'everything'}</strong>
         {parts.map((p) => ` · ${p}`).join('')}
       </p>
       {parse.explanation.length > 0 && parse.input.trim() !== '' ? (
@@ -117,8 +117,15 @@ function FiltersSheet({
   );
 }
 
+/** router state from "Before you set out": how many hunts it started. */
+interface SetOutState {
+  readonly setOut?: { readonly hunts?: number };
+}
+
 export function SearchPage() {
   const [params, setParams] = useSearchParams();
+  const location = useLocation();
+  const setOutHunts = (location.state as SetOutState | null)?.setOut?.hunts ?? 0;
   const q = params.get('q') ?? '';
   const home = useHome();
   const now = useNow();
@@ -160,6 +167,8 @@ export function SearchPage() {
         homeZip: place ? null : home.zip,
         resolvedZip,
         page: { limit: SEARCH_LIMIT_MAX, offset: 0 },
+        // 0018: the parser's grouped query (synonyms, model variants) beside the plain one.
+        tsquery: parse.tsquery,
       }),
     [parse, filters, place, home.zip, resolvedZip],
   );
@@ -227,10 +236,16 @@ export function SearchPage() {
   const more = farther.data != null && search.data ? fartherCount(farther.data, rows.length, SEARCH_LIMIT_MAX) : null;
   const lots = (n: number) => `${n} ${n === 1 ? 'lot' : 'lots'}`;
 
-  let title: string;
+  // The design's "3 within 60 mi" on a phone, "3 lots within 60 mi" on the web.
+  let title: ReactNode;
   const extras: string[] = [];
   if (radiusSearch) {
-    title = `${lots(nearby)} within ${filters.radius} mi`;
+    title = (
+      <>
+        {nearby}
+        <span className="desktop-only-inline"> {nearby === 1 ? 'lot' : 'lots'}</span> within {filters.radius} mi
+      </>
+    );
     if (shipping) extras.push(`${shipping} more ship to you`);
     if (inState) extras.push(`${inState} more in ${parse.location.states.join(', ')}`);
   } else if (parse.location.states.length && filters.radius !== 'anywhere') {
@@ -239,7 +254,10 @@ export function SearchPage() {
     title = `${lots(rows.length)} anywhere`;
   }
   if (capped) extras.push(`showing the top ${SEARCH_LIMIT_MAX}`);
-  const fartherText = more ? `${more.count}${more.atLeast ? '+' : ''} more ${more.count === 1 ? 'match' : 'matches'} farther than ${filters.radius} mi` : null;
+  const fartherCountText = more ? `${more.count}${more.atLeast ? '+' : ''}` : null;
+  const fartherText = more ? `${fartherCountText} more ${more.count === 1 ? 'match' : 'matches'} farther than ${filters.radius} mi` : null;
+  const showFarther = fartherText !== null && !search.loading && !search.error;
+  const widen = () => setFilters({ ...filters, radius: 'anywhere' });
 
   const hasWords = parse.websearchQuery.trim() !== '' || parse.brands.length > 0;
   const huntHref = `/hunts/new?q=${encodeURIComponent(q)}`;
@@ -279,13 +297,13 @@ export function SearchPage() {
   return (
     <div className="search-page">
       <header className="search-head mobile-only">
-        <Wordmark />
+        <Wordmark size={24} markSize={26} />
         <LocationButton />
       </header>
 
       <form role="search" className="search-form mobile-only" onSubmit={submit}>
         <label htmlFor="q" className="search-form__label">
-          Describe what you need
+          What do you need?
         </label>
         <div className="search-form__row">
           <input
@@ -294,7 +312,7 @@ export function SearchPage() {
             className="input input--strong"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="e.g. DJI drone with thermal under $1,500"
+            placeholder="e.g. generator under $800 within 60 miles"
             enterKeyHint="search"
           />
           <button type="submit" className="btn btn--primary btn--square" aria-label="Search">
@@ -310,6 +328,13 @@ export function SearchPage() {
 
         <section className="search-results" aria-labelledby="results-title">
           <div className="search-read">
+            {setOutHunts > 0 ? (
+              <div className="notice notice--pine" role="status">
+                <p>
+                  {setOutHunts} {setOutHunts === 1 ? 'hunt is' : 'hunts are'} keeping watch. <Link to="/hunts">See them in Hunts</Link>
+                </p>
+              </div>
+            ) : null}
             <ReadAs parse={parse} filters={filters} origin={origin} />
             {!home.zip && !place && parse.location.states.length === 0 && !parse.location.postalCode ? (
               <div className="notice" role="status">
@@ -345,11 +370,15 @@ export function SearchPage() {
               {!search.loading && !search.error && (extras.length || fartherText) ? (
                 <span className="results-head__extra">
                   {extras.map((e) => ` · ${e}`).join('')}
-                  <span className="desktop-only-inline">{fartherText ? ` · ${more?.count}${more?.atLeast ? '+' : ''} more farther away` : ''}</span>
+                  <span className="desktop-only-inline">{fartherCountText ? ` · ${fartherCountText} more farther away` : ''}</span>
                 </span>
               ) : null}
             </h1>
-            <span className="results-head__note mobile-only">Updated hourly</span>
+            {showFarther ? (
+              <button type="button" className="link-btn link-btn--strong results-head__farther mobile-only" onClick={widen}>
+                {fartherCountText} farther away
+              </button>
+            ) : null}
             <label className="sort-select desktop-only">
               Sort
               <select className="input input--compact" value={filters.sort} onChange={(e) => setFilters({ ...filters, sort: e.target.value as SearchFilters['sort'] })}>
@@ -379,9 +408,7 @@ export function SearchPage() {
                 {radiusSearch
                   ? `Try a wider distance${filters.includeShippable ? '' : ', include lots that ship'}, or fewer words. `
                   : 'Try fewer words. '}
-                {hasWords
-                  ? 'Or save it as a hunt: Skeuos checks every source every hour and alerts you when a match is listed.'
-                  : ''}
+                {hasWords ? 'Or keep watch for it: save it as a hunt and Skeuos tells you when one is listed.' : ''}
               </p>
             </EmptyState>
           ) : (
@@ -395,9 +422,9 @@ export function SearchPage() {
                 {hasWords && q ? (
                   <li className="desktop-only">
                     <Link to={huntHref} className="hunt-tile">
-                      <span className="hunt-tile__title">Keep hunting for this</span>
+                      <span className="hunt-tile__title">Keep watch for this</span>
                       <span className="hunt-tile__body">
-                        Save it as a hunt. Skeuos keeps checking every source and alerts you when a new match is listed
+                        Save it as a hunt. Skeuos checks every source each hour and tells you when a new one is listed
                         {origin ? ` near ${origin}` : ''}.
                       </span>
                       <span className="hunt-tile__cta">Save as a hunt</span>
@@ -413,17 +440,17 @@ export function SearchPage() {
             </>
           )}
 
-          {fartherText && !search.loading && !search.error ? (
-            <button type="button" className="farther-row" onClick={() => setFilters({ ...filters, radius: 'anywhere' })}>
+          {showFarther ? (
+            <button type="button" className="farther-row desktop-only" onClick={widen}>
               <span>{fartherText}</span>
-              <span className="farther-row__cta">Show</span>
+              <span className="farther-row__cta">Show them</span>
             </button>
           ) : null}
 
           {hasWords && q ? (
             <Link to={huntHref} className="hunt-cta mobile-only">
-              <span className="hunt-cta__title">Save as a hunt</span>
-              <span className="hunt-cta__body">Keeps searching every source and alerts you when a new match is listed.</span>
+              <span className="hunt-cta__title">Keep watch for this</span>
+              <span className="hunt-cta__body">Skeuos checks every source each hour and tells you when a new one is listed.</span>
             </Link>
           ) : null}
         </section>

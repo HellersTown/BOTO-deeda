@@ -14,12 +14,15 @@
  * VERIFIED ENDPOINTS (captured 2026-09-30 through inspect_url, see fixtures):
  *
  *   GET {host}/api/auctions?page=N
- *     { total, page, per_page, auctions[], all_auction_ids[] }, 50 per page.
- *     `total` counts the house's whole history (Hansen: 3,418). The order is
- *     every NOT-complete auction first, by end time, then the completed history
- *     oldest-first: all_auction_ids runs 167959 (closes Sep 30) ... 156558
- *     (Nov 3) ... 156402, then 26846, 26663 (2018). So the walk stops at the
- *     first page that contains a completed auction: ~2 pages, not 69.
+ *     { total, page, per_page, auctions[], all_auction_ids[] }, 50 per page
+ *     (~1 MB a page: each record carries its featured-image URLs).
+ *     `total` counts the house's whole history (Hansen: 3,418, then 3,420 an
+ *     hour later). The order is every NOT-complete auction first, by end time,
+ *     then the completed history oldest-first: all_auction_ids runs 167959
+ *     (closes Sep 30) ... 156558 (Nov 3) ... 156402, then 26846, 26663 (2018),
+ *     and page=2&per_page=1 returned 168337, the second id. So the walk stops
+ *     at the first page holding a completed auction (~2 pages, not 69), and
+ *     only while that ordering is seen to hold on the page (openFirstOrderHolds).
  *
  *   GET {host}/api/auctions/{id}/items?page=N&per_page=M
  *     { total, page, per_page, items[], all_item_ids[] }. `page=2&per_page=3`
@@ -31,7 +34,8 @@
  *     {host}/ui/auctions/{auctionId}   og:url on the auction page
  *     {host}/ui/items/{itemId}         og:url + og:title "1955 Massey-Harris 33
  *                                      Tractor" (/ui/auctions/{a}/items/{i}
- *                                      renders NO og tags: not a real route)
+ *                                      renders no og tags: not the server's
+ *                                      canonical item route, so not used)
  *
  * robots.txt, bid.hansenauctiongroup.com:  User-agent: * / Disallow: /docs /
  * Disallow: /accounts. /api and /ui are allowed. (www has Crawl-delay: 10, but
@@ -64,6 +68,14 @@
  *    A full Wisconsin refresh for Hansen is ~15 MB, so a run is budgeted (see
  *    planAuctions): lots closing within 24 hours always, then a rotating slice
  *    of the rest. A run is a complete snapshot only when it got everything.
+ * 8. Politeness: the crawl worker's fetcher does not yet enforce
+ *    sources.rate_limit_rpm, so run() spaces its own requests by
+ *    60s / rate_limit_rpm (capped at 10 s). Drop that once the fetcher does.
+ *
+ * Shared helpers other adapters may want (kept here, per the ownership rule):
+ * declaredState (full US state name or code -> code, never from a city),
+ * decodeEntities/textFromHtml, toIso, validTimeZone, parseBuyerPremium
+ * (handles "Buyer's Fee" and tiered premiums), parseCardFeePct.
  */
 
 import type {

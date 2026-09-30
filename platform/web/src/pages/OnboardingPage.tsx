@@ -1,5 +1,6 @@
 import { useId, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { LoadingState } from '../components/States';
 import { DataError, describeError } from '../data/errors';
 import { createHunt, runMyHunt } from '../data/hunts';
 import { lookupPostalCode, normalizeZip } from '../data/postal';
@@ -32,6 +33,20 @@ function destination(value: string | null): string {
  */
 export function OnboardingPage() {
   useDocumentTitle('Before you set out');
+  const { user } = useAuth();
+  const home = useHome();
+  // The fields start from the profile, so wait for it (the page can be opened directly).
+  if (user && home.profileFor !== user.id) {
+    return (
+      <div className="setout">
+        <LoadingState label="Getting ready" />
+      </div>
+    );
+  }
+  return <OnboardingForm />;
+}
+
+function OnboardingForm() {
   const { user } = useAuth();
   const home = useHome();
   const navigate = useNavigate();
