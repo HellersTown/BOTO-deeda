@@ -937,6 +937,7 @@ select.input {
   align-items: center;
   gap: 5px;
   white-space: nowrap;
+  vertical-align: -2px;
 }
 
 .distance svg {
@@ -1570,9 +1571,7 @@ select.input {
 }
 
 .lot-card__where {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  display: block;
   font-size: 12px;
   line-height: 1.45;
   color: var(--muted);

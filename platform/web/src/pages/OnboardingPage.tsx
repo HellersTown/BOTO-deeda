@@ -182,7 +182,10 @@ function OnboardingForm() {
             autoComplete="postal-code"
             maxLength={10}
             value={zip}
-            onChange={(e) => setZip(e.target.value)}
+            onChange={(e) => {
+              setZip(e.target.value);
+              setZipError(null);
+            }}
             aria-invalid={zipError ? true : undefined}
             aria-describedby={zipHintId}
           />
