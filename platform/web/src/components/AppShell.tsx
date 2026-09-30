@@ -2,13 +2,13 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useOnline } from '../hooks/useOnline';
 import { useAlerts } from '../providers/AlertsProvider';
-import { BellIcon, HuntIcon, PaddleIcon, PersonIcon, SearchIcon } from './Icons';
+import { BellIcon, CompassIcon, PaddleIcon, PersonIcon, SearchIcon } from './Icons';
 import { LocationButton } from './LocationDialog';
 import { Wordmark } from './Logo';
 
 const TABS = [
   { to: '/', label: 'Search', Icon: SearchIcon, end: true },
-  { to: '/hunts', label: 'Hunts', Icon: HuntIcon, end: false },
+  { to: '/hunts', label: 'Hunts', Icon: CompassIcon, end: false },
   { to: '/bids', label: 'Bids', Icon: PaddleIcon, end: false },
   { to: '/alerts', label: 'Alerts', Icon: BellIcon, end: false },
   { to: '/profile', label: 'Profile', Icon: PersonIcon, end: false },
@@ -36,14 +36,14 @@ function HeaderSearch() {
   return (
     <form role="search" className="header-search" onSubmit={submit}>
       <label htmlFor="header-q" className="visually-hidden">
-        Describe what you need
+        What do you need?
       </label>
       <input
         id="header-q"
         type="search"
         className="header-search__input"
         value={text}
-        placeholder="Describe what you need"
+        placeholder="e.g. generator under $800 within 60 miles"
         onChange={(e) => setText(e.target.value)}
         enterKeyHint="search"
       />
@@ -60,7 +60,7 @@ function TopNav() {
   return (
     <header className="topnav">
       <Link to="/" className="topnav__brand" aria-label="Skeuos, search">
-        <Wordmark />
+        <Wordmark size={28} markSize={30} />
       </Link>
       <HeaderSearch />
       <nav aria-label="Primary" className="topnav__nav">
