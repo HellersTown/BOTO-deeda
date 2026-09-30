@@ -172,6 +172,30 @@ select 34, 'search', 'a source held on its terms is hidden from search',
                                              p_radius_miles => 50) s
                     where s.lot_id = (select id from lots where external_id = 'L-near')), null;
 
+-- ============================================== 3d. sale-level rows (0023)
+-- A source that lists sales, not lots, stores one row per sale. It is found by
+-- search (its description lists what is in the sale), carries the sale's lot
+-- count, and gets no sleeper score.
+
+insert into auctions (source_id, external_id, title, lot_count)
+select id, 'S-sale', 'Farm and tool auction', 421 from sources where slug = 't-src';
+insert into lots (source_id, auction_id, external_id, title, description, closes_at,
+                  pickup_city, pickup_state, pickup_postal_code, sale_level)
+select s.id, a.id, 'sale:S-sale', 'Farm and tool auction, Wauwatosa',
+       'Gravely walk-behind tractor, Snap On tools, woodworking', now() + interval '1 day',
+       'Wauwatosa', 'WI', '53213', true
+from sources s join auctions a on a.source_id = s.id and a.external_id = 'S-sale'
+where s.slug = 't-src';
+select refresh_sleeper_scores(100000);
+
+insert into _t
+select 35, 'search', 'a sale-level row is found, flagged, and has no sleeper score',
+       exists (select 1 from search_lots(p_query => 'gravely tractor', p_postal_code => '53202',
+                                         p_radius_miles => 50) s
+                where s.lot_id = (select id from lots where external_id = 'sale:S-sale')
+                  and s.sale_level and s.sale_lot_count = 421)
+       and (select sleeper_score is null from lots where external_id = 'sale:S-sale'), null;
+
 -- =========================================================== 4. sleeper score
 
 with s as (

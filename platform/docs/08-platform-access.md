@@ -149,6 +149,18 @@ links.
 | PropertyRoom | User Agreement (Freshdesk articles, 2019-09-27; Conduct of Users 2020-06-24) | **AMBIGUOUS** (on) | No clause on automated access. Conduct of Users: "nor will you redeliver any content using framing, hyperlinks, or other technology without PropertyRoom.com's express written permission". A public app should link out, not show their photos. |
 | Hansen Auction Group (BidWrangler) | Per-auction Terms (undated); no site-wide page; BidWrangler's platform terms not retrievable | **AMBIGUOUS** (on) | No clause on automated access. "Media used on Hansen Auction Group's bidding platform or marketing platforms cannot be used by customers." |
 
+The second wave, read the same day (0022):
+
+| Source | Terms read | Verdict | Clause (verbatim) |
+|---|---|---|---|
+| BidSpotter (Proxibid Inc, DBA BidSpotter) | Website Terms and Conditions (2024-06-24) | **PROHIBITS** (held) | §4.2: the user agrees not to "use any data mining, robots or similar data gathering or extraction methods". §9 restricts even linking without consent, except "for the purposes of operating and providing a bona fide search engine". |
+| Purple Wave | Terms of Website Use (2025-05-15) | **PROHIBITS** (held) | "Use any robot, spider or other automatic device, process or means to access the Website for any purpose, including monitoring or copying any of the material on the Website." Read through the site's own `?_escaped_fragment_=` snapshot, which it advertises to crawlers. robots.txt now disallows `/auction/results*` (§3.9 said it did not). |
+| ShopGoodwill | Terms of Use (2025-01-22) | **PROHIBITS** (held) | §6: "use any robot, spider, crawler, scraper, script, browser extension, offline reader or other automated means or interface not authorized by us to access the Services, extract data". robots.txt sets `Crawl-delay: 120`. |
+| LiveAuctioneers | Terms and Conditions (2025-03-26) | **PROHIBITS** (held) | §8: "You agree that you will not use any robot, spider, scraper, or other automated means to access the sites for any purpose without our express written permission." |
+| Invaluable (and Schrager, which sells there) | Terms of Use v3.11 (2019-11-05) | **PROHIBITS** (held) | §5.2: "you will not use any robot, spider, other automatic device, or manual process to monitor or copy our web pages or the content contained herein without our prior expressed written permission." |
+| K-BID | Not retrievable | Blocked | robots.txt and the home page answer HTTP 403 (awselb) to our crawler. |
+| AuctionGuide | None published (`/terms/` is 404) | **PERMITS search use** (building) | robots.txt: "As a condition of accessing this website, you agree to abide by the following content signals": `search=yes, ai-train=no, use=reference`. Search means a search index returning hyperlinks and short excerpts; `/search/` and `/calendar/` are disallowed. Built as sale-level rows (0023): one row per sale, a short excerpt, a link to the sale. |
+
 What this means for Wisconsin coverage: of the platforms carrying most
 Wisconsin public-sector inventory, every one read so far (HiBid, Public
 Surplus, Wisconsin Surplus, Municibid, and GovDeals behind Akamai) is closed to

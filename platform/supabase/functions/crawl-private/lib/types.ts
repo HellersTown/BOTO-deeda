@@ -157,6 +157,14 @@ export interface NormalizedLot {
 
   images: NormalizedImage[];
   raw: unknown;
+  /**
+   * True when this row stands for a whole sale, from a source that lists sales
+   * rather than lots (AuctionGuide). Title and description are the sale's own,
+   * closesAt is the sale's close, url goes to the sale. Leave prices and bid
+   * count null: the database gives such rows no sleeper score, and the app draws
+   * them as a sale, not a lot.
+   */
+  saleLevel?: boolean;
 }
 
 /** A single bid, where the source publishes bid history. */
