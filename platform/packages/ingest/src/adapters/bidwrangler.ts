@@ -68,9 +68,9 @@
  *    A full Wisconsin refresh for Hansen is ~15 MB, so a run is budgeted (see
  *    planAuctions): lots closing within 24 hours always, then a rotating slice
  *    of the rest. A run is a complete snapshot only when it got everything.
- * 8. Politeness: the crawl worker's fetcher does not yet enforce
- *    sources.rate_limit_rpm, so run() spaces its own requests by
- *    60s / rate_limit_rpm (capped at 10 s). Drop that once the fetcher does.
+ * 8. Politeness: the crawl gate spaces requests by sources.rate_limit_rpm (or
+ *    the host's Crawl-delay). run() also spaces its own by 60s / rate_limit_rpm
+ *    (capped at 10 s), so it stays polite behind any fetcher, including tests'.
  *
  * Shared helpers other adapters may want (kept here, per the ownership rule):
  * declaredState (full US state name or code -> code, never from a city),

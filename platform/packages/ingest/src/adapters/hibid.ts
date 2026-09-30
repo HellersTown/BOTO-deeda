@@ -1077,8 +1077,10 @@ class HibidBlockedError extends Error {}
 function looksLikeChallenge(status: number, headers: Record<string, string>, text: string): boolean {
   if ((headers['cf-mitigated'] ?? '').toLowerCase() === 'challenge') return true;
   const head = text.slice(0, 20_000);
+  // A 503 from Cloudflare is usually an outage, not a refusal, so only a 403
+  // counts on the "cloudflare" marker alone.
   return /<title>\s*(just a moment|attention required)|window\._cf_chl_opt|challenge-platform\/[^"'\s]*orchestrate\//i.test(head) ||
-    ((status === 403 || status === 503) && /cloudflare/i.test(head));
+    (status === 403 && /cloudflare/i.test(head));
 }
 
 /**
@@ -1110,7 +1112,6 @@ export async function runHibid(ctx: AdapterContext, options: HibidRunOptions = {
   const auctions = new Map<string, NormalizedAuction>();
   const lots = new Map<string, NormalizedLot>();
   const tally = {
-    lotIssues: 0,
     lotDropped: 0,
     fractional: 0,
     disagreements: 0,
@@ -1144,10 +1145,11 @@ export async function runHibid(ctx: AdapterContext, options: HibidRunOptions = {
     bytes += res.text.length;
     const fetchedAtMs = ctx.now().getTime();
     if (res.status === 429) throw new Error(`HiBid rate limit (HTTP 429) on ${what}; back off.`);
-    if (res.status === 401 || res.status === 403 || looksLikeChallenge(res.status, res.headers ?? {}, res.text)) {
+    const challenge = looksLikeChallenge(res.status, res.headers ?? {}, res.text);
+    if (res.status === 401 || res.status === 403 || challenge) {
       // A refusal of our honest identity is an answer, not a problem to solve.
       throw new HibidBlockedError(
-        `HiBid refused WaystockBot on ${what} (HTTP ${res.status}${looksLikeChallenge(res.status, res.headers ?? {}, res.text) ? ', challenge page' : ''}). ` +
+        `HiBid refused WaystockBot on ${what} (HTTP ${res.status}${challenge ? ', challenge page' : ''}). ` +
           'Treat as blocked: do not retry; record it and route the source to deeplink_only.',
       );
     }
@@ -1254,7 +1256,6 @@ export async function runHibid(ctx: AdapterContext, options: HibidRunOptions = {
         tally.lotDropped++;
         continue;
       }
-      if (n.issues.length) tally.lotIssues++;
       if (n.fractionalQuantity) tally.fractional++;
       if (n.closeDisagreement) tally.disagreements++;
       lots.set(n.lot.externalId, n.lot); // later pages win: they are fresher

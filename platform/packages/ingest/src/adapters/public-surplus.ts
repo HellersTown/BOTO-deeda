@@ -891,7 +891,7 @@ export function detailQuota(
  * Only a budget refusal is survivable: after a block the run must stop, never
  * retry.
  */
-function isGateRefusal(e: unknown): boolean {
+export function isGateRefusal(e: unknown): boolean {
   return e instanceof Error && e.name === 'CrawlRefused';
 }
 

@@ -22,6 +22,7 @@ import {
   MUNICIBID_ORIGIN,
 } from '../src/adapters/municibid.ts';
 import type { AdapterContext, Fetcher, SourceConfig } from '../src/types.ts';
+import { CrawlRefused } from '../src/gate.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fx = (name: string) => readFileSync(join(here, 'fixtures', name), 'utf8');
@@ -333,6 +334,55 @@ test('run: paces requests to the source rate limit, and 429 fails loudly', async
 
   const limited: Fetcher = async () => ({ status: 429, headers: {}, text: '' });
   await assert.rejects(() => createMunicibidAdapter({ sleep: async () => {} }).run(ctxWith(limited)), /rate limit/i);
+});
+
+test('run: planned listing pages past the worker deadline are withheld', async () => {
+  const runUntil = async (deadlineAfterMs: number) => {
+    let clock = Date.parse('2026-09-30T16:30:00Z');
+    const seen: string[] = [];
+    const ctx = ctxWith(serve({ [stateUrl(MUNICIBID_ORIGIN, 'MI')]: MI, [LISTING_URL]: LISTING }, seen), { states: ['MI'] });
+    ctx.now = () => new Date(clock);
+    ctx.deadline = clock + deadlineAfterMs;
+    const result = await createMunicibidAdapter({ sleep: async (ms) => { clock += ms; } }).run(ctx);
+    return { result, seen };
+  };
+  // 20 rpm: the state page at 0 s, listings at 3 s and 6 s; one at 9 s would
+  // pass an 8 s deadline, so the third planned listing is withheld.
+  const short = await runUntil(8_000);
+  assert.equal(short.seen.length, 3);
+  assert.equal(short.seen.includes(LISTING_URL), false);
+  assert.deepEqual(short.result.lots, []);
+  assert.equal(short.result.completeSnapshot, false);
+
+  const long = await runUntil(10 * 60_000);
+  assert.equal(long.seen.length, 4);
+  assert.deepEqual(long.result.lots.map((l) => l.externalId), ['85963617']);
+});
+
+test('run: a gate budget refusal keeps what was read; bot protection fails the run', async () => {
+  const gate = (refusal: CrawlRefused, seen: string[]): Fetcher => async (url) => {
+    seen.push(url);
+    if (/\/listing\//.test(url)) throw refusal;
+    return url === stateUrl(MUNICIBID_ORIGIN, 'MI')
+      ? { status: 200, headers: {}, text: MI }
+      : { status: 404, headers: {}, text: 'Not found' };
+  };
+  const seen: string[] = [];
+  const budget = new CrawlRefused('time budget for this run is used up', 'budget');
+  const result = await createMunicibidAdapter({ sleep: async () => {} })
+    .run(ctxWith(gate(budget, seen), { states: ['MI'] }));
+  assert.equal(seen.length, 2); // the state page, then one refused listing; no more tries
+  assert.deepEqual(result.lots, []);
+  assert.equal(result.completeSnapshot, false);
+  assert.equal(result.warnings.filter((w) => /fetch failed/.test(w)).length, 0);
+
+  const blockedSeen: string[] = [];
+  const blocked = new CrawlRefused('municibid.com answered with cloudflare: challenge', 'blocked');
+  await assert.rejects(
+    () => createMunicibidAdapter({ sleep: async () => {} }).run(ctxWith(gate(blocked, blockedSeen), { states: ['MI'] })),
+    /cloudflare/,
+  );
+  assert.equal(blockedSeen.length, 2);
 });
 
 test('run: a garbage state page is a warning and not a complete snapshot', async () => {

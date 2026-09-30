@@ -51,8 +51,9 @@ import type {
 } from '../types.ts';
 import { parseMoneyToCents } from '../money.ts';
 import { extractJsonLdBlocks, flattenNodes } from '../jsonld.ts';
+import { isBudgetRefusal } from '../gate.ts';
 // Shared helpers from the sibling adapter (same author, same conventions).
-import { decodeEntities, htmlToText, scopeStates, squish, stateTimezone } from './public-surplus.ts';
+import { decodeEntities, htmlToText, isGateRefusal, scopeStates, squish, stateTimezone } from './public-surplus.ts';
 
 export const MUNICIBID_ORIGIN = 'https://municibid.com';
 
@@ -865,8 +866,16 @@ export function normalizeMunicibid(id: string, src: MbSources, origin: string = 
 
 export interface MunicibidOptions {
   maxRequests?: number;
-  /** Listing pages per run. They are ~350 KB each (the map payload), so few. */
+  /**
+   * Listing pages per run (a fixed quota of the lowest ids, so the enriched set
+   * does not depend on a run's timing). They are ~350 KB each (the map
+   * payload), so few.
+   */
   maxDetailPages?: number;
+  /**
+   * Wall-clock budget for a run. The worker's deadline (ctx.deadline) applies
+   * too, whichever comes first; planned listing pages past it are withheld.
+   */
   timeBudgetMs?: number;
   sleep?: (ms: number) => Promise<void>;
 }
@@ -901,6 +910,10 @@ export function createMunicibidAdapter(options: MunicibidOptions = {}): Adapter 
       const warnings: string[] = [];
       const stats = { httpRequests: 0, bytesIn: 0 };
       const started = ctx.now().getTime();
+      const endBy = Math.min(started + opts.timeBudgetMs, ctx.deadline ?? Number.POSITIVE_INFINITY);
+      // Politeness: the registry's per-source rate. The crawl gate paces every
+      // request to the same rate; pacing here as well keeps the adapter polite
+      // under any fetcher, including the tests'.
       const gapMs = Math.ceil(60_000 / Math.max(1, ctx.source.rateLimitRpm || 20));
       let lastAt: number | null = null;
 
@@ -925,7 +938,19 @@ export function createMunicibidAdapter(options: MunicibidOptions = {}): Adapter 
       const counts: Record<string, unknown> = {};
 
       for (const st of states) {
-        const res = await get(stateUrl(origin, st));
+        let res: { status: number; text: string };
+        try {
+          res = await get(stateUrl(origin, st));
+        } catch (e) {
+          // Out of run budget: keep the states already read. Anything else (a
+          // network failure, robots.txt, bot protection) fails the run.
+          if (e instanceof BudgetExhausted || isBudgetRefusal(e)) {
+            warnings.push(`Municibid ${st}: run budget reached before the state page; run is not a complete snapshot.`);
+            complete = false;
+            break;
+          }
+          throw e;
+        }
         if (res.status === 429) throw new Error('Municibid rate limit (HTTP 429).');
         if (res.status === 404) {
           // No state page means Municibid has never had a seller there: nothing live.
@@ -961,8 +986,10 @@ export function createMunicibidAdapter(options: MunicibidOptions = {}): Adapter 
       let map: Map<string, MbMapListing> | null = null;
 
       const plan = [...ids].sort((a, b) => Number(a) - Number(b)).slice(0, opts.maxDetailPages);
+      let outOfBudget = false;
       for (const id of plan) {
-        if (ctx.now().getTime() - started > opts.timeBudgetMs) {
+        // One more request needs a full gap before the deadline.
+        if (outOfBudget || ctx.now().getTime() + gapMs > endBy) {
           withheld.add(id);
           continue;
         }
@@ -970,9 +997,15 @@ export function createMunicibidAdapter(options: MunicibidOptions = {}): Adapter 
         try {
           res = await get(live.get(id)!.url);
         } catch (e) {
-          if (!(e instanceof BudgetExhausted)) {
-            warnings.push(`Municibid: listing ${id} fetch failed (${e instanceof Error ? e.message : String(e)}).`);
+          if (e instanceof BudgetExhausted || isBudgetRefusal(e)) {
+            outOfBudget = true;
+            withheld.add(id);
+            continue;
           }
+          // Bot protection or robots.txt: stop the run, never try the next page.
+          if (isGateRefusal(e)) throw e;
+          // A network failure on one listing must not lose the whole run.
+          warnings.push(`Municibid: listing ${id} fetch failed (${e instanceof Error ? e.message : String(e)}).`);
           withheld.add(id);
           continue;
         }
