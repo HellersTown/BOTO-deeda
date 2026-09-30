@@ -87,11 +87,11 @@ export function parseMoneyToCents(input: unknown): number | null {
 
   // Pull out the first number-shaped run of characters. This tolerates the labels
   // that real pages wrap around amounts ("Current Bid: $45.00 USD").
-  const m = raw.match(/\d[\d.,\s ]*/);
+  const m = raw.match(/\d[\d.,\s\u00a0]*/);
   if (!m) return null;
 
   // Strip spaces used as thousands separators (common in non-US formats).
-  let numeric = m[0].replace(/[\s ]/g, '').replace(/[.,]+$/, '');
+  let numeric = m[0].replace(/[\s\u00a0]/g, '').replace(/[.,]+$/, '');
   if (numeric === '') return null;
 
   const lastDot = numeric.lastIndexOf('.');

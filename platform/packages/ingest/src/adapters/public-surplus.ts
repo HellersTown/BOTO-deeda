@@ -36,17 +36,20 @@
  * WHY ENRICHMENT IS BUDGETED AND ORDERED BY AUCTION ID. The listing pages are cheap
  * (4 requests for all of Wisconsin) and give a COMPLETE snapshot every run. The
  * detail pages (seller, pickup address, bid count, premium, photos) cost one
- * request each, ~80 KB; a background run of the crawl worker (about 4 minutes at
- * the registry's pace) reads about a hundred of them. ingest_batch overwrites
- * every column on each upsert, so a lot that is enriched in one run and not in the
- * next would flap (bid count, description and photo count all feed
+ * request each, ~80 KB. A background run of the crawl worker may start requests
+ * for about 3.5 minutes; at the registry's 20 rpm (one request per 3 s) that is
+ * robots.txt, the 4 listing pages and about 60 detail pages. ingest_batch
+ * overwrites every column on each upsert, so a lot that is enriched in one run and
+ * not in the next would flap (bid count, description and photo count all feed
  * lots.updated_at, which re-fires hunt alerts). So the set of lots planned for
- * enrichment is a FIXED quota of the LOWEST auction ids, never sized by the time
- * a particular run happens to have: ids are sequential, new listings get higher
- * ids, so a lot enters the set once and stays until it closes. A planned detail
- * fetch that fails, or that the run has no time left for, is not emitted at all
- * (its stored row is kept) and the run is then not a complete snapshot, so
- * nothing is closed by mistake.
+ * enrichment is a FIXED quota of the LOWEST auction ids (detailQuota(): sized from
+ * the rate limit to a fixed window, never from the time a particular run happens
+ * to have): ids are sequential, new listings get higher ids, so a lot enters the
+ * set once and stays until it closes. Lots past the quota, the newest ones, are
+ * emitted from their listing row every run. A planned detail fetch that fails, or
+ * that the run has no time left for, is not emitted at all (its stored row is
+ * kept) and the run is then not a complete snapshot, so nothing is closed by
+ * mistake.
  */
 
 import type {
@@ -102,7 +105,7 @@ export function htmlToText(html: string): string {
       .replace(/<\/?(strong|b|i|em|u|span|a|font|sup|sub|small|big|mark|abbr)\b[^>]*>/gi, '')
       .replace(/<[^>]+>/g, ' '),
   )
-    .replace(/[ \t\r\f\v ]+/g, ' ')
+    .replace(/[ \t\r\f\v\u00a0]+/g, ' ')
     .replace(/ *\n */g, '\n')
     .replace(/\n{2,}/g, '\n')
     .trim();
@@ -829,8 +832,14 @@ export interface PublicSurplusOptions {
   maxRequests?: number;
   /** Listing pages per state before giving up on completeness. */
   maxListPagesPerState?: number;
-  /** Detail pages per run, before the request and time ceilings apply. */
+  /**
+   * Detail pages per run (the enrichment quota), before the request ceiling
+   * applies. When not given, detailQuota() derives it from the source's rate
+   * limit and planWindowMs.
+   */
   maxDetailPages?: number;
+  /** The window the derived quota is sized to; see detailQuota(). */
+  planWindowMs?: number;
   /**
    * Wall-clock budget for a run. The worker's deadline (ctx.deadline) applies
    * too, whichever comes first; planned details past it are withheld.
@@ -840,13 +849,51 @@ export interface PublicSurplusOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
-const DEFAULTS: Required<Omit<PublicSurplusOptions, 'sleep'>> = {
+/**
+ * The window a run's detail pages are planned to fit. The crawl worker's
+ * background run stops starting requests 225 s into an invocation
+ * (edge/worker.ts); 200 s leaves room for the claim and the result writes.
+ */
+export const PLAN_WINDOW_MS = 200_000;
+
+const DEFAULTS = {
   // The worker caps a run at 150 requests, robots.txt included.
   maxRequests: 140,
   maxListPagesPerState: 20,
-  maxDetailPages: 130,
+  planWindowMs: PLAN_WINDOW_MS,
   timeBudgetMs: 300_000,
 };
+
+/**
+ * The enrichment quota when none is configured: as many detail pages as a run at
+ * the source's pace can start inside the planning window, after the listing
+ * pages already fetched and the crawl gate's robots.txt request. It depends on
+ * the rate limit and the catalogue's page count only, never on the time a
+ * particular run has left, so the same lots are enriched run after run. At the
+ * registry's 20 rpm with 4 listing pages that is 61.
+ *
+ * Sizing it to the window matters: a quota larger than a run can finish would
+ * withhold its highest ids (the newest listings) on every run, so they would
+ * never be stored, and no run would ever be a complete snapshot.
+ */
+export function detailQuota(
+  rateLimitRpm: number | null | undefined,
+  requestsBefore: number,
+  windowMs: number = PLAN_WINDOW_MS,
+): number {
+  const gapMs = Math.ceil(60_000 / Math.max(1, rateLimitRpm || 20));
+  return Math.max(0, Math.floor(windowMs / gapMs) - requestsBefore - 1);
+}
+
+/**
+ * The crawl gate's refusals (robots, bot protection, budget) are CrawlRefused
+ * errors; checked by name, like isBudgetRefusal, so no class identity is needed.
+ * Only a budget refusal is survivable: after a block the run must stop, never
+ * retry.
+ */
+function isGateRefusal(e: unknown): boolean {
+  return e instanceof Error && e.name === 'CrawlRefused';
+}
 
 /** ctx.source.states, upper-cased and validated, defaulting to Wisconsin. */
 export function scopeStates(states: string[] | null | undefined): string[] {
@@ -993,12 +1040,15 @@ export function createPublicSurplusAdapter(options: PublicSurplusOptions = {}): 
       }
 
       // ---- 2. Detail pages for a fixed quota of the lowest auction ids. The quota
-      // depends on request counts only, never on the time this run has left, so
-      // the enriched set is the same from run to run (see the header).
+      // depends on the rate limit and request counts only, never on the time this
+      // run has left, so the enriched set is the same from run to run (see the
+      // header). Lots past the quota are emitted from the listing alone.
       const ids = [...listings.keys()].sort((a, b) => Number(a) - Number(b));
+      const quota =
+        options.maxDetailPages ?? detailQuota(ctx.source.rateLimitRpm, stats.httpRequests, opts.planWindowMs);
       const plannedCount = Math.max(
         0,
-        Math.min(opts.maxDetailPages, opts.maxRequests - stats.httpRequests, ids.length),
+        Math.min(quota, opts.maxRequests - stats.httpRequests, ids.length),
       );
       const planned = ids.slice(0, plannedCount);
       const details = new Map<string, PsDetail>();
@@ -1022,6 +1072,8 @@ export function createPublicSurplusAdapter(options: PublicSurplusOptions = {}): 
             withheld.add(id);
             continue;
           }
+          // Bot protection or robots.txt: stop the run, never try the next page.
+          if (isGateRefusal(e)) throw e;
           // A network failure on one detail page must not lose the whole run.
           warnings.push(`Public Surplus: auction ${id} detail fetch failed (${e instanceof Error ? e.message : String(e)}).`);
           withheld.add(id);

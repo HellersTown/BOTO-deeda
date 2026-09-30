@@ -453,6 +453,52 @@ test('run: a gate budget refusal stops enrichment and keeps what was read', asyn
   assert.equal(result.warnings.filter((w) => /detail fetch failed/.test(w)).length, 0);
 });
 
+test('detail quota: sized from the rate limit to a fixed window, after listing pages and robots.txt', () => {
+  // 20 rpm = one request per 3 s; 200 s holds 66 starts: robots.txt, 4 pages, 61 details.
+  assert.equal(detailQuota(20, 4), 61);
+  assert.equal(detailQuota(30, 4), 95);
+  assert.equal(detailQuota(null, 4), 61); // unset rate falls back to 20 rpm
+  assert.equal(detailQuota(20, 4, 9_000), 0); // never negative
+});
+
+test('run: without a configured quota, the derived one is used; the rest are emitted from the listing', async () => {
+  const seen: string[] = [];
+  const everyDetail: Fetcher = async (url) => {
+    seen.push(url);
+    const auc = url.match(/auction\/view\?auc=(\d+)/);
+    if (auc) return { status: 200, headers: {}, text: DETAIL.replaceAll('4089922', auc[1]) };
+    const text = PAGES[url];
+    return text ? { status: 200, headers: {}, text } : { status: 404, headers: {}, text: 'Not found' };
+  };
+  // A 24 s window at 20 rpm holds 8 starts: robots.txt, 4 pages and 3 details.
+  const adapter = createPublicSurplusAdapter({ planWindowMs: 24_000, sleep: async () => {} });
+  const result = await adapter.run(ctxWith(everyDetail));
+  const lowest = ['4085485', '4085487', '4088990'];
+  assert.deepEqual(seen.slice(4), lowest.map((id) => auctionUrl(PUBLIC_SURPLUS_ORIGIN, 'WI', id)));
+  for (const id of lowest) assert.equal(result.lots.find((l) => l.externalId === id)!.bidCount, 11);
+  // Past the quota: emitted every run from the listing row, without detail-only fields.
+  const newest = result.lots.find((l) => l.externalId === '4097452')!;
+  assert.equal(newest.bidCount, null);
+  assert.ok(newest.url && newest.closesAt);
+  assert.equal(result.lots.length, result.auctions.length);
+  assert.equal(result.completeSnapshot, true);
+});
+
+test('run: bot protection during enrichment stops the run; the next page is never tried', async () => {
+  const seen: string[] = [];
+  const blocking: Fetcher = async (url) => {
+    seen.push(url);
+    if (/auction\/view/.test(url)) {
+      throw new CrawlRefused('www.publicsurplus.com answered with cloudflare: challenge', 'blocked');
+    }
+    const text = PAGES[url];
+    return text ? { status: 200, headers: {}, text } : { status: 404, headers: {}, text: 'Not found' };
+  };
+  const adapter = createPublicSurplusAdapter({ maxDetailPages: 4, sleep: async () => {} });
+  await assert.rejects(() => adapter.run(ctxWith(blocking)), /cloudflare/);
+  assert.equal(seen.filter((u) => /auction\/view/.test(u)).length, 1);
+});
+
 test('run: a garbage page is a warning and an incomplete snapshot, not a throw', async () => {
   const fetch: Fetcher = async () => ({ status: 200, headers: {}, text: '<html><body>Maintenance</body></html>' });
   const result = await createPublicSurplusAdapter({ sleep: async () => {} }).run(ctxWith(fetch));
