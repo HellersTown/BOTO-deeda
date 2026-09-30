@@ -888,6 +888,10 @@ Confirm on the first live run.
   - CWS lots and calendar: **deep-link**, because a technical block applies.
   - Wisconsin volume is very low. The value is national interest in vessels,
     aircraft and real estate.
+- **Verified 2026-09-30 from Supabase:** `www.treasury.gov/robots.txt` gave no
+  HTTP answer at all (network error or timeout) at 20:17 and again at the
+  21:07 probe. RFC 9309 reads an unreachable robots.txt as disallow, so the
+  registered row (0026) stays inactive and the hourly probe keeps checking.
 
 ### 3.18 US Marshals Service asset forfeiture
 
@@ -911,23 +915,37 @@ Confirm on the first live run.
 
 ### 3.19 IRS Auctions (irsauctions.gov)
 
-- **a) robots.txt.** NOT RETRIEVED. `irsauctions.gov` was not attempted
-  separately; the egress policy is an allowlist.
-- **b) Sitemaps.** The site's sitemap lists sale pages at `/ad/{slug}`, for
-  example `https://www.irsauctions.gov/ad/commercial-acreage`. This is known
-  from the End of Term 2024 archive's sitemap seed list [G93].
-  `/auction/items` is one of the site's most-viewed pages [G94].
-- **c/d)** UNVERIFIED.
-- **e) Internal JSON.** None found.
-- **f) Official API.** None found.
-- **g) Terms.** A federal site; content is US government work. Terms NOT
-  RETRIEVED.
-- **h) Bot protection.** Akamai: `www.irsauctions.gov` is a CNAME to
-  `edgekey.net`, and non-production hosts answer `AkamaiGHost` "Access Denied"
-  403 [G92]. A 2026 sweep reported 403 for the main site [G35].
-- **i) Recommendation: GREEN legally, YELLOW technically.** Rung 4 (sitemap
-  diffing) then rung 5 on changed `/ad/` pages. Refresh: **1–10
-  requests/hour**. If Supabase gets a 403 or challenge, go deep-link only.
+**Verified 2026-09-30 from Supabase, as WaystockBot, and built (0029).**
+
+- **a) robots.txt.** `User-agent: * / Allow: /`, with a sitemap on the apex
+  host (`https://irsauctions.gov/sitemap.xml`).
+- **b) Sitemaps.** 152 URLs: the site's pages and `/ad/{slug}/` sale pages,
+  past and present.
+- **c) Feeds.** Every page's head declares `rss.xml` and `index.json`, in
+  unquoted minified markup (`<link rel=alternate type=application/rss+xml
+  href=...>`), which our feed and link readers now handle (probe.ts
+  `attrValue`, `linkHrefs`).
+- **e) Internal JSON.** `/index.json`, the site's own search index: 521,712
+  bytes, one card per page, `{cardType, content, date, image, imageAlt,
+  location, minimumBid, section, title, url, weight}`. `date` is the sale's
+  local time ("Oct 28, 2026 12:00 PM"), `location` is "City ST, ZIP" or empty,
+  `minimumBid` is "81480.00" or empty. The cards hold the site's whole history,
+  cancelled and past sales included. `content` is the notice of sale: the
+  property's address, where the sale is held, the minimum bid, the IRS
+  officer's name, phone and email, and the taxpayer's name.
+- **g) Terms.** US government works (17 U.S.C. 105). No terms restrict reading
+  the site.
+- **h) Bot protection.** None met. The hourly probe found robots.txt and the
+  home page open (21:07); the Akamai 403s a 2026 sweep reported did not recur
+  for our crawler.
+- **i) Built.** `adapters/irs-auctions.ts` on crawl-worker reads index.json
+  once an hour and keeps the current sales: `/ad/` cards dated ahead, not
+  cancelled, adjourned or redeemed, and not "GSA sale" cards (GSA Auctions is
+  crawled directly). Each is a lot: the minimum bid as starting and next bid
+  ("Opens at"), the sale's local time read in the property state's zone, the
+  place from `location` or, failing that, the notice's first "ST 12345" before
+  the minimum bid (the property, not the courthouse or the IRS office). The
+  notice text is never stored.
 
 ### 3.20 eBay Browse API
 
