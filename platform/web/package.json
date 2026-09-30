@@ -2,7 +2,7 @@
   "name": "skeuos-web",
   "private": true,
   "version": "0.1.0",
-  "description": "Skeuos: every useful thing, at every auction near you. Installable web app (PWA).",
+  "description": "Skeuos: tools, provisions and gear from auctions near you. Installable web app (PWA).",
   "type": "module",
   "scripts": {
     "dev": "vite",

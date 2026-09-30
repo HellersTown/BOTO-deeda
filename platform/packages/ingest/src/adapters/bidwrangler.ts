@@ -89,6 +89,7 @@ import type {
   SourceConfig,
 } from '../types.ts';
 import { parseMoneyToCents } from '../money.ts';
+import { isBudgetRefusal } from '../gate.ts';
 
 export type BwRecord = Record<string, unknown>;
 
@@ -729,7 +730,16 @@ export async function runBidwrangler(
   // 1. Enumerate open auctions. Open ones come first; stop at the history.
   const listed: BwRecord[] = [];
   for (let page = 1; ; page++) {
-    const res = await get(auctionListUrl(base, page));
+    let res: Awaited<ReturnType<typeof get>>;
+    try {
+      res = await get(auctionListUrl(base, page));
+    } catch (e) {
+      // Out of run budget after page 1: work with the auctions already listed.
+      if (page === 1 || !isBudgetRefusal(e)) throw e;
+      warnings.push(`Run budget ran out before auction list page ${page}; list incomplete.`);
+      complete = false;
+      break;
+    }
     if (res.status !== 200) {
       if (page === 1) throw new Error(`BidWrangler /api/auctions returned HTTP ${res.status}`);
       warnings.push(`Auction list page ${page} returned HTTP ${res.status}; list incomplete.`);
@@ -792,9 +802,15 @@ export async function runBidwrangler(
   let outOfScopeItems = 0;
 
   let itemRequests = 0;
+  let outOfBudget = false;
   for (const a of plan.queue) {
     const auctionId = int(a.id)!;
     if (!byId.has(auctionId)) continue;
+    if (outOfBudget) {
+      skippedForBudget.push(auctionId);
+      complete = false;
+      continue;
+    }
     const expected = int(a.published_items_count) ?? int(a.items_count) ?? 0;
     const pagesNeeded = Math.max(1, Math.ceil(expected / perPage));
     // The first auction in the queue is always attempted, so a run whose
@@ -816,7 +832,16 @@ export async function runBidwrangler(
     for (let page = 1; page <= pagesNeeded + 1; page++) {
       if (stats.httpRequests >= maxRequests) break;
       itemRequests++;
-      const res = await get(itemsUrl(base, auctionId, page, perPage));
+      let res: Awaited<ReturnType<typeof get>>;
+      try {
+        res = await get(itemsUrl(base, auctionId, page, perPage));
+      } catch (e) {
+        // The gate's time or request budget is spent: keep every item already
+        // read and leave the rest for the next run.
+        if (!isBudgetRefusal(e)) throw e;
+        outOfBudget = true;
+        break;
+      }
       if (res.status !== 200) {
         warnings.push(`Items for auction ${auctionId} page ${page}: HTTP ${res.status}.`);
         break;
@@ -860,6 +885,8 @@ export async function runBidwrangler(
         break;
       }
     }
+    // A walk the budget cut short is deferred, like the sales after it.
+    if (outOfBudget) skippedForBudget.push(auctionId);
     // A walk that "finished" short of the server's own total is not a snapshot:
     // items moved between pages, or a page came back short.
     if (gotAll && total !== null && seen < total) {

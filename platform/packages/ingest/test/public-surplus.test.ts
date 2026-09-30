@@ -22,6 +22,7 @@ import {
   PUBLIC_SURPLUS_ORIGIN,
 } from '../src/adapters/public-surplus.ts';
 import type { AdapterContext, Fetcher, SourceConfig } from '../src/types.ts';
+import { CrawlRefused } from '../src/gate.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fx = (name: string) => readFileSync(join(here, 'fixtures', name), 'utf8');
@@ -398,6 +399,58 @@ test('run: paces requests to the source rate limit', async () => {
   ctx.now = () => new Date(clock);
   await adapter.run(ctx);
   assert.deepEqual(sleeps, [3000, 3000, 3000]); // 20 rpm = one request per 3 s
+});
+
+test('run: the enrichment quota does not shrink with the time left; details past the deadline are withheld', async () => {
+  // Every auction answers with a detail page (the captured one, renumbered).
+  const detailFetch = (seen: string[]): Fetcher => async (url) => {
+    seen.push(url);
+    const auc = url.match(/auction\/view\?auc=(\d+)/);
+    if (auc) return { status: 200, headers: {}, text: DETAIL.replaceAll('4089922', auc[1]) };
+    const text = PAGES[url];
+    return text ? { status: 200, headers: {}, text } : { status: 404, headers: {}, text: 'Not found' };
+  };
+  const quota = ['4085485', '4085487', '4088990', '4089922'];
+  const runAt = async (deadlineAfterMs: number) => {
+    let clock = Date.parse('2026-09-30T16:00:00Z');
+    const seen: string[] = [];
+    const adapter = createPublicSurplusAdapter({ maxDetailPages: 4, sleep: async (ms) => { clock += ms; } });
+    const ctx = ctxWith(detailFetch(seen), { rateLimitRpm: 20 });
+    ctx.now = () => new Date(clock);
+    ctx.deadline = clock + deadlineAfterMs;
+    return { result: await adapter.run(ctx), details: seen.slice(4) };
+  };
+
+  // Listing pages go at 0, 3, 6 and 9 s; details at 12 s and 15 s fit a 16.5 s
+  // deadline, the next one would not.
+  const short = await runAt(16_500);
+  assert.deepEqual(short.details, quota.slice(0, 2).map((id) => auctionUrl(PUBLIC_SURPLUS_ORIGIN, 'WI', id)));
+  for (const id of quota.slice(0, 2)) assert.equal(short.result.lots.find((l) => l.externalId === id)!.bidCount, 11);
+  // The rest of the quota is withheld (stored rows kept), not emitted listing-only.
+  for (const id of quota.slice(2)) assert.equal(short.result.lots.find((l) => l.externalId === id), undefined);
+  assert.ok(short.result.lots.find((l) => l.externalId === '4094534'));
+  assert.equal(short.result.completeSnapshot, false);
+
+  // With time to spare the same quota is enriched in full: no lot changes sides.
+  const long = await runAt(10 * 60_000);
+  assert.deepEqual(long.details, quota.map((id) => auctionUrl(PUBLIC_SURPLUS_ORIGIN, 'WI', id)));
+  for (const id of quota) assert.equal(long.result.lots.find((l) => l.externalId === id)!.bidCount, 11);
+});
+
+test('run: a gate budget refusal stops enrichment and keeps what was read', async () => {
+  const refusing: Fetcher = async (url) => {
+    if (/auction\/view/.test(url)) throw new CrawlRefused('time budget for this run is used up', 'budget');
+    const text = PAGES[url];
+    return text ? { status: 200, headers: {}, text } : { status: 404, headers: {}, text: 'Not found' };
+  };
+  const result = await createPublicSurplusAdapter({ maxDetailPages: 4, sleep: async () => {} }).run(ctxWith(refusing));
+  for (const id of ['4085485', '4085487', '4088990', '4089922']) {
+    assert.equal(result.lots.find((l) => l.externalId === id), undefined);
+  }
+  assert.ok(result.lots.length > 0);
+  assert.equal(result.completeSnapshot, false);
+  // One warning for the withheld set, not one per refused request.
+  assert.equal(result.warnings.filter((w) => /detail fetch failed/.test(w)).length, 0);
 });
 
 test('run: a garbage page is a warning and an incomplete snapshot, not a throw', async () => {

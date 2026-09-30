@@ -43,16 +43,17 @@
  * its single lot, which is also the only place the schema can carry the
  * listing's format (fixed_price vs online) and its buyer's premium.
  *
- * BUDGET. rate_limit_rpm is 10, so request starts are spaced 6 s apart (by the
- * crawl gate, and by this adapter when no gate is in front), and a run is planned
- * to finish inside 90 s of wall clock (docs/08 §4: one invocation must not sweep
- * a whole source; the gate's hard deadline is 115 s). That is 13 pages. When the
+ * BUDGET. Request starts are spaced by rate_limit_rpm (by the crawl gate, and by
+ * this adapter when no gate is in front), and a run is planned to finish by the
+ * worker's deadline (ctx.deadline; 90 s when there is none). A background run of
+ * the crawl worker has about 3.5 minutes, which at 12 rpm is 35 pages. When the
  * catalogue fits, the run sweeps it to the page the site marks last and reports
- * completeSnapshot=true. When it does not (33 pages today), each run takes the
- * soonest-closing pages plus a window of the rest that rotates with the crawl
- * slot, so every page is seen every few runs, and it reports
- * completeSnapshot=false. If the gate's deadline arrives first, the run keeps the
- * pages it has, warns, and makes no snapshot claim.
+ * completeSnapshot=true. When it does not (33 pages today, so it fits only when
+ * the run has the invocation to itself), each run takes the soonest-closing
+ * pages plus a window of the rest that rotates with the crawl slot, so every
+ * page is seen every few runs, and it reports completeSnapshot=false. If the
+ * gate's deadline arrives first, the run keeps the pages it has, warns, and
+ * makes no snapshot claim.
  */
 
 import type {
@@ -75,9 +76,9 @@ export const PR_PAGE_SIZE = 40;
 /** The site shows closing times in Eastern ("Ended Sep 30, 2026 at 12:02 PM (Eastern)"). */
 export const PR_TIMEZONE = 'America/New_York';
 /**
- * Wall-clock budget this adapter plans a run around, spacing included. The crawl
- * worker's gate enforces the real deadline (115 s per invocation, edge/worker.ts)
- * and refuses requests past it; 90 s leaves room to write the results.
+ * Wall-clock budget this adapter plans a run around, spacing included, when the
+ * worker gives no deadline (ctx.deadline). The gate refuses requests past the
+ * real deadline, so the run plans to that when it has one.
  */
 export const PR_RUN_BUDGET_MS = 90_000;
 /** Hard cap on pages per run, whatever the rate limit allows. */
@@ -501,7 +502,9 @@ export interface PrRunOptions {
 
 export async function runPropertyRoom(ctx: AdapterContext, opts: PrRunOptions = {}): Promise<IngestResult> {
   const sleep = opts.sleep ?? defaultSleep;
-  const budgetMs = opts.budgetMs ?? PR_RUN_BUDGET_MS;
+  const budgetMs =
+    opts.budgetMs ??
+    (ctx.deadline !== undefined ? Math.max(0, ctx.deadline - ctx.now().getTime()) : PR_RUN_BUDGET_MS);
   const base = originOf(ctx.source.apiBase) ?? originOf(ctx.source.url) ?? PR_BASE;
   const states = scopeStates(ctx.source);
   const spacing = spacingMs(ctx.source.rateLimitRpm);

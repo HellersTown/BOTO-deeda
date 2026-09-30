@@ -11,7 +11,8 @@
 const BUILD = '__SKEUOS_BUILD__';
 const PRECACHE = '__SKEUOS_PRECACHE__';
 const SHELL_CACHE = `skeuos-shell-${BUILD}`;
-const FONT_CACHE = 'skeuos-fonts-v1';
+// v2: Zilla Slab, Public Sans and IBM Plex Mono. Older font caches are dropped on activate.
+const FONT_CACHE = 'skeuos-fonts-v2';
 const FONT_HOSTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
 const SHELL_FILES = new Set(Array.isArray(PRECACHE) ? PRECACHE : []);
 
@@ -29,7 +30,14 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key.startsWith('skeuos-shell-') && key !== SHELL_CACHE).map((key) => caches.delete(key))),
+        Promise.all(
+          keys
+            .filter(
+              (key) =>
+                (key.startsWith('skeuos-shell-') && key !== SHELL_CACHE) || (key.startsWith('skeuos-fonts-') && key !== FONT_CACHE),
+            )
+            .map((key) => caches.delete(key)),
+        ),
       )
       .then(() => self.clients.claim()),
   );

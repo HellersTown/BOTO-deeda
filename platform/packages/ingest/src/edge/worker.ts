@@ -25,6 +25,13 @@
 // limit or the site's Crawl-delay, and a stop at the first bot-manager
 // challenge. Sources are claimed one at a time while the invocation's time
 // budget lasts, so a slow source cannot push the next one past the limit.
+//
+// BACKGROUND RUNS. Supabase must answer an Edge Function request within 150 s,
+// but on the Pro plan the worker itself may live 400 s. A scheduled invocation
+// therefore answers at once (202) and crawls in the background under
+// EdgeRuntime.waitUntil, which is what lets a source with a hundred detail
+// pages be read in one run at a polite pace. ?sync=1 crawls inline on a short
+// budget and answers with the results, for manual verification.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { politeFetch, CRAWLER_UA } from '../http.ts';
@@ -34,27 +41,50 @@ import type { Adapter, AdapterContext, NormalizedLot, SourceConfig } from '../ty
 
 const CHUNK = 200;
 
-// Wall-clock budget for one invocation. The Edge runtime allows about 150 s;
-// new sources are not started after CLAIM_UNTIL_MS, and the gate refuses new
-// requests after RUN_DEADLINE_MS so results can still be written.
-const CLAIM_UNTIL_MS = 60_000;
-const RUN_DEADLINE_MS = 115_000;
+/** Budgets, in ms from the start of the invocation. */
+interface Budget {
+  /** No new source is claimed after this. */
+  claimUntilMs: number;
+  /** The gate refuses new requests after this, so results can still be written. */
+  deadlineMs: number;
+  /** Every request's timeout ends by this, whenever it started. */
+  hardStopMs: number;
+}
+
+// Cron invokes each worker every 5 minutes. A background run stops starting
+// requests at 225 s and every request has ended by 285 s, so the writes finish
+// before the next tick and a worker never overlaps itself on a host.
+const BACKGROUND: Budget = { claimUntilMs: 150_000, deadlineMs: 225_000, hardStopMs: 285_000 };
+// Inline runs must answer inside the 150 s request limit.
+const INLINE: Budget = { claimUntilMs: 30_000, deadlineMs: 90_000, hardStopMs: 135_000 };
+
 // Hard cap on requests per source per run, whatever the adapter asks for.
 const MAX_REQUESTS_PER_RUN = 150;
+const MAX_FETCH_MS = 60_000;
 
-const rawFetch: RawFetch = async (url, init) => {
-  const r = await politeFetch(url, {
-    method: init?.method,
-    headers: init?.headers,
-    body: init?.body,
-    timeoutMs: 60_000,
-    // Full catalogue responses are large (GSA: ~2.2 MB). Cap well above that.
-    maxBytes: 25_000_000,
-  });
-  if (r.status === 0) throw new Error(`network error fetching ${new URL(url).host}: ${r.error}`);
-  if (r.truncated) throw new Error(`response from ${new URL(url).host} exceeded 25 MB; refusing a partial snapshot`);
-  return { status: r.status, headers: r.headers, text: r.body };
-};
+// Supabase's Edge Runtime keeps a worker alive for a promise handed to
+// waitUntil, up to the plan's wall-clock limit. Absent elsewhere.
+const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
+
+/** The network, bounded so no request outlives the invocation's budget. */
+function rawFetchUntil(hardStop: number): RawFetch {
+  return async (url, init) => {
+    const host = new URL(url).host;
+    const timeoutMs = Math.min(MAX_FETCH_MS, hardStop - Date.now());
+    if (timeoutMs < 5_000) throw new Error(`no time left in this run for a request to ${host}`);
+    const r = await politeFetch(url, {
+      method: init?.method,
+      headers: init?.headers,
+      body: init?.body,
+      timeoutMs,
+      // Full catalogue responses are large (GSA: ~2.2 MB). Cap well above that.
+      maxBytes: 25_000_000,
+    });
+    if (r.status === 0) throw new Error(`network error fetching ${host}: ${r.error}`);
+    if (r.truncated) throw new Error(`response from ${host} exceeded 25 MB; refusing a partial snapshot`);
+    return { status: r.status, headers: r.headers, text: r.body };
+  };
+}
 
 // deno-lint-ignore no-explicit-any
 type Row = Record<string, any>;
@@ -85,11 +115,20 @@ export function serveWorker(workerName: string, adapters: Record<string, Adapter
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ??
     (JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}') as Record<string, string>).default;
   const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  const log = (level: string, msg: string, extra?: unknown) =>
+    console.log(JSON.stringify({ level, worker: workerName, msg, extra }));
 
-  async function crawl(source: Row, deadline: number) {
+  // Runs in flight, so a shutdown can at least name them. A run the runtime
+  // kills is closed as abandoned by the next crawl_run_start for its source.
+  const inFlight = new Set<string>();
+  addEventListener('beforeunload', () => {
+    if (inFlight.size) log('warn', 'worker shutting down with runs in flight', [...inFlight]);
+  });
+
+  async function crawl(source: Row, deadline: number, hardStop: number) {
     const adapter = adapters[source.platform];
     const fetcher = gateFetcher({
-      rawFetch,
+      rawFetch: rawFetchUntil(hardStop),
       rateLimitRpm: source.rate_limit_rpm ?? 20,
       // robots.txt governs crawling websites, not a keyed API published for programs.
       exemptFromRobots: source.ingest === 'official_api',
@@ -101,12 +140,15 @@ export function serveWorker(workerName: string, adapters: Record<string, Adapter
       p_method: source.ingest,
     });
     if (startErr) throw new Error(`crawl_run_start: ${startErr.message}`);
+    const tag = `${source.slug}#${runId}`;
+    inFlight.add(tag);
 
     const warnings: string[] = [];
     const ctx: AdapterContext = {
       source: toConfig(source),
       fetch: fetcher,
       now: () => new Date(),
+      deadline,
       log: (level, msg, extra) => console.log(JSON.stringify({ level, worker: workerName, source: source.slug, msg, extra })),
       secrets: {
         // DEMO_KEY works but is rate-limited per IP, and Edge Function IPs are
@@ -138,7 +180,9 @@ export function serveWorker(workerName: string, adapters: Record<string, Adapter
       }
 
       // Zero lots WITH warnings is a parser in trouble, not an empty catalogue:
-      // record it as partial so it can never trigger the snapshot close.
+      // record it as partial so it can never trigger the snapshot close. Any
+      // request the gate refused means something went unread, so the run is
+      // not a complete snapshot whatever the adapter concluded.
       const gate = fetcher.stats();
       for (const r of gate.refusals) warnings.push(`gate refused ${r.url}: ${r.message}`);
       const status = result.lots.length === 0 && warnings.length ? 'partial' : 'ok';
@@ -148,7 +192,7 @@ export function serveWorker(workerName: string, adapters: Record<string, Adapter
         p_http_requests: gate.requests,
         p_warnings: warnings,
         p_error: null,
-        p_complete_snapshot: !!result.completeSnapshot,
+        p_complete_snapshot: !!result.completeSnapshot && gate.refusals.length === 0,
       });
       if (finErr) throw new Error(`crawl_run_finish: ${finErr.message}`);
       return { slug: source.slug, run_id: runId, ...totals, requests: gate.requests, finish: fin, warnings };
@@ -163,26 +207,56 @@ export function serveWorker(workerName: string, adapters: Record<string, Adapter
         p_complete_snapshot: false,
       });
       return { slug: source.slug, run_id: runId, error: msg };
+    } finally {
+      inFlight.delete(tag);
     }
   }
 
-  Deno.serve(async () => {
-    const started = Date.now();
-    const deadline = started + RUN_DEADLINE_MS;
-    const results = [];
-    // One source at a time, while there is time to finish it.
-    while (Date.now() - started < CLAIM_UNTIL_MS) {
+  /** Claim and crawl due sources, one at a time, while the budget lasts. */
+  async function crawlDue(started: number, budget: Budget) {
+    const results: Row[] = [];
+    while (Date.now() - started < budget.claimUntilMs) {
       const { data: claimed, error } = await db.rpc('claim_due_sources', {
         p_platforms: Object.keys(adapters),
         p_limit: 1,
         p_lease_minutes: 10,
       });
-      if (error) return Response.json({ worker: workerName, error: error.message, results }, { status: 500 });
+      if (error) {
+        results.push({ error: `claim_due_sources: ${error.message}` });
+        break;
+      }
       const s = ((claimed ?? []) as Row[])[0];
-      if (!s) break;
-      if (!adapters[s.platform]) break;
-      results.push(await crawl(s, deadline));
+      if (!s || !adapters[s.platform]) break;
+      try {
+        results.push(await crawl(s, started + budget.deadlineMs, started + budget.hardStopMs));
+      } catch (e) {
+        // Only crawl_run_start can land here; the source's lease expires on its own.
+        results.push({ slug: s.slug, error: e instanceof Error ? e.message : String(e) });
+        break;
+      }
     }
-    return Response.json({ worker: workerName, crawler: CRAWLER_UA, claimed: results.length, ms: Date.now() - started, results });
+    return results;
+  }
+
+  Deno.serve((req) => {
+    const started = Date.now();
+    const inline = new URL(req.url).searchParams.get('sync') === '1' || !edgeRuntime;
+    if (inline) {
+      return crawlDue(started, INLINE).then((results) =>
+        Response.json({ worker: workerName, crawler: CRAWLER_UA, mode: 'inline', claimed: results.length, ms: Date.now() - started, results }),
+      );
+    }
+    edgeRuntime!.waitUntil(
+      crawlDue(started, BACKGROUND).then(
+        (results) =>
+          log('info', 'background crawl finished', {
+            claimed: results.length,
+            ms: Date.now() - started,
+            results: results.map((r) => ({ slug: r.slug, run_id: r.run_id, lots: r.lots, requests: r.requests, error: r.error })),
+          }),
+        (e) => log('error', 'background crawl crashed', e instanceof Error ? e.message : String(e)),
+      ),
+    );
+    return Response.json({ worker: workerName, crawler: CRAWLER_UA, mode: 'background', accepted: true }, { status: 202 });
   });
 }

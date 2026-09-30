@@ -1,14 +1,14 @@
 {
   "name": "Skeuos",
   "short_name": "Skeuos",
-  "description": "Every useful thing, at every auction near you.",
+  "description": "Tools, provisions and gear from auctions near you, watched until you have what you need.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "theme_color": "#C2410C",
-  "background_color": "#F6F3EC",
+  "theme_color": "#24402E",
+  "background_color": "#F3EEE3",
   "lang": "en-US",
   "categories": ["shopping", "utilities"],
   "icons": [

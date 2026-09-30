@@ -36,14 +36,17 @@
  * WHY ENRICHMENT IS BUDGETED AND ORDERED BY AUCTION ID. The listing pages are cheap
  * (4 requests for all of Wisconsin) and give a COMPLETE snapshot every run. The
  * detail pages (seller, pickup address, bid count, premium, photos) cost one
- * request each, ~80 KB, and at the registry's 20 rpm a run cannot fetch all 99.
- * ingest_batch overwrites every column on each upsert, so a lot that is enriched in
- * one run and not in the next would flap (bid count, description and photo count
- * all feed lots.updated_at, which re-fires hunt alerts). Enriching the LOWEST
- * auction ids first makes the enriched set monotonic: ids are sequential, new
- * listings get higher ids, so a lot enters the set once and stays until it closes.
- * A planned detail fetch that fails is not emitted at all (its stored row is kept)
- * and the run is then not a complete snapshot, so nothing is closed by mistake.
+ * request each, ~80 KB; a background run of the crawl worker (about 4 minutes at
+ * the registry's pace) reads about a hundred of them. ingest_batch overwrites
+ * every column on each upsert, so a lot that is enriched in one run and not in the
+ * next would flap (bid count, description and photo count all feed
+ * lots.updated_at, which re-fires hunt alerts). So the set of lots planned for
+ * enrichment is a FIXED quota of the LOWEST auction ids, never sized by the time
+ * a particular run happens to have: ids are sequential, new listings get higher
+ * ids, so a lot enters the set once and stays until it closes. A planned detail
+ * fetch that fails, or that the run has no time left for, is not emitted at all
+ * (its stored row is kept) and the run is then not a complete snapshot, so
+ * nothing is closed by mistake.
  */
 
 import type {
@@ -56,6 +59,7 @@ import type {
   NormalizedLot,
 } from '../types.ts';
 import { parseMoneyToCents } from '../money.ts';
+import { isBudgetRefusal } from '../gate.ts';
 
 export const PUBLIC_SURPLUS_ORIGIN = 'https://www.publicsurplus.com';
 
@@ -827,17 +831,21 @@ export interface PublicSurplusOptions {
   maxListPagesPerState?: number;
   /** Detail pages per run, before the request and time ceilings apply. */
   maxDetailPages?: number;
-  /** Wall-clock budget for a run; detail fetches are planned to fit inside it. */
+  /**
+   * Wall-clock budget for a run. The worker's deadline (ctx.deadline) applies
+   * too, whichever comes first; planned details past it are withheld.
+   */
   timeBudgetMs?: number;
   /** Injected for tests. Defaults to a real timer. */
   sleep?: (ms: number) => Promise<void>;
 }
 
 const DEFAULTS: Required<Omit<PublicSurplusOptions, 'sleep'>> = {
-  maxRequests: 60,
+  // The worker caps a run at 150 requests, robots.txt included.
+  maxRequests: 140,
   maxListPagesPerState: 20,
-  maxDetailPages: 56,
-  timeBudgetMs: 150_000,
+  maxDetailPages: 130,
+  timeBudgetMs: 300_000,
 };
 
 /** ctx.source.states, upper-cased and validated, defaulting to Wisconsin. */
@@ -872,8 +880,10 @@ export function createPublicSurplusAdapter(options: PublicSurplusOptions = {}): 
       const warnings: string[] = [];
       const stats = { httpRequests: 0, bytesIn: 0 };
       const started = ctx.now().getTime();
-      // Politeness: the registry's per-source rate is honoured here because the
-      // worker's fetcher does not pace requests itself.
+      const endBy = Math.min(started + opts.timeBudgetMs, ctx.deadline ?? Number.POSITIVE_INFINITY);
+      // Politeness: the registry's per-source rate. The crawl gate paces every
+      // request to the same rate; pacing here as well keeps the adapter polite
+      // under any fetcher, including the tests'.
       const gapMs = Math.ceil(60_000 / Math.max(1, ctx.source.rateLimitRpm || 20));
       let lastAt: number | null = null;
 
@@ -908,7 +918,7 @@ export function createPublicSurplusAdapter(options: PublicSurplusOptions = {}): 
           try {
             res = await get(url);
           } catch (e) {
-            if (e instanceof BudgetExhausted) {
+            if (e instanceof BudgetExhausted || isBudgetRefusal(e)) {
               warnings.push(`Public Surplus ${st}: request budget reached while paginating; run is not a complete snapshot.`);
               break;
             }
@@ -982,22 +992,24 @@ export function createPublicSurplusAdapter(options: PublicSurplusOptions = {}): 
         }
       }
 
-      // ---- 2. Detail pages for the lowest auction ids that fit the budgets.
+      // ---- 2. Detail pages for a fixed quota of the lowest auction ids. The quota
+      // depends on request counts only, never on the time this run has left, so
+      // the enriched set is the same from run to run (see the header).
       const ids = [...listings.keys()].sort((a, b) => Number(a) - Number(b));
-      const elapsed = ctx.now().getTime() - started;
-      const byTime = Math.max(0, Math.floor((opts.timeBudgetMs - elapsed) / gapMs));
       const plannedCount = Math.max(
         0,
-        Math.min(opts.maxDetailPages, opts.maxRequests - stats.httpRequests, byTime, ids.length),
+        Math.min(opts.maxDetailPages, opts.maxRequests - stats.httpRequests, ids.length),
       );
       const planned = ids.slice(0, plannedCount);
       const details = new Map<string, PsDetail>();
       const withheld = new Set<string>();
+      let outOfBudget = false;
 
       for (const id of planned) {
         const listing = listings.get(id)!;
         const st = listing.state ?? states[0];
-        if (ctx.now().getTime() - started > opts.timeBudgetMs) {
+        // One more request needs a full gap before the deadline.
+        if (outOfBudget || ctx.now().getTime() + gapMs > endBy) {
           withheld.add(id);
           continue;
         }
@@ -1005,7 +1017,8 @@ export function createPublicSurplusAdapter(options: PublicSurplusOptions = {}): 
         try {
           res = await get(auctionUrl(origin, st, id));
         } catch (e) {
-          if (e instanceof BudgetExhausted) {
+          if (e instanceof BudgetExhausted || isBudgetRefusal(e)) {
+            outOfBudget = true;
             withheld.add(id);
             continue;
           }

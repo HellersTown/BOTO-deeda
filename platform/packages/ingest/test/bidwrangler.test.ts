@@ -29,6 +29,7 @@ import {
   validTimeZone,
 } from '../src/adapters/bidwrangler.ts';
 import type { AdapterContext, Fetcher, SourceConfig } from '../src/types.ts';
+import { CrawlRefused } from '../src/gate.ts';
 
 // Every fixture is a real response captured 2026-09-30 from bid.hansenauctiongroup.com
 // through inspect_url, trimmed (image arrays shortened, the high bidder's internal
@@ -462,6 +463,34 @@ test('run(): the budget keeps the most urgent sale and defers the rest', async (
   assert.ok(res.warnings.some((w) => /left 2 in-scope auction\(s\) for a later run/.test(w)));
   assert.equal(calls.filter((u) => u.includes('/items')).length, 1);
   assert.equal(res.completeSnapshot, false);
+});
+
+test('run(): a gate budget refusal keeps what was read and defers the rest', async () => {
+  const { calls, fetch: served } = routes({
+    [`${BASE}/api/auctions?page=1`]: AUCTION_TJOFLAT,
+    [`${BASE}/api/auctions?page=2`]: AUCTIONS_P1,
+    [`${BASE}/api/auctions/168337/items?page=1&per_page=100`]: ITEMS_P9,
+  });
+  // The gate lets the list and the first sale's items through, then the run's
+  // time is up.
+  let n = 0;
+  const fetch: Fetcher = async (url, init) => {
+    if (++n > 3) throw new CrawlRefused('time budget for this run is used up', 'budget');
+    return served(url, init);
+  };
+  const res = await runBidwrangler(makeCtx(fetch), noWait);
+  assert.equal(res.lots.length, 1);
+  assert.equal(res.auctions.length, 3);
+  assert.equal(res.completeSnapshot, false);
+  assert.ok(res.warnings.some((w) => /left 2 in-scope auction\(s\) for a later run/.test(w)));
+  assert.equal(calls.length, 3);
+});
+
+test('run(): a refusal that is not about budget still fails the run', async () => {
+  const fetch: Fetcher = async () => {
+    throw new CrawlRefused('bid.hansenauctiongroup.com answered with cloudflare', 'blocked');
+  };
+  await assert.rejects(() => runBidwrangler(makeCtx(fetch), noWait), /cloudflare/);
 });
 
 test('run(): HTTP 429 surfaces as a rate-limit error for the worker', async () => {
