@@ -10,11 +10,19 @@
 //   crawl_run_start -> adapter.run() -> ingest_batch (chunked) -> crawl_run_finish
 // A thrown adapter error still finishes the run as failed/rate_limited, so the
 // source's backoff and health stay truthful.
+//
+// Every request an adapter makes goes through the crawl gate (lib/gate.ts):
+// robots.txt checked per URL, requests to a host spaced by the source's rate
+// limit or the site's Crawl-delay, and a stop at the first bot-manager
+// challenge. Sources are claimed one at a time while the invocation's time
+// budget lasts, so a slow source cannot push the next one past the limit.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { politeFetch, CRAWLER_UA } from './lib/http.ts';
+import { gateFetcher } from './lib/gate.ts';
+import type { RawFetch } from './lib/gate.ts';
 import { gsaAdapter } from './lib/adapters/gsa.ts';
-import type { Adapter, AdapterContext, Fetcher, NormalizedLot, SourceConfig } from './lib/types.ts';
+import type { Adapter, AdapterContext, NormalizedLot, SourceConfig } from './lib/types.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY =
@@ -28,9 +36,17 @@ const ADAPTERS: Record<string, Adapter> = {
 
 const CHUNK = 200;
 
+// Wall-clock budget for one invocation. The Edge runtime allows about 150 s;
+// new sources are not started after CLAIM_UNTIL_MS, and the gate refuses new
+// requests after RUN_DEADLINE_MS so results can still be written.
+const CLAIM_UNTIL_MS = 60_000;
+const RUN_DEADLINE_MS = 115_000;
+// Hard cap on requests per source per run, whatever the adapter asks for.
+const MAX_REQUESTS_PER_RUN = 150;
+
 const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-const fetcher: Fetcher = async (url, init) => {
+const rawFetch: RawFetch = async (url, init) => {
   const r = await politeFetch(url, {
     method: init?.method,
     headers: init?.headers,
@@ -63,8 +79,16 @@ function toConfig(s: Record<string, any>): SourceConfig {
   };
 }
 
-async function crawl(source: Record<string, any>) {
+async function crawl(source: Record<string, any>, deadline: number) {
   const adapter = ADAPTERS[source.platform];
+  const fetcher = gateFetcher({
+    rawFetch,
+    rateLimitRpm: source.rate_limit_rpm ?? 20,
+    // robots.txt governs crawling websites, not a keyed API published for programs.
+    exemptFromRobots: source.ingest === 'official_api',
+    maxRequests: MAX_REQUESTS_PER_RUN,
+    deadline,
+  });
   const { data: runId, error: startErr } = await db.rpc('crawl_run_start', {
     p_source_id: source.id,
     p_method: source.ingest,
@@ -108,11 +132,13 @@ async function crawl(source: Record<string, any>) {
 
     // Zero lots WITH warnings is a parser in trouble, not an empty catalogue:
     // record it as partial so it can never trigger the snapshot close.
+    const gate = fetcher.stats();
+    for (const r of gate.refusals) warnings.push(`gate refused ${r.url}: ${r.message}`);
     const status = result.lots.length === 0 && warnings.length ? 'partial' : 'ok';
     const { data: fin, error: finErr } = await db.rpc('crawl_run_finish', {
       p_run_id: runId,
       p_status: status,
-      p_http_requests: result.stats.httpRequests,
+      p_http_requests: gate.requests,
       p_warnings: warnings,
       p_error: null,
       p_complete_snapshot: !!result.completeSnapshot,
@@ -124,7 +150,7 @@ async function crawl(source: Record<string, any>) {
     await db.rpc('crawl_run_finish', {
       p_run_id: runId,
       p_status: /rate limit|429/i.test(msg) ? 'rate_limited' : 'failed',
-      p_http_requests: 1,
+      p_http_requests: Math.max(1, fetcher.stats().requests),
       p_warnings: warnings,
       p_error: msg.slice(0, 2000),
       p_complete_snapshot: false,
@@ -135,17 +161,20 @@ async function crawl(source: Record<string, any>) {
 
 Deno.serve(async () => {
   const started = Date.now();
-  const { data: claimed, error } = await db.rpc('claim_due_sources', {
-    p_platforms: Object.keys(ADAPTERS),
-    p_limit: 3,
-    p_lease_minutes: 10,
-  });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
-
+  const deadline = started + RUN_DEADLINE_MS;
   const results = [];
-  for (const s of (claimed ?? []) as Record<string, any>[]) {
+  // One source at a time, while there is time to finish it.
+  while (Date.now() - started < CLAIM_UNTIL_MS) {
+    const { data: claimed, error } = await db.rpc('claim_due_sources', {
+      p_platforms: Object.keys(ADAPTERS),
+      p_limit: 1,
+      p_lease_minutes: 10,
+    });
+    if (error) return Response.json({ error: error.message, results }, { status: 500 });
+    const s = ((claimed ?? []) as Record<string, any>[])[0];
+    if (!s) break;
     if (!ADAPTERS[s.platform]) continue;
-    results.push(await crawl(s));
+    results.push(await crawl(s, deadline));
   }
   return Response.json({ crawler: CRAWLER_UA, claimed: results.length, ms: Date.now() - started, results });
 });

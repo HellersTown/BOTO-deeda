@@ -18,7 +18,7 @@ const fns = join(root, 'supabase/functions');
 
 export const FUNCTION_LIBS = {
   'probe-sources': ['http.ts', 'robots.ts', 'probe.ts', 'jsonld.ts', 'money.ts', 'types.ts'],
-  'crawl-worker': ['http.ts', 'types.ts', 'money.ts', 'adapters/gsa.ts'],
+  'crawl-worker': ['http.ts', 'types.ts', 'money.ts', 'jsonld.ts', 'robots.ts', 'probe.ts', 'gate.ts', 'adapters/gsa.ts'],
   'load-gazetteer': ['http.ts'],
   'inspect-page': ['http.ts', 'robots.ts', 'probe.ts', 'jsonld.ts', 'money.ts', 'types.ts'],
 };
