@@ -106,6 +106,16 @@ Deno.serve(async (req) => {
   if (target.protocol !== 'https:' && target.protocol !== 'http:') {
     return Response.json({ error: 'http(s) only' }, { status: 400 });
   }
+  // The link filter is compiled before anything is fetched: a pattern that
+  // does not compile must not cost the site a request.
+  let linkRe: RegExp | null = null;
+  if (body.pattern) {
+    try {
+      linkRe = new RegExp(body.pattern, 'i');
+    } catch {
+      return Response.json({ error: 'invalid pattern: a JavaScript regular expression, matched case-insensitively' }, { status: 400 });
+    }
+  }
 
   // Host must belong to a registered, contactable source.
   const { data: sources } = await db.from('sources').select('slug, url, robots_url, api_base, ingest, tier');
@@ -180,8 +190,8 @@ Deno.serve(async (req) => {
   const block = detectBlock(r.status, r.headers, html);
 
   let links: string[] = [];
-  if (body.pattern) {
-    const re = new RegExp(body.pattern, 'i');
+  if (linkRe) {
+    const re = linkRe;
     const seen = new Set<string>();
     for (const m of html.matchAll(/href\s*=\s*["']([^"'#]+)["']/gi)) {
       try {

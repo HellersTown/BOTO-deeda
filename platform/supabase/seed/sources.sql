@@ -88,6 +88,22 @@ insert into sources (
  null, 'Seized and forfeited federal assets.',
  'https://www.usmarshals.gov/robots.txt', null),
 
+('us-treasury', 'US Treasury Seized Property Auctions', 'https://www.treasury.gov/auctions/treasury/gp/',
+ null, 'federal', 'html', 'treasury', null,
+ false, false, false, false, true,
+ 'US government works (17 U.S.C. 105). Sale-level pages: /auctions/treasury/gp/ (general property, vehicles, vessels, aircraft) and /auctions/treasury/rp/ (real estate). Lots run on contractors: CWS Marketing (AWS WAF; deep links only) and some vehicle sales on HiBid (held on its terms).',
+ 10, false, false, 60, 20,
+ null, 'Seized and forfeited property sold for the Treasury Forfeiture Fund.',
+ 'https://www.treasury.gov/robots.txt', null),
+
+('irs-auctions', 'IRS Auctions', 'https://www.irsauctions.gov',
+ null, 'federal', 'html', null, null,
+ false, false, false, false, true,
+ 'Property seized for unpaid federal taxes. Sale pages at /ad/{slug}, listed in the sitemap. A 2026 sweep reported Akamai 403s; the hourly probe checks from Supabase, and a refusal means deep links only.',
+ 10, false, false, 60, 30,
+ null, 'Property seized by the IRS for unpaid federal taxes.',
+ 'https://www.irsauctions.gov/robots.txt', null),
+
 -- ================================================= TIER 2: WISCONSIN STATE/LOCAL
 
 ('wisconsin-surplus', 'Wisconsin Surplus Online Auction', 'https://wisconsinsurplus.com',

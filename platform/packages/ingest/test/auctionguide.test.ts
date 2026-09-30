@@ -30,7 +30,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
+  AG_ADDRESS_MARK,
   AG_BASE,
+  AG_PHONE_MARK,
   agStateUrl,
   auctionguideAdapter,
   normalizeAgCard,
@@ -40,12 +42,14 @@ import {
   parseDayMonth,
   parseMapPoints,
   parseRelative,
+  redactContacts,
   resolveOnOrBefore,
   resolveYear,
   runAuctionGuide,
   scopeStates,
   shortExcerpt,
   spacingMs,
+  tidyCity,
   zonedIso,
 } from '../src/adapters/auctionguide.ts';
 import type { AgCard } from '../src/adapters/auctionguide.ts';
@@ -317,7 +321,9 @@ test('pickup: city and state as the card declares them, the ZIP from the sale\'s
   assert.deepEqual(auction.pickup, lot.pickup);
   assert.equal(meta(lot).postalCodeSource, 'map');
   assert.equal(meta(lot).timezoneBasis, 'state');
-  assert.equal(sale(WI, '221411').lot.pickup?.city, 'nekoosa', 'kept as declared, not re-cased');
+  const nekoosa = sale(WI, '221411').lot;
+  assert.equal(nekoosa.pickup?.city, 'Nekoosa', 'a city typed all in lower case is title-cased for display');
+  assert.match((nekoosa.raw as { at: string }).at, /^nekoosa, WI/, 'raw keeps the source\'s own text');
   assert.equal(sale(WI, '221279').lot.pickup?.postalCode, '54016');
 });
 
@@ -383,6 +389,64 @@ test('descriptions are short excerpts of the site\'s summary, never longer than 
   assert.ok(long !== null && long.length <= 300 && long.endsWith('…'));
   assert.equal(shortExcerpt('  Short   one  '), 'Short one');
   assert.equal(shortExcerpt(''), null);
+});
+
+test('summaries lose street addresses and phone numbers; the city, state and ZIP stay', () => {
+  // Both from the live Wisconsin page of 2026-09-30.
+  const elroy = sale(WI, '221031');
+  assert.equal(
+    elroy.lot.description,
+    `PREVIEW: MONDAY, OCTOBER 5, 2026 - 9:00 A.M. to 2:00 P.M. at ${AG_ADDRESS_MARK}, Elroy, Wisconsin. PLEASE TAKE...`,
+  );
+  assert.equal((elroy.lot.raw as { summary: string }).summary, elroy.lot.description, 'raw keeps only the redacted excerpt');
+  assert.deepEqual([elroy.lot.pickup?.city, elroy.lot.pickup?.state, elroy.lot.pickup?.postalCode], ['Elroy', 'WI', '53929']);
+  assert.equal(
+    sale(WI, '221036').lot.description,
+    `Consign your gold, silver or other currency by October 5th 2026 to get in this sale. CALL MICK AT ${AG_PHONE_MARK} TO...`,
+  );
+  for (const c of parseAgStatePage(WI).cards) {
+    const { lot } = normalizeAgCard(c, { directoryState: 'WI', now: NOW });
+    assert.doesNotMatch(JSON.stringify(lot.raw) + (lot.description ?? ''), /33243|Oxbow|418\.5390/, c.id ?? '');
+  }
+
+  // Street forms, including Wisconsin's rural grid numbers.
+  const cases: [string, string][] = [
+    ['Held at N5678 County Road E, Hillsboro.', `Held at ${AG_ADDRESS_MARK}, Hillsboro.`],
+    ['Pickup at W1234 Hwy 33 Beaver Dam', `Pickup at ${AG_ADDRESS_MARK} Beaver Dam`],
+    ['LOCATION: 1234 MAIN STREET, BARABOO', `LOCATION: ${AG_ADDRESS_MARK}, BARABOO`],
+    ['at 12B Old Mill Rd. Sparta', `at ${AG_ADDRESS_MARK} Sparta`],
+    ['Call (608) 555-1234 or 1-800-555-1234.', `Call ${AG_PHONE_MARK} or ${AG_PHONE_MARK}.`],
+    // Cut short by the site inside the address.
+    ['Preview Saturday at 33243 Oxbow Av...', `Preview Saturday at ${AG_ADDRESS_MARK}…`],
+  ];
+  for (const [input, want] of cases) assert.equal(redactContacts(input), want, input);
+
+  // Counts, dates, times, prices and ranges are not addresses.
+  for (const keep of [
+    '421 lots, Greenleaf, WI',
+    'Over 700 items including tools, 2 beautiful lake homes.',
+    'MONDAY, OCTOBER 5, 2026 - 9:00 A.M. to 2:00 P.M.',
+    'Lots 1-200 St. Croix Falls; $5 Street signs',
+    'Snap On, Matco, Mac, Fluke, Dewalt',
+    'Over 400 lots...',
+    'Ends 2026-10-05',
+  ]) {
+    assert.equal(redactContacts(keep), keep, keep);
+  }
+  assert.equal(redactContacts(null), null);
+});
+
+test('a city typed in one case is title-cased; mixed case is the source\'s own', () => {
+  assert.equal(tidyCity('nekoosa'), 'Nekoosa');
+  assert.equal(tidyCity('BALDWIN'), 'Baldwin');
+  assert.equal(tidyCity('FOND DU LAC'), 'Fond du Lac');
+  assert.equal(tidyCity('prairie du chien'), 'Prairie du Chien');
+  assert.equal(tidyCity('LA CROSSE'), 'La Crosse');
+  assert.equal(tidyCity('MCFARLAND'), 'McFarland');
+  assert.equal(tidyCity("o'dell"), "O'dell");
+  assert.equal(tidyCity('DeForest'), 'DeForest');
+  assert.equal(tidyCity('St. Croix Falls'), 'St. Croix Falls');
+  assert.equal(tidyCity(null), null);
 });
 
 // ------------------------------------------------------------------ run()
