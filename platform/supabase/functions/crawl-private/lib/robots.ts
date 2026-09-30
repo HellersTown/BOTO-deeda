@@ -44,7 +44,9 @@ export function parseRobots(text: string): ParsedRobots {
   // True while we are still reading the user-agent lines that open a group.
   let inAgentRun = false;
 
-  for (const rawLine of text.replace(/^\uFEFF/, '').split(/\r\n|\r|\n/)) {
+  // A byte-order mark at the start is not part of the first line.
+  const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  for (const rawLine of body.split(/\r\n|\r|\n/)) {
     const line = rawLine.replace(/#.*$/, '').trim();
     if (!line) continue;
     const idx = line.indexOf(':');

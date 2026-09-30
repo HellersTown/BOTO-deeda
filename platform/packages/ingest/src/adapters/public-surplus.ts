@@ -105,7 +105,7 @@ export function htmlToText(html: string): string {
       .replace(/<\/?(strong|b|i|em|u|span|a|font|sup|sub|small|big|mark|abbr)\b[^>]*>/gi, '')
       .replace(/<[^>]+>/g, ' '),
   )
-    .replace(/[ \t\r\f\v\u00a0]+/g, ' ')
+    .replace(/[ \t\r\f\v\xa0]+/g, ' ')
     .replace(/ *\n */g, '\n')
     .replace(/\n{2,}/g, '\n')
     .trim();

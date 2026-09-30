@@ -106,7 +106,7 @@ export function htmlToText(html: string): string {
       .replace(/<\/?(strong|b|i|em|u|span|a|font|sup|sub|small|big|mark|abbr)\b[^>]*>/gi, '')
       .replace(/<[^>]+>/g, ' '),
   )
-    .replace(/[ \t\r\f\v\u00a0]+/g, ' ')
+    .replace(/[ \t\r\f\v\xa0]+/g, ' ')
     .replace(/ *\n */g, '\n')
     .replace(/\n{2,}/g, '\n')
     .trim();
@@ -892,7 +892,7 @@ export function detailQuota(
  * Only a budget refusal is survivable: after a block the run must stop, never
  * retry.
  */
-function isGateRefusal(e: unknown): boolean {
+export function isGateRefusal(e: unknown): boolean {
   return e instanceof Error && e.name === 'CrawlRefused';
 }
 

@@ -101,7 +101,7 @@ export function htmlToText(html: string): string {
     .replace(/<\/(?:p|div|li|h[1-6])\s*>/gi, '\n')
     .replace(/<[^>]*>/g, ' ');
   return decodeEntities(text)
-    .replace(/[ \t\f\v\r\u00a0]+/g, ' ')
+    .replace(/[ \t\f\v\r\xa0]+/g, ' ')
     .replace(/ *\n */g, '\n')
     .replace(/\n{2,}/g, '\n')
     .trim();
