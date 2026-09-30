@@ -19,7 +19,12 @@
 // and it is one request per call, with our honest User-Agent. robots.txt comes
 // from the per-host cache it shares with the probe while under an hour old.
 //
-//   POST { url, method?, postBody?, headers?, pattern?, maxLinks?, slice?: [from, len] }
+//   POST { url, method?, postBody?, headers?, pattern?, maxLinks?, slice?: [from, len],
+//          find?, context?, textSlice?: [from, len] }
+//
+// `find` is a regular expression searched in the page's visible text: every
+// match comes back with `context` characters either side, so one request can
+// quote each clause of a terms page that mentions robots or scraping.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { politeFetch, CRAWLER_TOKEN } from './lib/http.ts';
@@ -63,6 +68,12 @@ interface InspectRequest {
   pattern?: string;
   maxLinks?: number;
   slice?: [number, number];
+  /** Searched in the visible text, case-insensitively; each match returns with its surroundings. */
+  find?: string;
+  /** Characters of visible text kept either side of a `find` match: default 400, at most 1,500. */
+  context?: number;
+  /** A window of the visible text, [from, len], len at most 20,000. */
+  textSlice?: [number, number];
 }
 
 // Embedded state blobs that single-page apps ship with their HTML. Finding one
@@ -75,15 +86,46 @@ const STATE_MARKERS: [string, RegExp][] = [
   ['__APOLLO_STATE__', /window\.__APOLLO_STATE__\s*=\s*([\s\S]{0,4000})/i],
 ];
 
+// Named entities common in legal text; any numeric entity is decoded too.
+const NAMED_ENTITIES: Record<string, number> = {
+  nbsp: 0x20, amp: 0x26, quot: 0x22, apos: 0x27, lt: 0x3c, gt: 0x3e,
+  lsquo: 0x2018, rsquo: 0x2019, ldquo: 0x201c, rdquo: 0x201d, ndash: 0x2013, mdash: 0x2014,
+  hellip: 0x2026, sect: 0xa7, para: 0xb6, copy: 0xa9, reg: 0xae, trade: 0x2122, bull: 0x2022,
+};
+
+function decodeEntities(s: string): string {
+  return s.replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi, (whole, e: string) => {
+    const code = e[0] !== '#'
+      ? NAMED_ENTITIES[e.toLowerCase()]
+      : e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+    return code !== undefined && Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
+  });
+}
+
 function visibleText(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
+  return decodeEntities(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' '),
+  )
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** Each `find` match with its surroundings; a match inside the previous window is not repeated. */
+function findInText(text: string, re: RegExp, context: number, max = 12): { at: number; text: string }[] {
+  const out: { at: number; text: string }[] = [];
+  let shownTo = -1;
+  for (const m of text.matchAll(re)) {
+    const at = m.index ?? 0;
+    if (m[0].length === 0 || at < shownTo) continue;
+    const from = Math.max(0, at - context);
+    shownTo = Math.min(text.length, at + m[0].length + context);
+    out.push({ at, text: text.slice(from, shownTo) });
+    if (out.length >= max) break;
+  }
+  return out;
 }
 
 Deno.serve(async (req) => {
@@ -114,6 +156,14 @@ Deno.serve(async (req) => {
       linkRe = new RegExp(body.pattern, 'i');
     } catch {
       return Response.json({ error: 'invalid pattern: a JavaScript regular expression, matched case-insensitively' }, { status: 400 });
+    }
+  }
+  let findRe: RegExp | null = null;
+  if (body.find) {
+    try {
+      findRe = new RegExp(body.find, 'gi');
+    } catch {
+      return Response.json({ error: 'invalid find: a JavaScript regular expression, matched case-insensitively' }, { status: 400 });
     }
   }
 
@@ -225,6 +275,9 @@ Deno.serve(async (req) => {
   }
 
   const [from, len] = body.slice ?? [0, 0];
+  const text = /html/i.test(ctype) ? visibleText(html) : null;
+  const [tFrom, tLen] = body.textSlice ?? [0, 0];
+  const context = Math.min(Math.max(Math.trunc(body.context ?? 400), 50), 1500);
   return Response.json({
     slug,
     request: { url: target.toString(), method: body.method ?? 'GET' },
@@ -242,7 +295,10 @@ Deno.serve(async (req) => {
     links,
     xmlLocs,
     jsonPreview,
-    text: /html/i.test(ctype) ? visibleText(html).slice(0, 3000) : null,
+    text: text === null ? null : text.slice(0, 3000),
+    textLength: text === null ? null : text.length,
+    found: text !== null && findRe ? findInText(text, findRe, context) : null,
+    textSlice: text !== null && tLen > 0 ? text.slice(tFrom, tFrom + Math.min(tLen, 20_000)) : null,
     slice: len > 0 ? html.slice(from, from + Math.min(len, 20_000)) : null,
     politeness: {
       robots: robotsAgeSec === null ? 'fetched' : `cached ${Math.floor(robotsAgeSec / 60)} min ago`,
