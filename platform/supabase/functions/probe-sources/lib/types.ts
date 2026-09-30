@@ -210,6 +210,12 @@ export interface AdapterContext {
   fetch: Fetcher;
   /** Injected so tests can pin "now" and assert on relative close times. */
   now: () => Date;
+  /**
+   * When this run stops starting requests (ms since epoch). The fetcher enforces
+   * it by refusing later requests; an adapter that plans work up front (a list
+   * of detail pages) plans to it, so everything it plans can be finished.
+   */
+  deadline?: number;
   log: (level: 'debug' | 'info' | 'warn' | 'error', msg: string, ctx?: unknown) => void;
   secrets: Record<string, string | undefined>;
 }

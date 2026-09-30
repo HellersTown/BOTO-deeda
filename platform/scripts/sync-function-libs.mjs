@@ -23,6 +23,16 @@ export const FUNCTION_LIBS = {
   // Every crawl-* worker carries the engine (edge/worker.ts), the gate and its
   // helpers, plus its own adapters.
   'crawl-worker': [...WORKER_CORE, 'adapters/gsa.ts'],
+  // Public-sector sellers: the state's surplus auctions, municipal and school
+  // surplus, police property.
+  'crawl-public': [
+    ...WORKER_CORE,
+    'adapters/public-surplus.ts',
+    'adapters/wisconsin-surplus.ts',
+    'adapters/propertyroom.ts',
+  ],
+  // Private auction houses on their own bidding platforms.
+  'crawl-private': [...WORKER_CORE, 'adapters/bidwrangler.ts'],
   'load-gazetteer': ['http.ts'],
   'inspect-page': ['http.ts', 'robots.ts', 'probe.ts', 'jsonld.ts', 'money.ts', 'types.ts'],
 };
