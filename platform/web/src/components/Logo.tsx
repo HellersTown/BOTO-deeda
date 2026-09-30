@@ -1,30 +1,44 @@
-import { JAR_BAND, JAR_BODY, JAR_COLORS, JAR_GLAZE, JAR_LIP } from '../brand/jar';
+import { PACK_BODY, PACK_BOX, PACK_FLAP, PACK_HANDLE, PACK_STRAP } from '../brand/pack';
 
-/** The clay-jar mark. Decorative wherever the name "Skeuos" is also on screen. */
-export function JarMark({ size = 28, title }: { size?: number; title?: string }) {
+/**
+ * The pack mark. Pine by default; the flap and strap are drawn in the colour of
+ * whatever the mark sits on (the `--pack-detail` custom property, the ground by
+ * default), so they read as cut-outs. Decorative wherever the name is also on
+ * screen.
+ */
+export function PackMark({ size = 28, title }: { size?: number; title?: string }) {
+  const b = PACK_BODY;
   return (
     <svg
+      className="pack-mark"
       width={size}
       height={size}
-      viewBox="0 0 24 24"
+      viewBox={`0 0 ${PACK_BOX} ${PACK_BOX}`}
       role={title ? 'img' : undefined}
       aria-label={title}
       aria-hidden={title ? undefined : true}
       focusable="false"
     >
-      <path d={JAR_BODY} fill={JAR_COLORS.body} />
-      <path d={JAR_LIP} fill={JAR_COLORS.lip} />
-      <path d={JAR_BAND} fill={JAR_COLORS.lip} />
-      <path d={JAR_GLAZE} fill={JAR_COLORS.glaze} />
+      <path className="pack-mark__ink-line" d={PACK_HANDLE.d} fill="none" strokeWidth={PACK_HANDLE.width} strokeLinecap="round" />
+      <rect className="pack-mark__ink" x={b.x} y={b.y} width={b.width} height={b.height} rx={b.rx} />
+      <path className="pack-mark__detail" d={PACK_FLAP.d} fill="none" strokeWidth={PACK_FLAP.width} strokeLinecap="round" />
+      <path
+        className="pack-mark__detail"
+        d={PACK_STRAP.d}
+        fill="none"
+        strokeWidth={PACK_STRAP.width}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
-/** The header lockup: jar + "Skeuos" in the display serif. */
-export function Wordmark({ size = 26 }: { size?: number }) {
+/** The header lockup: the pine pack and "Skeuos" in Zilla Slab 700, pine. */
+export function Wordmark({ size = 24, markSize }: { size?: number; markSize?: number }) {
   return (
     <span className="wordmark" style={{ fontSize: size }}>
-      <JarMark size={Math.round(size * 1.05)} />
+      <PackMark size={markSize ?? Math.round(size * 1.08)} />
       <span>Skeuos</span>
     </span>
   );
