@@ -120,9 +120,11 @@ union all select 7, 'gazetteer', 'declared state NOT overwritten',
 union all select 8, 'gazetteer', 'KS/WI conflict surfaced for review',
        exists (select 1 from v_location_conflicts where external_id='L-trap'
                   and declared_state='KS' and gazetteer_state='WI'), null
+-- A query that names the fixture keeps this independent of how many real
+-- Wisconsin lots production holds: an unfiltered search returns at most 200.
 union all select 9, 'gazetteer', 'previously-invisible WI lot now found',
-       exists (select 1 from search_lots(p_postal_code => '53202', p_radius_miles => 50,
-                                         p_states => array['WI']) s
+       exists (select 1 from search_lots(p_query => 'thermal drone Beloit', p_postal_code => '53202',
+                                         p_radius_miles => 50, p_states => array['WI']) s
                 where s.lot_id = (select id from lots where external_id='L-beloit')), null;
 
 -- ===================================================== 3b. city placement (0016)
@@ -136,7 +138,8 @@ select 28, 'gazetteer', 'city + declared state placed without a ZIP',
 union all select 29, 'gazetteer', 'city without a state is never placed',
        (select pickup_geom is null and pickup_geo_source is null from lots where external_id = 'L-nostate'), null
 union all select 30, 'gazetteer', 'city-placed lot appears in a radius search',
-       exists (select 1 from search_lots(p_postal_code => '53202', p_radius_miles => 50) s
+       exists (select 1 from search_lots(p_query => 'log splitter', p_postal_code => '53202',
+                                         p_radius_miles => 50) s
                 where s.lot_id = (select id from lots where external_id = 'L-cityonly')), null
 union all select 31, 'gazetteer', 'ZIP-placed lot labelled postal_code',
        (select pickup_geo_source = 'postal_code' from lots where external_id = 'L-near'), null
@@ -147,6 +150,27 @@ union all select 33, 'gazetteer', '"Village of", "Town of" and "Saint" forms nor
        norm_place_name('Village of Hales Corners') = 'hales corners'
        and norm_place_name('Town of Vernon') = 'vernon'
        and norm_place_name('Saint Francis') = norm_place_name('St. Francis'), null;
+
+-- ================================================ 3c. held sources (0021)
+-- A source held on its terms (ingest_allowed = false) keeps its stored rows,
+-- but search, and so the hunt matcher, must not return them.
+
+insert into sources (slug, name, url, tier, ingest, active, ingest_allowed)
+values ('t-held','Held Source','https://held.test','county','html', true, false);
+insert into lots (source_id, external_id, title, current_bid_cents, closes_at,
+                  pickup_city, pickup_state, pickup_postal_code)
+select id, 'L-held', 'DJI Mavic 3T thermal drone held', 1000, now() + interval '2 days',
+       'Wauwatosa', 'WI', '53213'
+from sources where slug = 't-held';
+
+insert into _t
+select 34, 'search', 'a source held on its terms is hidden from search',
+       not exists (select 1 from search_lots(p_query => 'DJI thermal drone held', p_postal_code => '53202',
+                                             p_radius_miles => 50) s
+                    where s.lot_id = (select id from lots where external_id = 'L-held'))
+       and exists (select 1 from search_lots(p_query => 'DJI thermal drone', p_postal_code => '53202',
+                                             p_radius_miles => 50) s
+                    where s.lot_id = (select id from lots where external_id = 'L-near')), null;
 
 -- =========================================================== 4. sleeper score
 
