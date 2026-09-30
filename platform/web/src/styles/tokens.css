@@ -1,0 +1,53 @@
+/* Design tokens, from platform/docs/design/*.dc.html. */
+:root {
+  color-scheme: light;
+
+  /* Ground, ink and lines */
+  --ground: #f6f3ec;
+  --surface: #ffffff;
+  --ink: #1d1b16;
+  --muted: #5e5a50;
+  --muted-strong: #4a463d;
+  --line: #e2ddd0;
+  --line-strong: #d9d2c3;
+  --line-field: #bdb4a2;
+  --sunken: #e9e3d6;
+  --placeholder-ink: #6b665a;
+
+  /* Accent: the clay jar, terracotta */
+  --accent: #c2410c;
+  --accent-ink: #ffffff;
+  --accent-soft-ink: #fff1e8;
+  --link: #9a3412;
+  --link-hover: #7c2d12;
+
+  /* Government green */
+  --gov: #1f4d3a;
+  --gov-soft: #eef3ef;
+  --gov-chip: #e3efe8;
+
+  /* Amber notice (date-only closes, reminders) */
+  --notice-bg: #fef3c7;
+  --notice-ink: #92400e;
+  --notice-ink-strong: #78350f;
+
+  --danger: #b42318;
+
+  /* Type */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Shape */
+  --radius-xs: 4px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Touch targets and chrome */
+  --tap: 44px;
+  --gutter: 20px;
+  --tabbar-height: 62px;
+  --focus-ring: 3px solid var(--accent);
+}
