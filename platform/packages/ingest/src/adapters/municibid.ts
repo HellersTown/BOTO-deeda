@@ -493,6 +493,11 @@ export interface MbListing {
   images: string[];
   paymentTerms: string | null;
   description: string | null;
+  /** "Additional Information on this Auction": Make, Model, VIN, shipping... */
+  specs: Record<string, string>;
+  ships: boolean | null;
+  pickupDetails: string | null;
+  pickupLine1: string | null;
 }
 
 /** Walk parsed RSC trees for "adet-item" label/value pairs ("Starting Bid" -> "$7,500.00"). */
@@ -571,6 +576,13 @@ export function parseListingPage(
     warnings.push('Municibid: page has no listing id; not a listing page.');
     return { listing: null, others, warnings };
   }
+  const pageId = canonical?.[2] ?? (typeof product?.sku === 'string' ? product.sku : null);
+  if (expectedId && pageId && pageId !== expectedId) {
+    // A redirect to another listing, parsed as the one we asked for, would put a
+    // stranger's price and close time on this lot.
+    warnings.push(`Municibid: asked for listing ${expectedId}, page is listing ${pageId}.`);
+    return { listing: null, others, warnings };
+  }
   const header = objectStartingWith(flight, `{"listingId":${id},"title":`);
   const bidBox = objectStartingWith(flight, `{"listingId":${id},"initial":`);
   const initial = (bidBox?.initial ?? null) as Record<string, unknown> | null;
@@ -599,6 +611,11 @@ export function parseListingPage(
   const endsAt = utcFieldToIso(initial?.endsAtUtc) ?? utcFieldToIso(header?.endsAtUtc) ?? parseEtText(pairs['End Date']);
   if (!endsAt) warnings.push(`Municibid: listing ${id} has no parseable close time.`);
   const loc = parseLocation(typeof mapProps?.label === 'string' ? mapProps.label : null);
+  const specs = listingSpecs(html, flight);
+  const description = listingDescription(html, flight);
+  const shipAnswer = specs['Will you ship this item'] ?? null;
+  const ships = shipAnswer === null ? null : /^\s*yes\b/i.test(shipAnswer) ? true : /^\s*no\b/i.test(shipAnswer) ? false : null;
+  const pickupDetails = specs['Pickup Location Details'] ?? null;
 
   const listing: MbListing = {
     id,
@@ -633,12 +650,75 @@ export function parseListingPage(
     isNoReserve: typeof bidBox?.isNoReserve === 'boolean' ? bidBox.isNoReserve
       : typeof header?.isNoReserve === 'boolean' ? header.isNoReserve : null,
     buyerFeeTiers: tiers,
-    buyerFeeText: pairs['Buyer’s Fee'] ?? pairs["Buyer's Fee"] ?? null,
+    buyerFeeText: (pairs['Buyer’s Fee'] ?? pairs["Buyer's Fee"] ?? null)?.replace(/\s*More info\s*$/i, '') || null,
     images,
     paymentTerms: terms ? htmlToText(JSON.parse(terms[1]) as string) || null : null,
-    description: null,
+    description,
+    specs,
+    ships,
+    pickupDetails,
+    pickupLine1: null,
   };
+  listing.pickupLine1 = streetFromPickupDetails(pickupDetails, listing.city, listing.state);
   return { listing, others, warnings };
+}
+
+/**
+ * "Additional Information on this Auction" as label -> value. The RSC rows are
+ * read first; the streamed HTML (<dt>/<dd>) is the fallback.
+ */
+export function listingSpecs(html: string, flight: string): Record<string, string> {
+  const specs: Record<string, string> = {};
+  const rsc = /\["\$","dt",null,\{"children":("(?:[^"\\]|\\.)*")\}\],\["\$","dd",null,\{"children":("(?:[^"\\]|\\.)*")\}\]/g;
+  let m: RegExpExecArray | null;
+  while ((m = rsc.exec(flight)) !== null) {
+    try {
+      const k = squish(JSON.parse(m[1]) as string);
+      const v = squish(unRsc(JSON.parse(m[2])) ?? '');
+      if (k && v) specs[k] = v;
+    } catch {
+      // skip one malformed pair
+    }
+  }
+  if (Object.keys(specs).length > 0) return specs;
+  const dl = html.match(/<dl class="kv-list[^"]*">([\s\S]*?)<\/dl>/i)?.[1] ?? '';
+  for (const p of dl.matchAll(/<dt>([\s\S]*?)<\/dt>\s*<dd>([\s\S]*?)<\/dd>/gi)) {
+    const k = textOf(p[1]);
+    const v = textOf(p[2]);
+    if (k && v) specs[k] = v;
+  }
+  return specs;
+}
+
+/** The seller's item description: RSC "listing-prose" row, else the streamed HTML. */
+export function listingDescription(html: string, flight: string): string | null {
+  const rsc = flight.match(/"className":"listing-prose","dangerouslySetInnerHTML":\{"__html":("(?:[^"\\]|\\.)*")/);
+  if (rsc) {
+    try {
+      return htmlToText(JSON.parse(rsc[1]) as string) || null;
+    } catch {
+      // fall through to HTML
+    }
+  }
+  const div = html.match(/<div class="listing-prose">([\s\S]*?)<\/div>/i);
+  return div ? htmlToText(div[1]) || null : null;
+}
+
+/**
+ * The street from "City of Fenton DPW, 200 N. Alloy Drive, Fenton, MI 48430" --
+ * only when the text ends in the listing's own city and state, so a free-text
+ * note is never mistaken for an address.
+ */
+export function streetFromPickupDetails(text: string | null, city: string | null, state: string | null): string | null {
+  if (!text || !city || !state) return null;
+  const parts = text.split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length < 3) return null;
+  const last = parts[parts.length - 1];
+  const cityPart = parts[parts.length - 2];
+  if (!new RegExp(`^${state}\\s+\\d{5}(?:-\\d{4})?$`, 'i').test(last)) return null;
+  if (cityPart.toLowerCase() !== city.toLowerCase()) return null;
+  const street = parts[parts.length - 3];
+  return /^\d+\s+\S/.test(street) ? street : null;
 }
 
 /** The object literal that contains position `idx` (walks back to its "{"). */
@@ -677,7 +757,7 @@ export function normalizeMunicibid(id: string, src: MbSources, origin: string = 
   const city = d?.city ?? m?.city ?? l?.city ?? null;
   const pickup: NormalizedLocation | null = state || city
     ? {
-        line1: null,
+        line1: d?.pickupLine1 ?? null,
         city,
         state,
         postalCode: d?.postalCode ?? null,
@@ -723,6 +803,9 @@ export function normalizeMunicibid(id: string, src: MbSources, origin: string = 
     subCategory: d?.subCategory ?? null,
     urlSource: d?.url || l?.url ? 'source' : 'derived-slug',
     softClose: 'May be extended by 2 minutes to prevent bid sniping (site-wide rule).',
+    paymentTerms: d?.paymentTerms ?? null,
+    pickupDetails: d?.pickupDetails ?? null,
+    vin: d?.specs['VIN'] ?? null,
   };
 
   const auction: NormalizedAuction = {
@@ -736,9 +819,9 @@ export function normalizeMunicibid(id: string, src: MbSources, origin: string = 
     endsAt: closesAt,
     timezone: stateTimezone(state) ?? 'America/New_York',
     pickup,
-    pickupRequired: true,
-    ships: false,
-    shipsNote: d?.paymentTerms ?? null,
+    pickupRequired: d?.ships !== true,
+    ships: d?.ships === true,
+    shipsNote: d?.specs['Will you ship this item'] ?? null,
     sellerName: agencyName,
     sellerState: state,
     lotCount: 1,
@@ -755,8 +838,8 @@ export function normalizeMunicibid(id: string, src: MbSources, origin: string = 
     lotNumber: id,
     title,
     description: d?.description ?? null,
-    brand: null,
-    model: null,
+    brand: d?.specs['Make'] ?? null,
+    model: d?.specs['Model'] ? (d.specs['Year'] ? `${d.specs['Year']} ${d.specs['Model']}` : d.specs['Model']) : null,
     condition: null,
     quantity: null,
     startingBidCents,
@@ -771,7 +854,7 @@ export function normalizeMunicibid(id: string, src: MbSources, origin: string = 
     closed: !!closed,
     url,
     pickup,
-    ships: false,
+    ships: d?.ships === true,
     images,
     raw: { detail: d, map: m, live: l, _meta: meta },
   };

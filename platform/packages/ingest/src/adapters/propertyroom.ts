@@ -43,13 +43,16 @@
  * its single lot, which is also the only place the schema can carry the
  * listing's format (fixed_price vs online) and its buyer's premium.
  *
- * BUDGET. rate_limit_rpm is 10, so requests are spaced 6 s apart, and a run
- * stops near 100 s of wall clock (docs/08 §4: one invocation must not sweep a
- * whole source). That is about 14 pages. When the catalogue fits, the run
- * sweeps it to the last page and reports completeSnapshot=true. When it does not
- * (33 pages today), each run takes the soonest-closing pages plus a window of the
- * rest that rotates with the crawl slot, so every page is seen every few runs,
- * and it reports completeSnapshot=false.
+ * BUDGET. rate_limit_rpm is 10, so request starts are spaced 6 s apart (by the
+ * crawl gate, and by this adapter when no gate is in front), and a run is planned
+ * to finish inside 90 s of wall clock (docs/08 §4: one invocation must not sweep
+ * a whole source; the gate's hard deadline is 115 s). That is 13 pages. When the
+ * catalogue fits, the run sweeps it to the page the site marks last and reports
+ * completeSnapshot=true. When it does not (33 pages today), each run takes the
+ * soonest-closing pages plus a window of the rest that rotates with the crawl
+ * slot, so every page is seen every few runs, and it reports
+ * completeSnapshot=false. If the gate's deadline arrives first, the run keeps the
+ * pages it has, warns, and makes no snapshot claim.
  */
 
 import type {
@@ -71,8 +74,12 @@ export const PR_SORT = 'closingsoon';
 export const PR_PAGE_SIZE = 40;
 /** The site shows closing times in Eastern ("Ended Sep 30, 2026 at 12:02 PM (Eastern)"). */
 export const PR_TIMEZONE = 'America/New_York';
-/** Wall-clock budget for one run, including the politeness spacing. */
-export const PR_RUN_BUDGET_MS = 100_000;
+/**
+ * Wall-clock budget this adapter plans a run around, spacing included. The crawl
+ * worker's gate enforces the real deadline (115 s per invocation, edge/worker.ts)
+ * and refuses requests past it; 90 s leaves room to write the results.
+ */
+export const PR_RUN_BUDGET_MS = 90_000;
 /** Hard cap on pages per run, whatever the rate limit allows. */
 export const PR_MAX_PAGES_PER_RUN = 60;
 /** Rough network time per page, for planning how many pages fit the budget. */
@@ -473,6 +480,16 @@ function originOf(url: string | null | undefined): string | null {
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/**
+ * The crawl gate (gate.ts) refuses a request by throwing a CrawlRefused with a
+ * reason. Read by name so this adapter works with or without the gate in front.
+ */
+export function refusalReason(e: unknown): 'robots' | 'blocked' | 'budget' | null {
+  if (!e || typeof e !== 'object' || (e as { name?: unknown }).name !== 'CrawlRefused') return null;
+  const r = (e as { reason?: unknown }).reason;
+  return r === 'robots' || r === 'blocked' || r === 'budget' ? r : null;
+}
+
 export interface PrRunOptions {
   /** Injected so tests do not wait out the politeness spacing. */
   sleep?: (ms: number) => Promise<void>;
@@ -498,10 +515,29 @@ export async function runPropertyRoom(ctx: AdapterContext, opts: PrRunOptions = 
   let bytesIn = 0;
   let outOfScope = 0;
 
+  let lastStart: number | null = null;
+
   /** Fetch and ingest one page. null when the page failed (already warned). */
   const fetchPage = async (page: number): Promise<{ pager: PrPager; found: number } | null> => {
-    if (httpRequests > 0) await sleep(spacing);
-    const res = await ctx.fetch(prListUrl(base, page), { headers: { Accept: 'text/html' } });
+    // Space request STARTS by the rate limit. Behind the crawl gate, which paces
+    // the same way, this waits for nothing; without it, it keeps us polite.
+    if (lastStart !== null) {
+      const wait = lastStart + spacing - ctx.now().getTime();
+      if (wait > 0) await sleep(wait);
+    }
+    lastStart = ctx.now().getTime();
+    let res: { status: number; text: string };
+    try {
+      res = await ctx.fetch(prListUrl(base, page), { headers: { Accept: 'text/html' } });
+    } catch (e) {
+      // Out of run budget after page 1: keep what was fetched, as a partial run.
+      // A robots or bot-protection refusal fails the run, so backoff stays truthful.
+      if (refusalReason(e) === 'budget' && page > 1) {
+        warnings.push(`Run budget ran out before page ${page}; kept the pages already fetched.`);
+        return null;
+      }
+      throw e;
+    }
     httpRequests++;
     bytesIn += res.text.length;
 
@@ -548,8 +584,11 @@ export async function runPropertyRoom(ctx: AdapterContext, opts: PrRunOptions = 
     warnings.push('Page 1 held no listing cards; the list is empty or its markup changed.');
   } else if (first && maxPage <= perRun) {
     // The whole catalogue fits: page until the site marks a page as the last.
-    // A first page with no pager at all is a single-page list.
-    let more: boolean | null = first.pager.present ? nextState(first) : false;
+    // A first page with no pager is a single-page list, unless it is full, in
+    // which case a pager we failed to read is likelier than a coincidence.
+    let more: boolean | null = first.pager.present
+      ? nextState(first)
+      : first.found >= PR_PAGE_SIZE ? null : false;
     let page = 2;
     let failed = false;
     while (more === true && page <= perRun + 2) {

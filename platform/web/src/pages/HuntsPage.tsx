@@ -8,21 +8,24 @@ import { useAsync } from '../hooks/useAsync';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useNow } from '../hooks/useNow';
 import { cadenceWords, formatAgo } from '../lib/dates';
-import { summarizeHunt } from '../lib/huntDraft';
+import { manifestLine } from '../lib/huntDraft';
+import { nextPlan, planName } from '../lib/plans';
 import { useAuth } from '../providers/AuthProvider';
 
+/** "3 of 3 hunts · Traveler", the next plan up, and the bar (Hunts.dc.html). */
 export function HuntUsage({ ent }: { ent: EntitlementsRow }) {
   const max = ent.max_active_hunts;
   const used = ent.hunts_active ?? 0;
   if (max === null) return null;
   const pct = max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 100;
+  const up = nextPlan(ent.tier);
   return (
     <div className="usage">
       <div className="usage__row">
         <span className="usage__count">
-          {used} of {max} hunts
+          {used} of {max} hunts · {planName(ent.tier)}
         </span>
-        <Link to="/profile#plan">{ent.label ?? 'Your'} plan · upgrade</Link>
+        <Link to="/profile#plan">{up ? `Upgrade to ${planName(up)}` : 'Your plan'}</Link>
       </div>
       <div
         className="usage__bar"
@@ -38,35 +41,36 @@ export function HuntUsage({ ent }: { ent: EntitlementsRow }) {
   );
 }
 
-function HuntCard({ hunt, cadence, now }: { hunt: HuntRow; cadence: string; now: Date }) {
+/** One line of the manifest: number, name, what it reads as, when it last looked, and a status pill. */
+function ManifestRow({ hunt, index, cadence, now }: { hunt: HuntRow; index: number; cadence: string; now: Date }) {
   const checked = formatAgo(hunt.last_run_at, now);
+  const status = !hunt.active
+    ? { text: 'Paused', tone: 'paused' }
+    : hunt.match_count > 0
+      ? { text: `${hunt.match_count} found`, tone: 'found' }
+      : { text: 'Watching', tone: 'watching' };
+  const note = !hunt.active
+    ? 'Paused. Not checking for new lots.'
+    : hunt.match_count > 0 && checked
+      ? `Checked ${checked}`
+      : `Nothing yet. Still looking, ${cadence}.`;
   return (
-    <article className="card hunt-card">
-      <div className="hunt-card__head">
-        <h2 className="hunt-card__name">
-          <Link to={`/hunts/${hunt.id}`}>{hunt.name}</Link>
-        </h2>
-        <span className={`status ${hunt.active ? 'status--active' : 'status--paused'}`}>{hunt.active ? 'Active' : 'Paused'}</span>
-      </div>
-      <p className="hunt-card__summary">{summarizeHunt(hunt)}</p>
-      {!hunt.active && hunt.paused_reason ? <p className="notice notice--inline">{hunt.paused_reason}</p> : null}
-      <div className="hunt-card__foot">
-        {hunt.match_count > 0 ? (
-          <Link to={`/hunts/${hunt.id}`} className="hunt-card__matches">
-            {hunt.match_count} {hunt.match_count === 1 ? 'match' : 'matches'}
+    <li className="manifest__row">
+      <span className="manifest__num" aria-hidden="true">
+        {String(index + 1).padStart(2, '0')}
+      </span>
+      <div className="manifest__text">
+        <h2 className="manifest__name">
+          <Link to={`/hunts/${hunt.id}`} className="manifest__link">
+            {hunt.name}
           </Link>
-        ) : (
-          <span className="hunt-card__matches">No matches yet</span>
-        )}
-        <span className="muted small">
-          {!hunt.active
-            ? 'Not checking while paused'
-            : hunt.match_count > 0 && checked
-              ? `Checked ${checked}`
-              : `Still looking, ${cadence}`}
-        </span>
+        </h2>
+        <span className="manifest__reads">{manifestLine(hunt)}</span>
+        <span className="manifest__note">{note}</span>
+        {!hunt.active && hunt.paused_reason ? <span className="notice notice--inline">{hunt.paused_reason}</span> : null}
       </div>
-    </article>
+      <span className={`status-pill status-pill--${status.tone}`}>{status.text}</span>
+    </li>
   );
 }
 
@@ -77,6 +81,7 @@ export function HuntsPage() {
   const hunts = useAsync(() => listMyHunts(user?.id ?? ''), [user?.id], Boolean(user));
   const ent = useAsync(() => getMyEntitlements(), [user?.id], Boolean(user));
   const cadence = cadenceWords(ent.data?.alert_latency_seconds ?? 3600);
+  const list = hunts.data ?? [];
 
   return (
     <div className="page">
@@ -87,6 +92,7 @@ export function HuntsPage() {
           <span>New</span>
         </Link>
       </header>
+      <p className="page-lead">What you are gathering. Each hunt keeps looking after you close the app.</p>
 
       {ent.data ? <HuntUsage ent={ent.data} /> : null}
 
@@ -94,9 +100,9 @@ export function HuntsPage() {
         <LoadingState label="Loading your hunts" />
       ) : hunts.error ? (
         <ErrorState error={hunts.error} onRetry={hunts.reload} title="Your hunts did not load" />
-      ) : (hunts.data ?? []).length === 0 ? (
+      ) : list.length === 0 ? (
         <EmptyState
-          title="No hunts yet"
+          title="Nothing on the list yet"
           action={
             <Link to="/hunts/new" className="btn btn--primary">
               Start a hunt
@@ -104,16 +110,18 @@ export function HuntsPage() {
           }
         >
           <p>
-            Describe something you want, the way you would to a friend. Skeuos keeps looking {cadence} and alerts you when a
-            match is listed.
+            Say what you need, the way you would tell a friend. Skeuos keeps looking {cadence} and tells you when one is
+            listed.
           </p>
         </EmptyState>
       ) : (
-        <div className="stack">
-          {(hunts.data ?? []).map((h) => (
-            <HuntCard key={h.id} hunt={h} cadence={cadence} now={now} />
-          ))}
-        </div>
+        <section aria-label="Your hunts" className="manifest">
+          <ol className="manifest__list">
+            {list.map((h, i) => (
+              <ManifestRow key={h.id} hunt={h} index={i} cadence={cadence} now={now} />
+            ))}
+          </ol>
+        </section>
       )}
 
       <section aria-labelledby="how" className="info-box">
@@ -121,8 +129,8 @@ export function HuntsPage() {
           How hunts work
         </h2>
         <p>
-          A hunt keeps searching every monitored site after you close the app, including items nobody has listed yet. You get
-          one summary for what already exists and a single alert for each new match.
+          A hunt searches every source, including things nobody has listed yet. You get one summary of what exists today,
+          then one alert for each new find.
         </p>
       </section>
     </div>

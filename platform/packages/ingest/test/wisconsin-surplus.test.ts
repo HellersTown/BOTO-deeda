@@ -46,6 +46,7 @@ import {
   wisconsinSurplusAdapter,
   WS_BASE,
 } from '../src/adapters/wisconsin-surplus.ts';
+import { gateFetcher } from '../src/gate.ts';
 import type { AdapterContext, Fetcher, SourceConfig } from '../src/types.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -313,6 +314,9 @@ function source(over: Partial<SourceConfig> = {}): SourceConfig {
   };
 }
 
+const HTML_HEADERS: Record<string, string> = { 'content-type': 'text/html; charset=utf-8' };
+const NO_HEADERS: Record<string, string> = {};
+
 function ctxWith(
   responses: Record<string, { status: number; text: string }>,
   over: Partial<SourceConfig> = {},
@@ -321,8 +325,8 @@ function ctxWith(
   const fetch: Fetcher = async (url, init) => {
     calls.push({ url, headers: init?.headers });
     const r = responses[url];
-    if (!r) return { status: 404, headers: {}, text: 'not found' };
-    return { status: r.status, headers: { 'content-type': 'text/html; charset=utf-8' }, text: r.text };
+    if (!r) return { status: 404, headers: NO_HEADERS, text: 'not found' };
+    return { status: r.status, headers: HTML_HEADERS, text: r.text };
   };
   const ctx: AdapterContext = {
     source: source(over),
@@ -400,6 +404,38 @@ test('run(): a challenge page is reported as a block, not parsed', async () => {
   await assert.rejects(runWisconsinSurplus(ctx, { sleep: async () => {} }), /bot-protection challenge/);
 });
 
+/** What the crawl gate throws when it will not make a request (gate.ts). */
+function refusal(reason: 'robots' | 'blocked' | 'budget'): Error {
+  const e = new Error(`gate refused: ${reason}`);
+  e.name = 'CrawlRefused';
+  (e as any).reason = reason;
+  return e;
+}
+
+test('run(): the gate running out of budget before the future list keeps the current list', async () => {
+  const { ctx } = ctxWith({ [CURRENT_URL]: { status: 200, text: TAIL } });
+  const inner = ctx.fetch;
+  ctx.fetch = async (url, init) => {
+    if (url === FUTURE_URL) throw refusal('budget');
+    return inner(url, init);
+  };
+  const res = await runWisconsinSurplus(ctx, { sleep: async () => {} });
+  assert.deepEqual(res.auctions.map((a) => a.externalId), ['128409']);
+  assert.match(res.warnings.join(' '), /budget ran out before the Future list/);
+});
+
+test('run(): a gate refusal for bot protection or robots fails the run', async () => {
+  for (const reason of ['blocked', 'robots'] as const) {
+    const { ctx } = ctxWith({ [CURRENT_URL]: { status: 200, text: TAIL } });
+    const inner = ctx.fetch;
+    ctx.fetch = async (url, init) => {
+      if (url === FUTURE_URL) throw refusal(reason);
+      return inner(url, init);
+    };
+    await assert.rejects(runWisconsinSurplus(ctx, { sleep: async () => {} }), new RegExp(`gate refused: ${reason}`));
+  }
+});
+
 test('run(): an empty current list is flagged', async () => {
   const { ctx } = ctxWith({
     [CURRENT_URL]: { status: 200, text: '<div class="border-top-0"><input type="hidden" id="hdn_Tense" value="current" /></div>' },
@@ -407,6 +443,29 @@ test('run(): an empty current list is flagged', async () => {
   });
   const res = await runWisconsinSurplus(ctx, { sleep: async () => {} });
   assert.match(res.warnings.join(' '), /held no auction cards/);
+});
+
+test('run() behind the real crawl gate: no robots.txt on the Maxanet host means allowed', async () => {
+  const served: string[] = [];
+  const gated = gateFetcher({
+    rawFetch: async (url) => {
+      served.push(url);
+      // bid.wisconsinsurplus.com/robots.txt answered IIS "404 - File or directory not found."
+      if (url.endsWith('/robots.txt')) return { status: 404, headers: HTML_HEADERS, text: '404 - File or directory not found.' };
+      if (url === CURRENT_URL) return { status: 200, headers: HTML_HEADERS, text: TAIL };
+      if (url === FUTURE_URL) return { status: 200, headers: HTML_HEADERS, text: FUTURE };
+      return { status: 404, headers: NO_HEADERS, text: '' };
+    },
+    rateLimitRpm: 12,
+    sleep: async () => {},
+    now: () => CAPTURED_AT.getTime(),
+  });
+  const { ctx } = ctxWith({});
+  ctx.fetch = gated;
+  const res = await runWisconsinSurplus(ctx, { sleep: async () => {} });
+  assert.deepEqual(served, ['https://bid.wisconsinsurplus.com/robots.txt', CURRENT_URL, FUTURE_URL]);
+  assert.deepEqual(gated.stats().refusals, []);
+  assert.deepEqual(res.auctions.map((a) => a.externalId), ['128409', '128387']);
 });
 
 test('adapter identity, scope defaults and pacing', () => {

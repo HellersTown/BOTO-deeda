@@ -130,7 +130,7 @@ export function HuntDetailPage() {
         <Link to="/hunts" className="icon-btn" aria-label="Back to hunts">
           <BackIcon />
         </Link>
-        <span className={`status ${h.active ? 'status--active' : 'status--paused'}`}>{h.active ? 'Active' : 'Paused'}</span>
+        <span className={`status-pill ${h.active ? 'status-pill--watching' : 'status-pill--paused'}`}>{h.active ? 'Watching' : 'Paused'}</span>
       </header>
 
       <section className="hunt-detail">
@@ -150,7 +150,7 @@ export function HuntDetailPage() {
         ) : (
           <h1 className="page-title">{h.name}</h1>
         )}
-        <p className="hunt-card__summary">{summarizeHunt(h)}</p>
+        <p className="hunt-detail__reads">{summarizeHunt(h)}</p>
         {h.query_text ? <p className="muted small">You asked for: “{h.query_text}”</p> : null}
         {!h.active && h.paused_reason ? <p className="notice notice--inline">{h.paused_reason}</p> : null}
         <p className="muted small">
@@ -204,7 +204,7 @@ export function HuntDetailPage() {
             {error}
           </p>
         ) : null}
-        {limit !== null ? <UpgradePrompt message={limit} onDismiss={() => setLimit(null)} /> : null}
+        {limit !== null ? <UpgradePrompt ent={ent.data} message={limit} onDismiss={() => setLimit(null)} /> : null}
       </section>
 
       <section aria-labelledby="matches-title" className="matches">
@@ -216,10 +216,10 @@ export function HuntDetailPage() {
         ) : matches.error ? (
           <ErrorState error={matches.error} onRetry={matches.reload} title="Matches did not load" />
         ) : list.length === 0 ? (
-          <EmptyState title="No matches yet">
+          <EmptyState title="Nothing yet">
             <p>
               {h.active
-                ? `This hunt keeps looking ${cadence}, across every monitored site, including lots nobody has listed yet. You will get an alert when a match is listed.`
+                ? `Still looking, ${cadence}, across every source, including lots nobody has listed yet. You will get an alert when one is listed.`
                 : 'This hunt is paused. Resume it to keep looking.'}
             </p>
           </EmptyState>

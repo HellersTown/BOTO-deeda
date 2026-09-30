@@ -1,6 +1,7 @@
 import { useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ClosePill } from '../components/ClosePill';
+import { TruckIcon } from '../components/Icons';
 import { Photo } from '../components/Photo';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import type { WatchOutcome, WatchlistRow, WatchlistUpdate } from '../data/database.types';
@@ -15,19 +16,23 @@ import { formatShortDateTime, reminderInstant } from '../lib/dates';
 import { haversineMiles } from '../lib/distance';
 import { summarizeExposure, type ExposureLine } from '../lib/exposure';
 import { buildLotContext, factsFromWatched } from '../lib/lotContext';
-import { formatCents, formatMaybeCents, parseDollarsToCents } from '../lib/money';
+import { formatCentsShort, parseDollarsToCents } from '../lib/money';
 import { useAuth } from '../providers/AuthProvider';
 import { useHome } from '../providers/HomeProvider';
 
-type TabKey = 'watching' | 'placed' | 'closed';
+type TabKey = 'watching' | 'placed' | 'won';
 const TABS: readonly { key: TabKey; label: string }[] = [
   { key: 'watching', label: 'Watching' },
   { key: 'placed', label: 'Bid placed' },
-  { key: 'closed', label: 'Closed' },
+  { key: 'won', label: 'Won' },
 ];
 
-function tabOf(entry: WatchEntry): TabKey {
-  if (entry.watch.outcome !== null || entry.lot?.closed) return 'closed';
+/** Where an entry belongs. Lost and passed lots are kept under Won's "Let go" list; closed ones wait for an answer where they were. */
+type Place = TabKey | 'letgo';
+
+function placeOf(entry: WatchEntry): Place {
+  if (entry.watch.outcome === 'won') return 'won';
+  if (entry.watch.outcome === 'lost' || entry.watch.outcome === 'passed') return 'letgo';
   return entry.watch.placed_bid ? 'placed' : 'watching';
 }
 
@@ -35,10 +40,13 @@ function isOutcome(v: string | null): v is WatchOutcome {
   return v === 'won' || v === 'lost' || v === 'passed';
 }
 
-function ReminderPill({ watch, lot, now }: { watch: WatchlistRow; lot: WatchedLot; now: Date }) {
-  if (watch.reminded_at) {
-    return <span className="pill pill--muted">Reminded {formatShortDateTime(new Date(watch.reminded_at))}</span>;
-  }
+function money(cents: number | null | undefined): string {
+  return cents === null || cents === undefined ? '—' : formatCentsShort(cents);
+}
+
+/** The reminder figure: when 0013 will remind, or that it already did. */
+function reminderFigure(watch: WatchlistRow, lot: WatchedLot, now: Date): { text: string; done: boolean } | null {
+  if (watch.reminded_at) return { text: formatShortDateTime(new Date(watch.reminded_at)), done: true };
   const at = reminderInstant({
     closesAt: lot.closesAt,
     precise: readLotMeta(lot.meta).closeTimePrecise,
@@ -46,12 +54,12 @@ function ReminderPill({ watch, lot, now }: { watch: WatchlistRow; lot: WatchedLo
     remindSecondsBefore: watch.remind_seconds_before,
   });
   if (!at || at.getTime() <= now.getTime()) return null;
-  return <span className="pill pill--notice">Reminder {formatShortDateTime(at)}</span>;
+  return { text: formatShortDateTime(at), done: false };
 }
 
 function PlacedBidForm({ initial, onSave, onCancel }: { initial: number | null; onSave: (cents: number) => Promise<void>; onCancel: () => void }) {
   const id = useId();
-  const [text, setText] = useState(initial === null ? '' : formatCents(initial));
+  const [text, setText] = useState(initial === null ? '' : formatCentsShort(initial));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   async function submit(event: FormEvent) {
@@ -74,7 +82,7 @@ function PlacedBidForm({ initial, onSave, onCancel }: { initial: number | null; 
     <form className="inline-form" onSubmit={submit}>
       <label htmlFor={id}>The maximum you entered on the site</label>
       <div className="inline-form__row">
-        <input id={id} className="input" inputMode="decimal" value={text} placeholder="$" onChange={(e) => setText(e.target.value)} />
+        <input id={id} className="input input--mono" inputMode="decimal" value={text} placeholder="$" onChange={(e) => setText(e.target.value)} />
         <button type="submit" className="btn btn--primary btn--small" disabled={saving}>
           {saving ? 'Saving…' : 'Save'}
         </button>
@@ -91,15 +99,26 @@ function PlacedBidForm({ initial, onSave, onCancel }: { initial: number | null; 
   );
 }
 
+function OutcomeButtons({ watch, onUpdate }: { watch: WatchlistRow; onUpdate: (patch: WatchlistUpdate) => void }) {
+  return (
+    <div className="outcome" role="group" aria-label="How did it go?">
+      <span className="small">{isOutcome(watch.outcome) ? 'Recorded:' : 'Closed. How did it go?'}</span>
+      {(['won', 'lost', 'passed'] as const).map((o) => (
+        <button key={o} type="button" className="chip" aria-pressed={watch.outcome === o} onClick={() => onUpdate({ outcome: o })}>
+          {o === 'won' ? 'Won' : o === 'lost' ? 'Lost' : 'Passed'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function WatchCard({
   entry,
-  tab,
   now,
   onUpdate,
   onRemove,
 }: {
   entry: WatchEntry;
-  tab: TabKey;
   now: Date;
   onUpdate: (patch: WatchlistUpdate) => Promise<void>;
   onRemove: () => Promise<void>;
@@ -109,9 +128,11 @@ function WatchCard({
   const [error, setError] = useState<string | null>(null);
   if (!lot) return null;
   const precise = readLotMeta(lot.meta).closeTimePrecise;
-  const place = [lot.sourceName, [lot.city, lot.state].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+  const where = [lot.sourceName, [lot.city, lot.state].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+  const closed = lot.closed || isOutcome(watch.outcome);
   const outbid = watch.placed_bid && watch.placed_bid_cents !== null && lot.currentBidCents !== null && lot.currentBidCents > watch.placed_bid_cents;
   const finalCents = lot.soldPriceCents ?? lot.currentBidCents;
+  const reminder = closed ? null : reminderFigure(watch, lot, now);
 
   async function run(fn: () => Promise<void>) {
     setError(null);
@@ -128,11 +149,10 @@ function WatchCard({
         <Photo src={lot.imageUrl} alt="" className="watch-card__photo" />
         <div className="watch-card__text">
           <h2 className="watch-card__title">{lot.title}</h2>
-          <span className="muted small">{place}</span>
-          {tab === 'closed' ? null : (
+          <span className="watch-card__where">{where}</span>
+          {closed ? null : (
             <span className="watch-card__pills">
               <ClosePill closesAt={lot.closesAt} precision={precise ? 'precise' : 'date_only'} timeZone={lot.timeZone} now={now} />
-              <ReminderPill watch={watch} lot={lot} now={now} />
             </span>
           )}
         </div>
@@ -140,50 +160,41 @@ function WatchCard({
 
       <dl className="figures">
         <div className="figure">
-          <dt>{tab === 'closed' ? 'Final price' : 'Current bid'}</dt>
-          <dd>{formatMaybeCents(tab === 'closed' ? finalCents : lot.currentBidCents, '—')}</dd>
+          <dt>{closed ? 'Final' : 'Now'}</dt>
+          <dd>{money(closed ? finalCents : lot.currentBidCents)}</dd>
         </div>
         {watch.placed_bid ? (
           <div className="figure">
             <dt>Your bid</dt>
-            <dd>{formatMaybeCents(watch.placed_bid_cents, '—')}</dd>
+            <dd>{money(watch.placed_bid_cents)}</dd>
           </div>
         ) : null}
         <div className="figure">
-          <dt>Your walk-away</dt>
-          <dd className="figure--accent">
-            {watch.max_bid_cents !== null ? formatCents(watch.max_bid_cents) : <Link to={`/lot/${lot.id}`}>Set it</Link>}
+          <dt>Walk-away</dt>
+          <dd className="figure__walkaway">
+            {watch.max_bid_cents !== null ? formatCentsShort(watch.max_bid_cents) : <Link to={`/lot/${lot.id}`}>Set it</Link>}
           </dd>
         </div>
+        {reminder ? (
+          <div className={`figure ${reminder.done ? '' : 'figure--deadline'}`}>
+            <dt>{reminder.done ? 'Reminded' : 'Reminder'}</dt>
+            <dd className="figure__when">{reminder.text}</dd>
+          </div>
+        ) : null}
       </dl>
 
-      {outbid && tab === 'placed' ? (
+      {outbid && !closed ? (
         <p className="notice notice--inline">
-          Outbid: the current bid is {formatCents(lot.currentBidCents ?? 0)}. Raise it only if your walk-away number allows.
+          Outbid: the current bid is {money(lot.currentBidCents)}. Raise it only if your walk-away allows.
         </p>
       ) : null}
       {watch.placed_bid && watch.max_bid_cents !== null && watch.placed_bid_cents !== null && watch.placed_bid_cents > watch.max_bid_cents ? (
-        <p className="notice notice--inline">You bid above your walk-away number.</p>
+        <p className="notice notice--inline">You bid above your walk-away.</p>
       ) : null}
 
-      {tab === 'watching' ? (
-        editing ? (
-          <PlacedBidForm
-            initial={null}
-            onCancel={() => setEditing(false)}
-            onSave={async (cents) => {
-              await onUpdate({ placed_bid: true, placed_bid_cents: cents });
-              setEditing(false);
-            }}
-          />
-        ) : (
-          <button type="button" className="btn btn--outline btn--block" onClick={() => setEditing(true)}>
-            I placed my bid
-          </button>
-        )
-      ) : null}
-
-      {tab === 'placed' ? (
+      {closed ? (
+        <OutcomeButtons watch={watch} onUpdate={(patch) => void run(() => onUpdate(patch))} />
+      ) : watch.placed_bid ? (
         editing ? (
           <PlacedBidForm
             initial={watch.placed_bid_cents}
@@ -203,25 +214,20 @@ function WatchCard({
             </button>
           </div>
         )
-      ) : null}
-
-      {tab === 'closed' ? (
-        <div className="outcome" role="group" aria-label="How did it go?">
-          <span className="small muted">How did it go?</span>
-          {(['won', 'lost', 'passed'] as const).map((o) => (
-            <button
-              key={o}
-              type="button"
-              className="chip"
-              aria-pressed={watch.outcome === o}
-              onClick={() => void run(() => onUpdate({ outcome: o }))}
-            >
-              {o === 'won' ? 'Won' : o === 'lost' ? 'Lost' : 'Passed'}
-            </button>
-          ))}
-          {!isOutcome(watch.outcome) ? <span className="small muted">Recording it improves your numbers.</span> : null}
-        </div>
-      ) : null}
+      ) : editing ? (
+        <PlacedBidForm
+          initial={null}
+          onCancel={() => setEditing(false)}
+          onSave={async (cents) => {
+            await onUpdate({ placed_bid: true, placed_bid_cents: cents });
+            setEditing(false);
+          }}
+        />
+      ) : (
+        <button type="button" className="btn btn--outline btn--block" onClick={() => setEditing(true)}>
+          I placed my bid
+        </button>
+      )}
 
       <div className="watch-card__foot">
         <button type="button" className="link-btn" onClick={() => void run(onRemove)}>
@@ -234,6 +240,19 @@ function WatchCard({
         </p>
       ) : null}
     </article>
+  );
+}
+
+/** "2 won lots to pick up · Plan the run" (Bids.dc.html). */
+function PickupLink({ count }: { count: number }) {
+  return (
+    <Link to="/bids/pickup" className="pickup-link">
+      <span className="pickup-link__what">
+        <TruckIcon size={20} />
+        {count} won {count === 1 ? 'lot' : 'lots'} to pick up
+      </span>
+      <span className="pickup-link__cta">Plan the run</span>
+    </Link>
   );
 }
 
@@ -255,17 +274,18 @@ export function BidsPage() {
   const centroids = useAsync(() => lookupPostalCodes(zips), [zips.join(','), home.place?.postalCode], zips.length > 0 && home.place !== null);
 
   const grouped = useMemo(() => {
-    const g: Record<TabKey, WatchEntry[]> = { watching: [], placed: [], closed: [] };
-    for (const e of entries) if (e.lot) g[tabOf(e)].push(e);
+    const g: Record<Place, WatchEntry[]> = { watching: [], placed: [], won: [], letgo: [] };
+    for (const e of entries) if (e.lot) g[placeOf(e)].push(e);
     return g;
   }, [entries]);
 
-  // "If every bid wins, you owe": the engine's portfolioExposure over open lots with a number.
+  // "If every bid wins, you owe": the engine's portfolioExposure over lots still open, with a number.
   const exposure = useMemo(() => {
     const lines: ExposureLine[] = [];
     let missing = 0;
     for (const e of [...grouped.watching, ...grouped.placed]) {
       const lot = e.lot as WatchedLot;
+      if (lot.closed) continue;
       const hammer = e.watch.placed_bid && e.watch.placed_bid_cents !== null ? e.watch.placed_bid_cents : e.watch.max_bid_cents;
       if (hammer === null || hammer <= 0) {
         missing += 1;
@@ -310,8 +330,12 @@ export function BidsPage() {
   }
 
   const current = grouped[tab];
-  const openCount = grouped.watching.length + grouped.placed.length;
+  const wonCount = grouped.won.length;
+  const openCount = [...grouped.watching, ...grouped.placed].filter((e) => !e.lot?.closed).length;
   const r = exposure.summary.result;
+  const card = (e: WatchEntry) => (
+    <WatchCard key={e.watch.id} entry={e} now={now} onUpdate={(patch) => update(e.watch.id, patch)} onRemove={() => remove(e.watch.id)} />
+  );
 
   return (
     <div className="page">
@@ -341,13 +365,33 @@ export function BidsPage() {
       </header>
 
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="stack">
+        {openCount > 0 && tab !== 'won' && !list.loading ? (
+          <section className="exposure" aria-label="What you would owe">
+            <div className="exposure__row">
+              <span>If every bid wins, you owe</span>
+              <span className="exposure__total">{exposure.priced > 0 ? formatCentsShort(r.exposureCents) : '—'}</span>
+            </div>
+            <p className="exposure__note">
+              {exposure.priced > 0
+                ? `${r.liveBids} ${r.liveBids === 1 ? 'lot' : 'lots'}: premium, tax, card fee and one pickup trip per site included` +
+                  `${r.transportCents > 0 ? ` (${formatCentsShort(r.transportCents)} of trips)` : ''}. Rates the lot does not publish use unverified defaults.`
+                : 'Add a walk-away to a watched lot to see what you would owe.'}
+              {exposure.summary.outbid > 0 ? ` ${exposure.summary.outbid} already above your number ${exposure.summary.outbid === 1 ? 'is' : 'are'} left out.` : ''}
+              {exposure.summary.noTrip > 0 ? ` Pickup is not counted for ${exposure.summary.noTrip} with no known distance.` : ''}
+              {exposure.missing > 0 && exposure.priced > 0 ? ` ${exposure.missing} without a number ${exposure.missing === 1 ? 'is' : 'are'} not counted.` : ''}
+            </p>
+          </section>
+        ) : null}
+
+        {tab === 'won' && wonCount > 0 ? <PickupLink count={wonCount} /> : null}
+
         {list.loading && !list.data ? (
           <LoadingState label="Loading your bids" />
         ) : list.error ? (
           <ErrorState error={list.error} onRetry={list.reload} title="Your bids did not load" />
         ) : current.length === 0 ? (
           <EmptyState
-            title={tab === 'watching' ? 'Nothing watched yet' : tab === 'placed' ? 'No bids recorded' : 'Nothing closed yet'}
+            title={tab === 'watching' ? 'Nothing watched yet' : tab === 'placed' ? 'No bids recorded' : 'Nothing won yet'}
             action={
               tab === 'watching' ? (
                 <Link to="/" className="btn btn--secondary">
@@ -358,41 +402,25 @@ export function BidsPage() {
           >
             <p>
               {tab === 'watching'
-                ? 'Open a lot and tap “Watch and remind me”. Skeuos reminds you before it closes and keeps your walk-away number here.'
+                ? 'Open a lot and tap “Watch and remind me”. Skeuos reminds you before it closes and keeps your walk-away here.'
                 : tab === 'placed'
-                  ? 'When you bid on the source site, tap “I placed my bid” on a watched lot so Skeuos can warn you if you are outbid.'
-                  : 'Watched lots move here when they close. Record whether you won so your numbers improve.'}
+                  ? 'When you bid on the source site, tap “I placed my bid” on a watched lot so Skeuos can tell you if you are outbid.'
+                  : 'When a watched lot closes, tell Skeuos how it went. Lots you win gather here, ready for the pickup run.'}
             </p>
           </EmptyState>
         ) : (
-          current.map((e) => (
-            <WatchCard
-              key={e.watch.id}
-              entry={e}
-              tab={tab}
-              now={now}
-              onUpdate={(patch) => update(e.watch.id, patch)}
-              onRemove={() => remove(e.watch.id)}
-            />
-          ))
+          current.map(card)
         )}
 
-        {openCount > 0 && tab !== 'closed' ? (
-          <section className="exposure" aria-label="What you would owe">
-            <div className="exposure__row">
-              <span>If every bid wins, you owe</span>
-              <span className="exposure__total">{exposure.priced > 0 ? formatCents(r.exposureCents) : '—'}</span>
-            </div>
-            <p className="exposure__note">
-              {exposure.priced > 0
-                ? `${r.liveBids} ${r.liveBids === 1 ? 'lot' : 'lots'}: premium, tax, card fee and one pickup trip per site included` +
-                  `${r.transportCents > 0 ? ` (${formatCents(r.transportCents)} of trips)` : ''}. Rates the lot does not publish use unverified defaults.`
-                : 'Add a walk-away number to a watched lot to see what you would owe.'}
-              {exposure.summary.outbid > 0 ? ` ${exposure.summary.outbid} already above your number ${exposure.summary.outbid === 1 ? 'is' : 'are'} left out.` : ''}
-              {exposure.summary.noTrip > 0 ? ` Pickup is not counted for ${exposure.summary.noTrip} with no known distance.` : ''}
-              {exposure.missing > 0 && exposure.priced > 0 ? ` ${exposure.missing} without a number ${exposure.missing === 1 ? 'is' : 'are'} not counted.` : ''}
-            </p>
-          </section>
+        {tab !== 'won' && wonCount > 0 && !list.loading ? <PickupLink count={wonCount} /> : null}
+
+        {tab === 'won' && grouped.letgo.length > 0 ? (
+          <details className="letgo">
+            <summary>
+              Let go · {grouped.letgo.length} lost or passed
+            </summary>
+            <div className="stack">{grouped.letgo.map(card)}</div>
+          </details>
         ) : null}
       </div>
     </div>

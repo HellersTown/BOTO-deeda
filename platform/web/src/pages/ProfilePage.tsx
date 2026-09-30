@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { RADIUS_OPTIONS } from '../components/LocationDialog';
 import { ErrorState, LoadingState } from '../components/States';
 import { signOut } from '../data/auth';
@@ -11,6 +11,7 @@ import { useAsync } from '../hooks/useAsync';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { latencyWords } from '../lib/dates';
 import { formatCentsShort } from '../lib/money';
+import { planName } from '../lib/plans';
 import { useAuth } from '../providers/AuthProvider';
 import { useHome } from '../providers/HomeProvider';
 
@@ -37,7 +38,7 @@ function planLine(t: TierLimitsRow): string {
   parts.push(`alerts ${latencyWords(t.alert_latency_seconds)}`);
   if (t.max_watchlist !== null) parts.push(`${t.max_watchlist} watched lots`);
   if (t.image_hunts_allowed) parts.push(t.max_image_hunts ? `${t.max_image_hunts} photo hunts` : 'photo hunts');
-  if (t.rival_intel_allowed) parts.push('who’s bidding');
+  if (t.rival_intel_allowed) parts.push('who is bidding');
   if (t.csv_export_allowed) parts.push('CSV export');
   if (t.api_access_allowed) parts.push('API');
   return parts.join(' · ');
@@ -139,14 +140,14 @@ export function ProfilePage() {
       <div className="stack">
         <section aria-labelledby="home" className="card profile-card">
           <h2 id="home" className="card__title">
-            Where you bid from
+            Where you set out from
           </h2>
           <div className="field-grid">
             <div className="field">
               <label htmlFor={zipId}>Home ZIP</label>
               <input
                 id={zipId}
-                className="input"
+                className="input input--mono"
                 inputMode="numeric"
                 autoComplete="postal-code"
                 maxLength={10}
@@ -167,7 +168,7 @@ export function ProfilePage() {
               </span>
             </div>
             <div className="field">
-              <label htmlFor={radiusId}>Drive up to</label>
+              <label htmlFor={radiusId}>How far you will travel</label>
               <select id={radiusId} className="input" value={radius} onChange={(e) => void save({ radius_miles: Number(e.target.value) }, 'Distance')}>
                 {radii.map((r) => (
                   <option key={r} value={r}>
@@ -213,7 +214,7 @@ export function ProfilePage() {
           </label>
           <div className="switch-row">
             <span>Quiet hours</span>
-            <button type="button" className="btn btn--chip" aria-expanded={quietOpen} onClick={() => setQuietOpen((o) => !o)}>
+            <button type="button" className="btn btn--chip btn--mono" aria-expanded={quietOpen} onClick={() => setQuietOpen((o) => !o)}>
               {quietText}
             </button>
           </div>
@@ -288,7 +289,7 @@ export function ProfilePage() {
                 <div key={t.tier} className={`plan-card${current ? ' plan-card--current' : ''}`}>
                   <div className="plan-card__text">
                     <span className="plan-card__name">
-                      {t.label ?? t.tier}
+                      {planName(t.tier)}
                       {current ? <span className="plan-card__current"> · current</span> : null}
                     </span>
                     <span className="plan-card__line">{planLine(t)}</span>
@@ -309,11 +310,9 @@ export function ProfilePage() {
 
         {c ? (
           <p className="coverage">
-            {c.total} auction {c.total === 1 ? 'site is' : 'sites are'} checked every hour. {c.open} can be searched here
-            {c.blocked > 0
-              ? `; ${c.blocked} turn away automated visitors, so for those we open the site for you instead (deep link only)`
-              : ''}
-            .{c.other > 0 ? ` ${c.other} more are still being checked.` : ''}
+            Every source is checked every hour: {c.total} auction {c.total === 1 ? 'site' : 'sites'}, {c.open} searchable here.
+            {c.blocked > 0 ? ` ${c.blocked} turn away automated visitors, so they open in their own tab instead.` : ''}
+            {c.other > 0 ? ` ${c.other} more are still being checked.` : ''}
           </p>
         ) : coverage.error ? null : null}
 
@@ -334,9 +333,6 @@ export function ProfilePage() {
             >
               Sign out
             </button>
-            <Link to="/about" className="btn btn--ghost btn--small">
-              About the name Skeuos
-            </Link>
           </div>
         </section>
 

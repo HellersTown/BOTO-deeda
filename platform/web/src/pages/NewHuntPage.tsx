@@ -19,10 +19,11 @@ import {
   toHuntInsert,
   type HuntDraft,
 } from '../lib/huntDraft';
+import { nextPlan, planName } from '../lib/plans';
 import { useAuth } from '../providers/AuthProvider';
 import { useHome } from '../providers/HomeProvider';
 
-const HUNT_RADII: readonly number[] = [10, 25, 50, 100, 200, 500];
+const HUNT_RADII: readonly number[] = [10, 25, 60, 100, 200, 500];
 
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value);
@@ -77,7 +78,10 @@ export function NewHuntPage() {
   const canSave = huntHasCriteria(current) && shownName.trim() !== '' && !saving;
   const atLimit =
     ent.data?.max_active_hunts !== null && ent.data?.max_active_hunts !== undefined && (ent.data.hunts_active ?? 0) >= ent.data.max_active_hunts;
-  const pro = tiers.data?.find((t) => t.tier === 'pro');
+  const tier = ent.data?.tier ?? 'free';
+  const upTier = nextPlan(tier);
+  const up = upTier ? tiers.data?.find((t) => t.tier === upTier) : undefined;
+  const plan = planName(tier);
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -112,10 +116,10 @@ export function NewHuntPage() {
       <select
         id={radiusId}
         className="chip__select"
-        value={f.radius_miles ?? 50}
+        value={f.radius_miles ?? 60}
         onChange={(e) => setDraft(setDraftRadius(current, Number(e.target.value)))}
       >
-        {[...new Set([...HUNT_RADII, f.radius_miles ?? 50])].sort((a, b) => a - b).map((r) => (
+        {[...new Set([...HUNT_RADII, f.radius_miles ?? 60])].sort((a, b) => a - b).map((r) => (
           <option key={r} value={r}>
             {r} mi
           </option>
@@ -141,21 +145,21 @@ export function NewHuntPage() {
       <form className="stack" onSubmit={save}>
         <div className="field">
           <label htmlFor={describeId} className="field__label--strong">
-            Describe it the way you would to a friend
+            What do you need? Say it the way you would tell a friend.
           </label>
           <textarea
             id={describeId}
             className="input input--strong textarea"
             rows={3}
             value={text}
-            placeholder="DJI drone with thermal under $1,500 within 50 miles of 53202"
+            placeholder="Pressure canner, All American or Presto, under $150 within 60 miles"
             onChange={(e) => setText(e.target.value)}
           />
         </div>
 
         <section aria-labelledby="readas" className="card read-panel">
           <h2 id="readas" className="read-panel__title">
-            I read this as
+            Read as
           </h2>
           {settled.trim() === '' ? (
             <p className="muted small">Type what you are looking for and the reading appears here.</p>
@@ -199,7 +203,7 @@ export function NewHuntPage() {
           <span className="photo-slot__text">
             <span className="photo-slot__title">Add a photo</span>
             <span id="photo-note" className="small muted">
-              Coming soon: also match lots that look like your photo.
+              {planName('pro')}: also match lots that look like it. Coming soon.
             </span>
           </span>
         </button>
@@ -222,16 +226,16 @@ export function NewHuntPage() {
 
         <label className="toggle-row">
           <span className="toggle-row__text">
-            <span className="toggle-row__title">Alert me when a match is listed</span>
+            <span className="toggle-row__title">Tell me when one is listed</span>
             <span className="small muted">
-              {ent.data?.label ?? 'Your'} plan: {latencyWords(ent.data?.alert_latency_seconds)}.
-              {pro && ent.data?.tier !== 'pro' && ent.data?.tier !== 'dealer' ? ` ${pro.label ?? 'Pro'}: ${latencyWords(pro.alert_latency_seconds)}.` : ''}
+              {plan}: {latencyWords(ent.data?.alert_latency_seconds)}.
+              {up && upTier ? ` ${planName(upTier)}: ${latencyWords(up.alert_latency_seconds)}.` : ''}
             </span>
           </span>
           <input type="checkbox" className="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
         </label>
 
-        {limitMessage !== null ? <UpgradePrompt message={limitMessage} onDismiss={() => setLimitMessage(null)} /> : null}
+        {limitMessage !== null ? <UpgradePrompt ent={ent.data} message={limitMessage} onDismiss={() => setLimitMessage(null)} /> : null}
         {error ? (
           <p className="field-error" role="alert">
             {error}
@@ -242,12 +246,12 @@ export function NewHuntPage() {
           {ent.data && ent.data.max_active_hunts !== null ? (
             <p className="muted small center">
               {atLimit
-                ? `All ${ent.data.max_active_hunts} hunts on the ${ent.data.label ?? 'current'} plan are in use. Pause one to start this.`
-                : `This will be hunt ${(ent.data.hunts_active ?? 0) + 1} of ${ent.data.max_active_hunts} on the ${ent.data.label ?? 'current'} plan.`}
+                ? `All ${ent.data.max_active_hunts} hunts on ${plan} are in use. Pause one to start this.`
+                : `This will be hunt ${(ent.data.hunts_active ?? 0) + 1} of ${ent.data.max_active_hunts} on ${plan}.`}
             </p>
           ) : null}
           <button type="submit" className="btn btn--primary btn--large btn--block" disabled={!canSave}>
-            {saving ? 'Starting…' : 'Start hunting'}
+            {saving ? 'Starting…' : 'Start watching'}
           </button>
         </div>
       </form>

@@ -1,12 +1,12 @@
 import { recommend, type RankedStrategy } from '@platform/strategy';
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { BackIcon, ExternalIcon, ShareIcon } from '../components/Icons';
+import { BackIcon, ExternalIcon, PriceIcon, ShareIcon, TrailIcon, TruckIcon } from '../components/Icons';
+import { LocationButton } from '../components/LocationDialog';
 import type { LotLinkState } from '../components/LotCard';
-import { TREASURE_MIN_SCORE } from '../components/LotCard';
 import { Photo } from '../components/Photo';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
-import { TierBadge } from '../components/TierBadge';
+import { isWorthTheTrip, PriceTag, TierTag, WorthTheTrip } from '../components/Tags';
 import { WalkAwayCalculator } from '../components/WalkAwayCalculator';
 import type { WatchlistInsert } from '../data/database.types';
 import { describeError } from '../data/errors';
@@ -18,9 +18,10 @@ import { useAsync } from '../hooks/useAsync';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useNow } from '../hooks/useNow';
 import { describeCloseLong, formatShortDateTime, formatTimeIn, reminderInstant, DATE_ONLY_DEFAULT_ZONE } from '../lib/dates';
-import { formatMiles, haversineMiles } from '../lib/distance';
+import { distanceWords, haversineMiles, isApproximateGeo } from '../lib/distance';
 import { buildLotContext, factsFromDetail } from '../lib/lotContext';
 import { formatCents, formatPercent, parseDollarsToCents, parsePercent } from '../lib/money';
+import { planName } from '../lib/plans';
 import { useAuth } from '../providers/AuthProvider';
 import { useHome } from '../providers/HomeProvider';
 
@@ -44,21 +45,22 @@ function sellerLine(lot: LotDetail): string | null {
   return seller ? `Sold by ${seller}` : null;
 }
 
+/** "Generac · GP7500E · specs from the listing". */
 function specLine(lot: LotDetail): string | null {
-  const parts = [lot.brand, lot.model ? `Model ${lot.model}` : null, lot.condition].filter(Boolean);
-  return parts.length ? `${parts.join(' · ')} · from the listing` : null;
+  const parts = [lot.brand, lot.model, lot.condition].filter(Boolean);
+  return parts.length ? `${parts.join(' · ')} · specs from the listing` : null;
 }
 
-function bidLabel(lot: LotDetail): { amount: string; label: string } {
+function bidLabel(lot: LotDetail): { cents: number | null; label: string } {
   if (lot.currentBidCents !== null) {
     const bids = lot.bidCount ?? 0;
     return {
-      amount: formatCents(lot.currentBidCents),
+      cents: lot.currentBidCents,
       label: bids === 0 ? 'opening bid, no bids yet' : `current bid · ${bids} ${bids === 1 ? 'bid' : 'bids'}`,
     };
   }
-  if (lot.nextBidCents !== null) return { amount: formatCents(lot.nextBidCents), label: 'to open the bidding' };
-  return { amount: 'No price listed', label: 'check the listing' };
+  if (lot.nextBidCents !== null) return { cents: lot.nextBidCents, label: 'to open the bidding' };
+  return { cents: null, label: 'No price listed; check the listing' };
 }
 
 export function LotPage() {
@@ -87,24 +89,32 @@ export function LotPage() {
     detail !== null,
   );
   const distanceMiles = distance.data ?? null;
+  // 0016: a point found from the city's centroid makes the distance approximate.
+  const distanceApprox = link?.distanceApprox ?? isApproximateGeo(detail?.pickupGeoSource);
 
   const watch = useAsync(() => (user ? getMyWatch(user.id, id) : Promise.resolve(null)), [user?.id, id]);
 
-  const [resaleText, setResaleText] = useState('');
-  const [marginText, setMarginText] = useState('');
-  const resaleCents = parseDollarsToCents(resaleText);
-  const marginPct = marginText.trim() === '' ? null : parsePercent(marginText);
+  const [worthText, setWorthText] = useState('');
+  const [cushionText, setCushionText] = useState('');
+  const worthCents = parseDollarsToCents(worthText);
+  const cushionPct = cushionText.trim() === '' ? null : parsePercent(cushionText);
   const minute = Math.floor(now.getTime() / 60_000);
 
+  // Count the cost runs the engine's personal-use arm: what it is worth to you, less the cushion you keep.
   const rec = useMemo(
     () =>
       detail
         ? recommend(
-            buildLotContext(factsFromDetail(detail), distanceMiles, { estimatedResaleCents: resaleCents, targetMarginPct: marginPct }),
+            buildLotContext(factsFromDetail(detail), distanceMiles, {
+              estimatedResaleCents: null,
+              estimatedValueCents: worthCents,
+              targetMarginPct: cushionPct,
+              userGoal: 'use',
+            }),
             new Date(minute * 60_000),
           )
         : null,
-    [detail, distanceMiles, resaleCents, marginPct, minute],
+    [detail, distanceMiles, worthCents, cushionPct, minute],
   );
 
   const [saving, setSaving] = useState(false);
@@ -146,9 +156,9 @@ export function LotPage() {
   const bid = bidLabel(detail);
   const spec = specLine(detail);
   const seller = sellerLine(detail);
-  const treasure = detail.sleeperScore !== null && detail.sleeperScore >= TREASURE_MIN_SCORE;
+  const worth = isWorthTheTrip(detail.sleeperScore);
   const hammer = rec.walkAway.hammerCeilingCents;
-  const numberReady = resaleCents !== null && hammer !== null;
+  const numberReady = worthCents !== null && hammer !== null;
   const cityState = [detail.pickupCity, [detail.pickupState, detail.pickupPostalCode].filter(Boolean).join(' ')]
     .filter(Boolean)
     .join(', ');
@@ -159,7 +169,8 @@ export function LotPage() {
       ? `${formatPercent(detail.auction.buyerPremiumPct)} buyer’s premium`
       : premiumParam?.source.startsWith('platform default')
         ? `${formatPercent(rec.walkAway.rates.buyerPremiumPct)} buyer’s premium (the site’s usual terms)`
-        : `premium not published; the calculator assumes ${formatPercent(rec.walkAway.rates.buyerPremiumPct)} (unverified)`;
+        : `premium not published; the count assumes ${formatPercent(rec.walkAway.rates.buyerPremiumPct)} (unverified)`;
+  const terms = detail.meta.terms;
 
   async function share() {
     const url = window.location.href;
@@ -187,7 +198,7 @@ export function LotPage() {
         const ent = await getMyEntitlements().catch(() => null);
         if (ent && ent.max_watchlist !== null && (ent.watchlist_count ?? 0) >= ent.max_watchlist) {
           setWatchError(
-            `Your ${ent.label ?? 'current'} plan holds ${ent.max_watchlist} watched lots, and all are in use. Remove one in Bids to watch this lot.`,
+            `Your ${planName(ent.tier)} plan holds ${ent.max_watchlist} watched lots, and all are in use. Remove one in Bids to watch this lot.`,
           );
           return;
         }
@@ -199,8 +210,8 @@ export function LotPage() {
       watch.setData(row);
       setWatchMessage(
         numberReady
-          ? `Watching. Your walk-away number, ${formatCents(hammer ?? 0)}, is saved in Bids.`
-          : 'Watching. Add what it sells for above to save a walk-away number too.',
+          ? `Watching. Your walk-away, ${formatCents(hammer ?? 0)}, is saved in Bids.`
+          : 'Watching. Add what it is worth to you above to save a walk-away too.',
       );
     } catch (err) {
       setWatchError(describeError(err));
@@ -253,26 +264,22 @@ export function LotPage() {
         <div className="lot-layout__main">
           <section className="lot-title">
             <div className="lot-title__meta">
-              <TierBadge tier={detail.source?.tier} long />
-              {seller ? <span className="muted small">{seller}</span> : null}
+              <TierTag tier={detail.source?.tier} />
+              {seller ? <span className="lot-title__seller">{seller}</span> : null}
             </div>
             <h1 className="lot-title__name">{detail.title}</h1>
             {spec ? <p className="lot-title__spec">{spec}</p> : null}
             <div className="lot-title__price">
-              <span className="lot-title__amount">{bid.amount}</span>
-              <span className="muted">{bid.label}</span>
+              {bid.cents !== null ? <PriceTag cents={bid.cents} size="lg" /> : null}
+              <span className="lot-title__bids">{bid.label}</span>
+              {worth ? <WorthTheTrip className="lot-title__worth" /> : null}
             </div>
-            {treasure ? (
-              <div className="treasure-box">
-                <p className="treasure">Treasure in plain sight</p>
-                {detail.sleeperReasons.length ? (
-                  <ul>
-                    {detail.sleeperReasons.map((r) => (
-                      <li key={r.code}>{r.detail}</li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
+            {worth && detail.sleeperReasons.length ? (
+              <ul className="worth-reasons" aria-label="Why it may be worth the trip">
+                {detail.sleeperReasons.map((r) => (
+                  <li key={r.code}>{r.detail}</li>
+                ))}
+              </ul>
             ) : null}
           </section>
 
@@ -282,47 +289,76 @@ export function LotPage() {
             {!precise && !detail.closed ? (
               <>
                 {' '}
-                {sourceName} publishes the date, not the time
+                {sourceName} publishes the date, not the hour
                 {detail.meta.inactivityMinutes ? ', and a sale keeps extending while bids arrive' : ''}.
               </>
             ) : null}
             {!detail.closed && reminderText ? (
-              <> {watching ? `We remind you at ${reminderText}.` : `Watch it and we remind you at ${reminderText}.`}</>
+              <> {watching ? `We’ll remind you at ${reminderText}.` : `Watch it and we’ll remind you at ${reminderText}.`}</>
             ) : null}
           </section>
 
-          <section className="lot-facts">
-            <div>
-              <strong>{detail.ships ? 'Ships' : 'Pickup only'}</strong>
-              {place ? ` · ${place}` : ''}
-              {distanceMiles !== null && home.zip ? ` · ${formatMiles(distanceMiles)} from ${home.zip}` : ''}
-              {detail.auction?.shipsNote ? ` · ${detail.auction.shipsNote}` : ''}
+          <section aria-labelledby="trip" className="trip">
+            <h2 id="trip" className="trip__title">
+              The trip
+            </h2>
+            <div className="trip__row">
+              <TrailIcon size={18} strokeWidth={2} className="trip__icon" />
+              <span>
+                {distanceMiles !== null && home.zip ? (
+                  <>
+                    <strong>{distanceWords(distanceMiles, distanceApprox)}</strong> from {home.zip}
+                  </>
+                ) : null}
+                {distanceMiles !== null && home.zip && place ? ' · ' : ''}
+                {place || (distanceMiles === null ? 'The listing gives no pickup address.' : '')}
+                {!home.zip ? (
+                  <span className="trip__set">
+                    {' '}
+                    <LocationButton variant="field" />
+                  </span>
+                ) : null}
+              </span>
             </div>
-            <div>
-              <strong>Fees</strong> · {premiumText}
-              {detail.auction?.buyerPremiumNote ? ` · ${detail.auction.buyerPremiumNote}` : ''}
+            <div className="trip__row">
+              <TruckIcon size={18} className="trip__icon" />
+              <span>
+                <strong>{detail.ships ? 'Ships' : 'Pickup only'}</strong>
+                {detail.auction?.shipsNote ? ` · ${detail.auction.shipsNote}` : ''}
+                {terms ? (
+                  <details className="trip__terms">
+                    <summary>Inspection and removal, from the listing</summary>
+                    <p>{terms}</p>
+                  </details>
+                ) : null}
+              </span>
             </div>
-            {detail.meta.feeNote ? (
-              <div>
-                <strong>Also disclosed</strong> · {detail.meta.feeNote}
-              </div>
-            ) : null}
-            {detail.auction?.termsUrl ? (
-              <div>
-                <a href={detail.auction.termsUrl} target="_blank" rel="noopener noreferrer">
-                  Read the auction terms
-                </a>
-              </div>
-            ) : null}
+            <div className="trip__row">
+              <PriceIcon size={18} className="trip__icon" />
+              <span>
+                <strong>Fees</strong> · {premiumText}
+                {detail.auction?.buyerPremiumNote ? ` · ${detail.auction.buyerPremiumNote}` : ''}
+                {detail.meta.feeNote ? ` · Also disclosed: ${detail.meta.feeNote}` : ''}
+                {detail.auction?.termsUrl ? (
+                  <>
+                    {' · '}
+                    <a href={detail.auction.termsUrl} target="_blank" rel="noopener noreferrer">
+                      Read the auction terms
+                    </a>
+                  </>
+                ) : null}
+              </span>
+            </div>
           </section>
 
           <WalkAwayCalculator
             rec={rec}
-            resaleText={resaleText}
-            onResaleText={setResaleText}
-            marginText={marginText}
-            onMarginText={setMarginText}
+            worthText={worthText}
+            onWorthText={setWorthText}
+            cushionText={cushionText}
+            onCushionText={setCushionText}
             distanceMiles={distanceMiles}
+            distanceApprox={distanceApprox}
             homeZip={home.zip}
           />
 
@@ -375,13 +411,13 @@ export function LotPage() {
               <p className="muted small">The source did not publish a link for this lot.</p>
             )}
             {!user ? (
-              <Link className="btn btn--outline" to={`/signin?next=${encodeURIComponent(`/lot/${detail.id}`)}`}>
+              <Link className="btn btn--outline btn--tall" to={`/signin?next=${encodeURIComponent(`/lot/${detail.id}`)}`}>
                 Watch and remind me
               </Link>
             ) : (
               <button
                 type="button"
-                className="btn btn--outline"
+                className="btn btn--outline btn--tall"
                 onClick={watchAndRemind}
                 disabled={saving || detail.closed || (watching !== null && (!numberReady || watching.max_bid_cents === hammer))}
               >
@@ -389,7 +425,7 @@ export function LotPage() {
                   ? 'Saving…'
                   : watching
                     ? numberReady && watching.max_bid_cents !== hammer
-                      ? 'Save my new walk-away number'
+                      ? 'Save my new walk-away'
                       : 'Watching this lot'
                     : 'Watch and remind me'}
               </button>
@@ -401,8 +437,8 @@ export function LotPage() {
             ) : watching && !watchError ? (
               <p className="form-note">
                 {watching.max_bid_cents !== null
-                  ? `Your saved walk-away number is ${formatCents(watching.max_bid_cents)}.`
-                  : 'No walk-away number saved yet.'}{' '}
+                  ? `Your saved walk-away is ${formatCents(watching.max_bid_cents)}.`
+                  : 'No walk-away saved yet.'}{' '}
                 <Link to="/bids">Open Bids</Link>
               </p>
             ) : null}

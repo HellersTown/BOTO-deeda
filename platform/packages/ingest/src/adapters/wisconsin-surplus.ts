@@ -523,6 +523,16 @@ function originOf(url: string | null | undefined): string | null {
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/**
+ * The crawl gate (gate.ts) refuses a request by throwing a CrawlRefused with a
+ * reason. Read by name so this adapter works with or without the gate in front.
+ */
+export function refusalReason(e: unknown): 'robots' | 'blocked' | 'budget' | null {
+  if (!e || typeof e !== 'object' || (e as { name?: unknown }).name !== 'CrawlRefused') return null;
+  const r = (e as { reason?: unknown }).reason;
+  return r === 'robots' || r === 'blocked' || r === 'budget' ? r : null;
+}
+
 export interface WsRunOptions {
   /** Injected so tests do not wait out the politeness spacing. */
   sleep?: (ms: number) => Promise<void>;
@@ -542,12 +552,33 @@ export async function runWisconsinSurplus(ctx: AdapterContext, opts: WsRunOption
   let outOfScope = 0;
   let undeclared = 0;
   let clockChecked = false;
+  let lastStart: number | null = null;
+  let outOfBudget = false;
 
   for (const filter of WS_FILTERS) {
+    if (outOfBudget) break;
     for (let page = 1; page <= WS_MAX_PAGES; page++) {
-      if (httpRequests > 0) await sleep(spacing);
+      // Space request STARTS by the rate limit. Behind the crawl gate, which paces
+      // the same way, this waits for nothing; without it, it keeps us polite.
+      if (lastStart !== null) {
+        const wait = lastStart + spacing - ctx.now().getTime();
+        if (wait > 0) await sleep(wait);
+      }
+      lastStart = ctx.now().getTime();
       const url = wsListUrl(base, filter, page);
-      const res = await ctx.fetch(url, { headers: XHR_HEADERS });
+      let res: { status: number; text: string };
+      try {
+        res = await ctx.fetch(url, { headers: XHR_HEADERS });
+      } catch (e) {
+        // Out of run budget after the current list: keep what we have. A robots
+        // or bot-protection refusal, or losing the current list, fails the run.
+        if (refusalReason(e) === 'budget' && !(filter === 'Current' && page === 1)) {
+          warnings.push(`Run budget ran out before the ${filter} list page ${page}; kept what was fetched.`);
+          outOfBudget = true;
+          break;
+        }
+        throw e;
+      }
       httpRequests++;
       bytesIn += res.text.length;
 

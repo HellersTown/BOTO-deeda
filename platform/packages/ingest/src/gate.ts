@@ -71,6 +71,16 @@ export class CrawlRefused extends Error {
   }
 }
 
+/**
+ * True when the gate refused a request because the run's request or time budget
+ * is spent. The run is not broken: an adapter should stop fetching, keep what it
+ * has, and report the run as incomplete. Checked by name so an adapter needs no
+ * class identity across bundles.
+ */
+export function isBudgetRefusal(e: unknown): boolean {
+  return e instanceof Error && e.name === 'CrawlRefused' && (e as CrawlRefused).reason === 'budget';
+}
+
 interface HostRobots {
   verdict: 'rules' | 'absent' | 'unreachable';
   parsed: ParsedRobots | null;

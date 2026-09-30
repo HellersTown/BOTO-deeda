@@ -44,6 +44,7 @@ import {
   propertyroomAdapter,
   PR_BASE,
 } from '../src/adapters/propertyroom.ts';
+import { gateFetcher } from '../src/gate.ts';
 import type { AdapterContext, Fetcher, SourceConfig } from '../src/types.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -214,6 +215,8 @@ test('termination: on page 33 "next" is disabled', () => {
 
 test('page planning: sweep when it fits, rotate through the rest when it does not', () => {
   assert.equal(pagesPerRun(100_000, spacingMs(10)), 14);
+  assert.equal(pagesPerRun(90_000, spacingMs(10)), 13, 'the default budget at 10 requests/minute');
+  assert.equal(pagesPerRun(90_000, spacingMs(20)), 21);
   assert.deepEqual(planRotatingPages(5, 14, 0), [2, 3, 4, 5]);
   assert.deepEqual(planRotatingPages(1, 14, 0), []);
 
@@ -381,6 +384,12 @@ test('run(): a middle page with no pager, or the wrong page, is never a complete
   assert.equal(b.completeSnapshot, false);
   assert.equal(wrongPage.calls.length, 2, 'no loop');
   assert.match(b.warnings.join(' '), /Asked for page 2 and got page 1/);
+
+  // A FULL first page with no readable pager is not taken for a one-page list.
+  const full = harness({ 1: { status: 200, text: ALL.repeat(4) } }); // 44 real cards, no pager
+  const c = await runPropertyRoom(full.ctx, { sleep: async () => {} });
+  assert.equal(c.completeSnapshot, false);
+  assert.match(c.warnings.join(' '), /Page 1 did not say whether more pages follow/);
 });
 
 test('run(): a catalogue too big for one run rotates, and is never a complete snapshot', async () => {
@@ -388,7 +397,7 @@ test('run(): a catalogue too big for one run rotates, and is never a complete sn
   for (let p = 1; p <= 33; p++) pages[p] = { status: 200, text: withPager(PAGE1_CARDS, p, 33) };
   const { ctx, calls } = harness(pages);
   const res = await runPropertyRoom(ctx, { sleep: async () => {} });
-  assert.equal(calls.length, 14);
+  assert.equal(calls.length, 13, 'page 1, pages 2-7, and a rotating window of 6');
   assert.equal(res.completeSnapshot, false);
   assert.equal(res.lots.length, 5, 'the same five listings on every page are deduplicated');
 });
@@ -418,6 +427,43 @@ test('run(): page 1 failing fails the run; a later page failing is a warning and
   assert.match(res.warnings.join(' '), /page 2: HTTP 500/);
 });
 
+/** What the crawl gate throws when it will not make a request (gate.ts). */
+function refusal(reason: 'robots' | 'blocked' | 'budget'): Error {
+  const e = new Error(`gate refused: ${reason}`);
+  e.name = 'CrawlRefused';
+  (e as any).reason = reason;
+  return e;
+}
+
+test('run(): the gate running out of budget mid-run keeps the pages fetched, with no snapshot', async () => {
+  const { ctx } = harness({ 1: { status: 200, text: withPager(PAGE1_CARDS, 1, 3) } });
+  const inner = ctx.fetch;
+  ctx.fetch = async (url, init) => {
+    if (url.endsWith('page=2')) throw refusal('budget');
+    return inner(url, init);
+  };
+  const res = await runPropertyRoom(ctx, { sleep: async () => {} });
+  assert.equal(res.lots.length, 5);
+  assert.equal(res.completeSnapshot, false);
+  assert.match(res.warnings.join(' '), /budget ran out before page 2/);
+});
+
+test('run(): a gate refusal for robots or bot protection fails the run', async () => {
+  for (const reason of ['blocked', 'robots'] as const) {
+    const { ctx } = harness({ 1: { status: 200, text: withPager(PAGE1_CARDS, 1, 3) } });
+    const inner = ctx.fetch;
+    ctx.fetch = async (url, init) => {
+      if (url.endsWith('page=2')) throw refusal(reason);
+      return inner(url, init);
+    };
+    await assert.rejects(runPropertyRoom(ctx, { sleep: async () => {} }), new RegExp(`gate refused: ${reason}`));
+  }
+  // Out of budget before page 1 there is nothing to report: the run fails.
+  const { ctx } = harness({});
+  ctx.fetch = async () => { throw refusal('budget'); };
+  await assert.rejects(runPropertyRoom(ctx, { sleep: async () => {} }), /gate refused: budget/);
+});
+
 test('run(): a challenge page is a block, reported and not retried', async () => {
   const { ctx, calls } = harness({ 1: { status: 405, text: '<title>Human Verification</title>' } });
   await assert.rejects(runPropertyRoom(ctx, { sleep: async () => {} }), /HTTP 405/);
@@ -429,6 +475,36 @@ test('run(): an empty first page is flagged and never a complete snapshot', asyn
   const res = await runPropertyRoom(ctx, { sleep: async () => {} });
   assert.equal(res.completeSnapshot, false);
   assert.match(res.warnings.join(' '), /no listing cards/);
+});
+
+/** www.propertyroom.com/robots.txt exactly as fetched on 2026-09-30 (119 bytes). */
+const PR_ROBOTS = '# Global robots.txt as of 2022-04-17\r\n\r\nUser-agent: *\r\nDisallow: /account/\r\nDisallow: /watchlist/\r\nDisallow: /activity/';
+
+test('run() behind the real crawl gate: robots allows the list, fixtures pass block detection', async () => {
+  const served: string[] = [];
+  const gated = gateFetcher({
+    rawFetch: async (url) => {
+      served.push(url);
+      if (url === 'https://www.propertyroom.com/robots.txt') return { status: 200, headers: { 'content-type': 'text/plain' }, text: PR_ROBOTS };
+      const page = Number(new URL(url).searchParams.get('page'));
+      const text = page === 1 ? withPager(PAGE1_CARDS, 1, 2) : PAGE33.replace('<span class="page-btn active">33</span>', '<span class="page-btn active">2</span>');
+      return { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' }, text };
+    },
+    rateLimitRpm: 10,
+    sleep: async () => {},
+    now: () => NOW.getTime(),
+  });
+  const { ctx } = harness({});
+  ctx.fetch = gated;
+  const res = await runPropertyRoom(ctx, { sleep: async () => {} });
+  assert.deepEqual(served, [
+    'https://www.propertyroom.com/robots.txt',
+    'https://www.propertyroom.com/police-auctions?sort=closingsoon&page=1',
+    'https://www.propertyroom.com/police-auctions?sort=closingsoon&page=2',
+  ]);
+  assert.deepEqual(gated.stats().refusals, []);
+  assert.equal(res.lots.length, 5);
+  assert.equal(res.completeSnapshot, true);
 });
 
 test('adapter identity, URL shape and scope defaults', () => {

@@ -441,7 +441,7 @@ export function SearchPage() {
           )}
 
           {showFarther ? (
-            <button type="button" className="farther-row desktop-only" onClick={widen}>
+            <button type="button" className="farther-row" onClick={widen}>
               <span>{fartherText}</span>
               <span className="farther-row__cta">Show them</span>
             </button>

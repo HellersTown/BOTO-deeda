@@ -5,6 +5,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { listMyAlerts, markAlertRead, markAllAlertsRead } from '../data/alerts';
 import type { AlertKind, AlertRow, Json } from '../data/database.types';
 import { describeError } from '../data/errors';
+import { listMyHunts } from '../data/hunts';
 import { useAsync } from '../hooks/useAsync';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useNow } from '../hooks/useNow';
@@ -12,15 +13,26 @@ import { formatRelativeTime } from '../lib/dates';
 import { useAlerts } from '../providers/AlertsProvider';
 import { useAuth } from '../providers/AuthProvider';
 
+/**
+ * The kind line above each alert, in the app's own words (Alerts.dc.html). The
+ * title and body are the database's (0013) and are shown as written.
+ */
 const KIND: Readonly<Record<AlertKind, { label: string; tone: string }>> = {
   closing_soon: { label: 'Closing soon', tone: 'notice' },
   outbid: { label: 'Outbid', tone: 'accent' },
-  hunt_match: { label: 'Hunt', tone: 'gov' },
-  hunt_digest: { label: 'Hunt', tone: 'gov' },
-  lot_sold: { label: 'Closed', tone: 'muted' },
+  hunt_match: { label: 'Found', tone: 'gov' },
+  hunt_digest: { label: 'Found', tone: 'gov' },
+  lot_sold: { label: 'Sold', tone: 'muted' },
   price_drop: { label: 'Price drop', tone: 'accent' },
   new_auction_nearby: { label: 'New nearby', tone: 'gov' },
 };
+
+/** "Found · Generator, up to $800": a hunt's alerts name the hunt when it is known. */
+function kindLabel(alert: AlertRow, huntNames: ReadonlyMap<string, string>): string {
+  const base = KIND[alert.kind].label;
+  const hunt = alert.hunt_id ? huntNames.get(alert.hunt_id) : undefined;
+  return (alert.kind === 'hunt_match' || alert.kind === 'hunt_digest') && hunt ? `${base} · ${hunt}` : base;
+}
 
 function payloadUrl(payload: Json | null): string | null {
   if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) return null;
@@ -47,6 +59,8 @@ export function AlertsPage() {
   const { version, refresh, unread } = useAlerts();
   const now = useNow();
   const alerts = useAsync(() => listMyAlerts(user?.id ?? ''), [user?.id], Boolean(user));
+  const hunts = useAsync(() => listMyHunts(user?.id ?? ''), [user?.id], Boolean(user));
+  const huntNames = new Map((hunts.data ?? []).map((h) => [h.id, h.name] as const));
   const [error, setError] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
 
@@ -108,8 +122,7 @@ export function AlertsPage() {
         <div className="page-pad">
           <EmptyState title="No alerts yet">
             <p>
-              When a hunt finds a match, or a lot you watch is about to close, is outbid or has closed, it shows up here and on
-              the Alerts tab.
+              When a hunt finds something, or a lot you watch is about to close, is outbid or has sold, Skeuos tells you here.
             </p>
           </EmptyState>
         </div>
@@ -125,7 +138,7 @@ export function AlertsPage() {
                 <div className="alert__main">
                   <Link to={target(a)} className="alert__link" onClick={() => markOne(a)}>
                     {isUnread ? <span className="visually-hidden">Unread. </span> : null}
-                    <span className={`alert__kind alert__kind--${kind.tone}`}>{kind.label}</span>
+                    <span className={`alert__kind alert__kind--${kind.tone}`}>{kindLabel(a, huntNames)}</span>
                     <span className="alert__title">{a.title ?? kind.label}</span>
                     {a.body ? <span className="alert__body">{a.body}</span> : null}
                   </Link>
