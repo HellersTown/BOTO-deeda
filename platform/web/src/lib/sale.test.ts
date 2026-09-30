@@ -4,7 +4,7 @@ import { fromEmbeddedLot, fromSearchRow } from '../data/lotSummary';
 import { describeCloseLocal } from './dates';
 import { wonForPickup } from './pickup';
 import { watchlistFullMessage } from './plans';
-import { salePlace, saleLotsText } from './sale';
+import { resultsText, salePlace, saleLotsText, tallyRows } from './sale';
 import { saleSortNote } from './searchParams';
 
 const CHICAGO = 'America/Chicago';
@@ -163,5 +163,26 @@ describe('what assumes a price leaves sales out', () => {
     );
     expect(watchlistFullMessage({ ...full, watchlist_count: 24 }, 'sale')).toBeNull();
     expect(watchlistFullMessage(null, 'lot')).toBeNull();
+  });
+});
+
+describe('result counts name sales apart from lots', () => {
+  it('says lots, sales, or both', () => {
+    expect(resultsText(0, 0)).toBe('0 lots');
+    expect(resultsText(1, 0)).toBe('1 lot');
+    expect(resultsText(12, 0)).toBe('12 lots');
+    expect(resultsText(0, 1)).toBe('1 sale');
+    expect(resultsText(0, 31)).toBe('31 sales');
+    expect(resultsText(12, 3)).toBe('12 lots and 3 sales');
+    expect(resultsText(1, 1)).toBe('1 lot and 1 sale');
+  });
+
+  it('counts sale-level rows as sales', () => {
+    const lot = { sale_level: false };
+    const sale = { sale_level: true };
+    expect(tallyRows([lot, lot, sale])).toBe('2 lots and 1 sale');
+    expect(tallyRows([sale])).toBe('1 sale');
+    expect(tallyRows([{ sale_level: null }, {}])).toBe('2 lots');
+    expect(tallyRows([saleRow])).toBe('1 sale');
   });
 });

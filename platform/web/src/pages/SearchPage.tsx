@@ -15,6 +15,7 @@ import { useAsync } from '../hooks/useAsync';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useNow } from '../hooks/useNow';
 import { formatCentsShort } from '../lib/money';
+import { tallyRows } from '../lib/sale';
 import {
   defaultFilters,
   fartherArgs,
@@ -81,14 +82,15 @@ function FiltersSheet({
   filters,
   onChange,
   zip,
-  count,
+  countText,
 }: {
   open: boolean;
   onClose: () => void;
   filters: SearchFilters;
   onChange: (f: SearchFilters) => void;
   zip: string | null;
-  count: number | null;
+  /** "12 lots and 3 sales", or null while the search loads. */
+  countText: string | null;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -111,7 +113,7 @@ function FiltersSheet({
         </div>
         <FilterPanel filters={filters} onChange={onChange} zip={zip} />
         <button type="button" className="btn btn--primary" onClick={onClose}>
-          {count === null ? 'Show results' : `Show ${count} ${count === 1 ? 'lot' : 'lots'}`}
+          {countText === null ? 'Show results' : `Show ${countText}`}
         </button>
       </div>
     </dialog>
@@ -231,30 +233,30 @@ export function SearchPage() {
   const summaries = rows.slice(0, visible).map((r) => fromSearchRow(r, search.data?.info.get(r.lot_id)));
   const capped = rows.length >= SEARCH_LIMIT_MAX;
   const radiusSearch = origin !== null && filters.radius !== 'anywhere';
-  const nearby = rows.filter((r) => r.match_basis === 'nearby').length;
+  const nearbyRows = rows.filter((r) => r.match_basis === 'nearby');
   const shipping = rows.filter((r) => r.match_basis === 'ships_to_you').length;
   const inState = rows.filter((r) => r.match_basis === 'in_state').length;
   // 0023: under "Price" and "Worth the trip", sales (no price, no score) come after the lots; say so.
   const sortNote = search.loading || search.error ? null : saleSortNote(filters.sort, rows.some((r) => r.sale_level === true));
   const more = farther.data != null && search.data ? fartherCount(farther.data, rows.length, SEARCH_LIMIT_MAX) : null;
-  const lots = (n: number) => `${n} ${n === 1 ? 'lot' : 'lots'}`;
 
-  // The design's "3 within 60 mi" on a phone, "3 lots within 60 mi" on the web.
+  // The design's "3 within 60 mi" on a phone, "3 lots within 60 mi" on the web,
+  // which names sales apart: "3 lots and 2 sales within 60 mi".
   let title: ReactNode;
   const extras: string[] = [];
   if (radiusSearch) {
     title = (
       <>
-        {nearby}
-        <span className="desktop-only-inline"> {nearby === 1 ? 'lot' : 'lots'}</span> within {filters.radius} mi
+        <span className="mobile-only-inline">{nearbyRows.length}</span>
+        <span className="desktop-only-inline">{tallyRows(nearbyRows)}</span> within {filters.radius} mi
       </>
     );
     if (shipping) extras.push(`${shipping} more ship to you`);
     if (inState) extras.push(`${inState} more in ${parse.location.states.join(', ')}`);
   } else if (parse.location.states.length && filters.radius !== 'anywhere') {
-    title = `${lots(rows.length)} in ${parse.location.states.join(', ')}`;
+    title = `${tallyRows(rows)} in ${parse.location.states.join(', ')}`;
   } else {
-    title = `${lots(rows.length)} anywhere`;
+    title = `${tallyRows(rows)} anywhere`;
   }
   if (capped) extras.push(`showing the top ${SEARCH_LIMIT_MAX}`);
   const fartherCountText = more ? `${more.count}${more.atLeast ? '+' : ''}` : null;
@@ -270,7 +272,7 @@ export function SearchPage() {
       ? 'Searching…'
       : search.error
         ? 'The search did not load.'
-        : `${lots(rows.length)} found.`;
+        : `${tallyRows(rows)} found.`;
 
   const chooser =
     place && candidates.length > 1 && !resolvedZip ? (
@@ -466,7 +468,7 @@ export function SearchPage() {
         filters={filters}
         onChange={setFilters}
         zip={origin ?? home.zip}
-        count={search.data && !search.loading ? rows.length : null}
+        countText={search.data && !search.loading ? tallyRows(rows) : null}
       />
     </div>
   );

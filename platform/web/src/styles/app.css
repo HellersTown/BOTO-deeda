@@ -3229,7 +3229,8 @@ select.input {
 /* ------------------------------------------------------------------ web layout (Desktop.dc.html) */
 
 @media (min-width: 1024px) {
-  .mobile-only {
+  .mobile-only,
+  .mobile-only-inline {
     display: none !important;
   }
 
