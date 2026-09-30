@@ -5,6 +5,10 @@
 //   POST /functions/v1/load-gazetteer?file=geonames_us
 //   then (service role):  select load_postal_codes_from_staging();
 //
+//   POST /functions/v1/load-gazetteer?file=census_places_2023
+//   POST /functions/v1/load-gazetteer?file=census_cousubs_2023
+//   then (service role):  select load_places_from_staging();   (migration 0017)
+//
 // WHY SO LITTLE HAPPENS HERE. Version 1 parsed all three files in this function
 // and was killed by the Edge runtime ("CPU Time exceeded", 7 s in, after writing
 // 20,000 of ~41,000 rows). Edge Functions have a small per-request CPU budget.
@@ -23,34 +27,59 @@
 //                                required): city names, plus PO-box and
 //                                single-organisation ZIPs that have no Census
 //                                geography but that federal facilities often use.
+//   census_places_2023           Census places: incorporated cities and villages
+//                                and CDPs, with internal points (public domain).
+//   census_cousubs_2023          Census county subdivisions: Wisconsin's towns
+//                                (public domain). With places, these name the
+//                                municipalities that postal city names lump
+//                                together (every Wauwatosa ZIP is "Milwaukee").
 //
 // National rather than Wisconsin-only: radius search from a border town
 // (Beloit, Superior, Marinette, La Crosse, Kenosha) must reach the next state.
 //
 // Politeness: a file staged in the last 24 hours is not downloaded again, and
-// nothing is downloaded once postal_codes is fully loaded, however often this
-// public URL is called.
+// no file is downloaded once the table it feeds is fully loaded, however often
+// this public URL is called.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { unzipSync, strFromU8 } from 'npm:fflate@0.8.2';
 import { CRAWLER_UA } from './lib/http.ts';
 
-const FILES: Record<string, { url: string; entry?: (name: string) => boolean }> = {
+// `table` + `loaded` say when a file is no longer needed: once the table it feeds
+// holds that many rows, the file is not downloaded again.
+const FILES: Record<string, { url: string; entry?: (name: string) => boolean; table: string; loaded: number }> = {
   census_zcta_gazetteer_2023: {
     url: 'https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2023_Gazetteer/2023_Gaz_zcta_national.zip',
     entry: (n) => n.toLowerCase().endsWith('.txt'),
+    table: 'postal_codes',
+    loaded: 40_000,
   },
   census_zcta_county_rel_2020: {
     url: 'https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/tab20_zcta520_county20_natl.txt',
+    table: 'postal_codes',
+    loaded: 40_000,
   },
   geonames_us: {
     url: 'https://download.geonames.org/export/zip/US.zip',
     entry: (n) => n === 'US.txt',
+    table: 'postal_codes',
+    loaded: 40_000,
+  },
+  census_places_2023: {
+    url: 'https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2023_Gazetteer/2023_Gaz_place_national.zip',
+    entry: (n) => n.toLowerCase().endsWith('.txt'),
+    table: 'places',
+    loaded: 60_000,
+  },
+  census_cousubs_2023: {
+    url: 'https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2023_Gazetteer/2023_Gaz_cousubs_national.zip',
+    entry: (n) => n.toLowerCase().endsWith('.txt'),
+    table: 'places',
+    loaded: 60_000,
   },
 };
 
 const CHUNK_CHARS = 1_000_000;
-const LOADED_THRESHOLD = 40_000;
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY =
@@ -67,9 +96,9 @@ Deno.serve(async (req) => {
 
   const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-  const { count } = await db.from('postal_codes').select('postal_code', { count: 'exact', head: true });
-  if ((count ?? 0) >= LOADED_THRESHOLD) {
-    return Response.json({ skipped: true, reason: `postal_codes already holds ${count} rows` });
+  const { count } = await db.from(spec.table).select('*', { count: 'exact', head: true });
+  if ((count ?? 0) >= spec.loaded) {
+    return Response.json({ skipped: true, reason: `${spec.table} already holds ${count} rows` });
   }
   const { data: staged } = await db.rpc('staged_files');
   const prior = (staged ?? []).find((s: { name: string }) => s.name === name);

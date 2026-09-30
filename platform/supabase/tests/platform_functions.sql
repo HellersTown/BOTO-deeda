@@ -61,6 +61,24 @@ cross join (values
 ) as v(ext,title,descr,bid,nb,bids,city,st,zip,ships,img,imgs)
 where s.slug = 't-src';
 
+-- City and declared state but no ZIP, as many Wisconsin sites publish (0016,
+-- 0017). Postal city names call every Wauwatosa ZIP "Milwaukee", so this lot is
+-- placed from the Census place, the row below in a fresh database.
+insert into places (geoid, kind, state, name, name_norm, lat, lon, source)
+values ('P5584675', 'place', 'WI', 'Wauwatosa city', 'wauwatosa', 43.063165, -88.035583, 'census_gazetteer_2023_place')
+on conflict (geoid) do nothing;
+
+insert into lots (source_id, auction_id, external_id, title, current_bid_cents, closes_at,
+                  pickup_city, pickup_state, pickup_postal_code)
+select s.id, a.id, v.ext, v.title, 10000, now() + interval '2 days', v.city, v.st, null
+from sources s join auctions a on a.source_id = s.id
+cross join (values
+  ('L-cityonly', 'Log splitter, city only', 'Wauwatosa', 'WI'),
+  -- A city with no declared state must never be placed: Beloit WI or Beloit KS?
+  ('L-nostate',  'Log splitter, no state',  'Beloit',    null)
+) as v(ext, title, city, st)
+where s.slug = 't-src';
+
 -- ======================================================= 1. location disjunction
 
 with r as (
@@ -106,6 +124,29 @@ union all select 9, 'gazetteer', 'previously-invisible WI lot now found',
        exists (select 1 from search_lots(p_postal_code => '53202', p_radius_miles => 50,
                                          p_states => array['WI']) s
                 where s.lot_id = (select id from lots where external_id='L-beloit')), null;
+
+-- ===================================================== 3b. city placement (0016)
+
+insert into _t
+select 28, 'gazetteer', 'city + declared state placed without a ZIP',
+       (select pickup_geo_source = 'city'
+               and st_dwithin(pickup_geom, (select geom from postal_codes where postal_code = '53213'), 8047)
+          from lots where external_id = 'L-cityonly'),
+       (select format('source=%s', pickup_geo_source) from lots where external_id = 'L-cityonly')
+union all select 29, 'gazetteer', 'city without a state is never placed',
+       (select pickup_geom is null and pickup_geo_source is null from lots where external_id = 'L-nostate'), null
+union all select 30, 'gazetteer', 'city-placed lot appears in a radius search',
+       exists (select 1 from search_lots(p_postal_code => '53202', p_radius_miles => 50) s
+                where s.lot_id = (select id from lots where external_id = 'L-cityonly')), null
+union all select 31, 'gazetteer', 'ZIP-placed lot labelled postal_code',
+       (select pickup_geo_source = 'postal_code' from lots where external_id = 'L-near'), null
+union all select 32, 'gazetteer', 'a name shared by far-apart towns is refused',
+       coalesce((select spread_m > 32187 from resolve_place_point('WI', 'Lincoln')), true),
+       (select format('spread=%s mi', round((spread_m / 1609.34)::numeric, 1)) from resolve_place_point('WI', 'Lincoln'))
+union all select 33, 'gazetteer', '"Village of", "Town of" and "Saint" forms normalise',
+       norm_place_name('Village of Hales Corners') = 'hales corners'
+       and norm_place_name('Town of Vernon') = 'vernon'
+       and norm_place_name('Saint Francis') = norm_place_name('St. Francis'), null;
 
 -- =========================================================== 4. sleeper score
 
