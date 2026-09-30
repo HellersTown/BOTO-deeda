@@ -261,7 +261,8 @@ const LOCATION_SEGMENT = /^([A-Za-z][A-Za-z .'\-]*?[A-Za-z.])\s*,\s*([A-Z]{2})$/
 
 export function parseWsTitle(title: string): WsTitleParts {
   const clean = title.replace(/\s+/g, ' ').trim();
-  const numbered = clean.match(/^#\s*(\d{2}-[0-9A-Za-z]+)\s*(?:-\s*(.*))?$/);
+  // "#26-1355", "#26-771B", and the older undashed "#211025" (docs/07).
+  const numbered = clean.match(/^#\s*(\d[0-9A-Za-z-]*?)\s*(?:-\s+(.*))?$/);
   const auctionNumber = numbered ? numbered[1] : null;
   const rest = numbered ? (numbered[2] ?? '') : clean;
   const parts = rest.split(/\s+-\s+/).map((p) => p.trim()).filter(Boolean);
