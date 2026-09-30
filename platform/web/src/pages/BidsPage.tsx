@@ -1,9 +1,10 @@
 import { useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ClosePill } from '../components/ClosePill';
-import { TruckIcon } from '../components/Icons';
+import { ExternalIcon, TruckIcon } from '../components/Icons';
 import { Photo } from '../components/Photo';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
+import { SaleTag } from '../components/Tags';
 import type { WatchOutcome, WatchlistRow, WatchlistUpdate } from '../data/database.types';
 import { describeError } from '../data/errors';
 import { readLotMeta } from '../data/lots';
@@ -112,7 +113,8 @@ function OutcomeButtons({ watch, onUpdate }: { watch: WatchlistRow; onUpdate: (p
   );
 }
 
-function WatchCard({
+/** One watched lot on Bids; a watched sale (0023) is shown as a sale. Exported for its tests. */
+export function WatchCard({
   entry,
   now,
   onUpdate,
@@ -127,12 +129,22 @@ function WatchCard({
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   if (!lot) return null;
+  // 0023: a watched sale is shown as a sale. It has no price, so no bid figures, walk-away or "I placed my bid".
+  const sale = lot.saleLevel === true;
   const precise = readLotMeta(lot.meta).closeTimePrecise;
-  const where = [lot.sourceName, [lot.city, lot.state].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+  const where = [sale ? (lot.sellerName ?? lot.sourceName) : lot.sourceName, [lot.city, lot.state].filter(Boolean).join(', ')]
+    .filter(Boolean)
+    .join(' · ');
   const closed = lot.closed || isOutcome(watch.outcome);
   const outbid = watch.placed_bid && watch.placed_bid_cents !== null && lot.currentBidCents !== null && lot.currentBidCents > watch.placed_bid_cents;
   const finalCents = lot.soldPriceCents ?? lot.currentBidCents;
   const reminder = closed ? null : reminderFigure(watch, lot, now);
+  const reminderCell = reminder ? (
+    <div className={`figure ${reminder.done ? '' : 'figure--deadline'}`}>
+      <dt>{reminder.done ? 'Reminded' : 'Reminder'}</dt>
+      <dd className="figure__when">{reminder.text}</dd>
+    </div>
+  ) : null;
 
   async function run(fn: () => Promise<void>) {
     setError(null);
@@ -150,7 +162,12 @@ function WatchCard({
         <div className="watch-card__text">
           <h2 className="watch-card__title">{lot.title}</h2>
           <span className="watch-card__where">{where}</span>
-          {closed ? null : (
+          {sale ? (
+            <span className="watch-card__pills">
+              <SaleTag lotCount={lot.saleLotCount} />
+              {closed ? null : <ClosePill closesAt={lot.closesAt} precision={precise ? 'precise' : 'date_only'} timeZone={lot.timeZone} now={now} clock />}
+            </span>
+          ) : closed ? null : (
             <span className="watch-card__pills">
               <ClosePill closesAt={lot.closesAt} precision={precise ? 'precise' : 'date_only'} timeZone={lot.timeZone} now={now} />
             </span>
@@ -158,42 +175,49 @@ function WatchCard({
         </div>
       </Link>
 
-      <dl className="figures">
-        <div className="figure">
-          <dt>{closed ? 'Final' : 'Now'}</dt>
-          <dd>{money(closed ? finalCents : lot.currentBidCents)}</dd>
-        </div>
-        {watch.placed_bid ? (
+      {sale ? (
+        reminderCell ? <dl className="figures">{reminderCell}</dl> : null
+      ) : (
+        <dl className="figures">
           <div className="figure">
-            <dt>Your bid</dt>
-            <dd>{money(watch.placed_bid_cents)}</dd>
+            <dt>{closed ? 'Final' : 'Now'}</dt>
+            <dd>{money(closed ? finalCents : lot.currentBidCents)}</dd>
           </div>
-        ) : null}
-        <div className="figure">
-          <dt>Walk-away</dt>
-          <dd className="figure__walkaway">
-            {watch.max_bid_cents !== null ? formatCentsShort(watch.max_bid_cents) : <Link to={`/lot/${lot.id}`}>Set it</Link>}
-          </dd>
-        </div>
-        {reminder ? (
-          <div className={`figure ${reminder.done ? '' : 'figure--deadline'}`}>
-            <dt>{reminder.done ? 'Reminded' : 'Reminder'}</dt>
-            <dd className="figure__when">{reminder.text}</dd>
+          {watch.placed_bid ? (
+            <div className="figure">
+              <dt>Your bid</dt>
+              <dd>{money(watch.placed_bid_cents)}</dd>
+            </div>
+          ) : null}
+          <div className="figure">
+            <dt>Walk-away</dt>
+            <dd className="figure__walkaway">
+              {watch.max_bid_cents !== null ? formatCentsShort(watch.max_bid_cents) : <Link to={`/lot/${lot.id}`}>Set it</Link>}
+            </dd>
           </div>
-        ) : null}
-      </dl>
+          {reminderCell}
+        </dl>
+      )}
 
-      {outbid && !closed ? (
+      {outbid && !closed && !sale ? (
         <p className="notice notice--inline">
           Outbid: the current bid is {money(lot.currentBidCents)}. Raise it only if your walk-away allows.
         </p>
       ) : null}
-      {watch.placed_bid && watch.max_bid_cents !== null && watch.placed_bid_cents !== null && watch.placed_bid_cents > watch.max_bid_cents ? (
+      {!sale && watch.placed_bid && watch.max_bid_cents !== null && watch.placed_bid_cents !== null && watch.placed_bid_cents > watch.max_bid_cents ? (
         <p className="notice notice--inline">You bid above your walk-away.</p>
       ) : null}
 
       {closed ? (
         <OutcomeButtons watch={watch} onUpdate={(patch) => void run(() => onUpdate(patch))} />
+      ) : sale ? (
+        lot.url ? (
+          <a className="btn btn--outline btn--block" href={lot.url} target="_blank" rel="noopener noreferrer">
+            <span>Open the sale</span>
+            <ExternalIcon size={16} strokeWidth={2.2} />
+            <span className="visually-hidden"> on {lot.sourceName ?? 'the source site'} (opens in a new tab)</span>
+          </a>
+        ) : null
       ) : watch.placed_bid ? (
         editing ? (
           <PlacedBidForm
@@ -285,7 +309,8 @@ export function BidsPage() {
     let missing = 0;
     for (const e of [...grouped.watching, ...grouped.placed]) {
       const lot = e.lot as WatchedLot;
-      if (lot.closed) continue;
+      // A sale-level row (0023) is not a bid: it has no price, so it is neither priced nor "without a number".
+      if (lot.closed || lot.saleLevel) continue;
       const hammer = e.watch.placed_bid && e.watch.placed_bid_cents !== null ? e.watch.placed_bid_cents : e.watch.max_bid_cents;
       if (hammer === null || hammer <= 0) {
         missing += 1;
@@ -331,7 +356,7 @@ export function BidsPage() {
 
   const current = grouped[tab];
   const wonCount = grouped.won.length;
-  const openCount = [...grouped.watching, ...grouped.placed].filter((e) => !e.lot?.closed).length;
+  const openCount = [...grouped.watching, ...grouped.placed].filter((e) => !e.lot?.closed && !e.lot?.saleLevel).length;
   const r = exposure.summary.result;
   const card = (e: WatchEntry) => (
     <WatchCard key={e.watch.id} entry={e} now={now} onUpdate={(patch) => update(e.watch.id, patch)} onRemove={() => remove(e.watch.id)} />

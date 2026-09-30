@@ -1,8 +1,8 @@
 /**
  * The public schema as the browser sees it, hand-written from
  * platform/supabase/migrations (0002 tables, 0004 and 0010 views, 0005/0006
- * search_lots, 0013 run_my_hunt, 0016 pickup_geo_source, 0018 p_tsquery) in
- * the shape `supabase gen types` produces.
+ * search_lots, 0013 run_my_hunt, 0016 pickup_geo_source, 0018 p_tsquery,
+ * 0023 sale-level rows) in the shape `supabase gen types` produces.
  *
  * Two things are encoded here on purpose, so the compiler enforces the
  * backend's rules instead of the reviewer:
@@ -154,6 +154,12 @@ export type LotRow = {
   first_seen_at: string | null;
   last_seen_at: string | null;
   updated_at: string | null;
+  /**
+   * 0023: the row stands for a whole sale, from a source that lists sales
+   * rather than lots. Its title, description, close and url are the sale's;
+   * it has no price, bid count or sleeper score. Not null, default false.
+   */
+  sale_level: boolean;
 }
 
 export type LotImageRow = {
@@ -460,6 +466,13 @@ export type SearchLotRow = {
   match_basis: MatchBasis;
   /** 0018. Optional only so rows shaped before 0018 (and fixtures) still type-check. */
   pickup_geo_source?: PickupGeoSource | null;
+  /**
+   * 0023: true for a row that stands for a whole sale. Its price, next bid,
+   * bid count and sleeper score are null, and `url` is the sale's page.
+   */
+  sale_level: boolean;
+  /** 0023: the lot count of the row's auction (auctions.lot_count); for a sale-level row, the sale's. May be null. */
+  sale_lot_count: number | null;
 }
 
 type Rel<Name extends string, Cols extends string, To extends string> = {
@@ -483,6 +496,7 @@ export type Database = {
       };
       lots: {
         Row: LotRow;
+        /** The catalogue is service-role only (0003), sale_level (0023) included: the browser writes no lots column. */
         Insert: never;
         Update: never;
         Relationships: [

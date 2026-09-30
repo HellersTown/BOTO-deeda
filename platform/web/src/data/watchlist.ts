@@ -19,12 +19,12 @@ const WATCH_COLUMNS =
 const WATCH_SELECT = `${WATCH_COLUMNS},
   lot:lots(id, title, url, primary_image_url, current_bid_cents, next_bid_cents, starting_bid_cents, bid_count,
     sold_price_cents, reserve_met, closes_at, closed, pickup_city, pickup_state, pickup_postal_code, ships,
-    image_count, desc_richness, sleeper_score, brand, model, condition, auction_id,
+    image_count, desc_richness, sleeper_score, brand, model, condition, auction_id, sale_level,
     meta:raw->_meta,
     source:sources(name, tier, platform),
     category:categories(slug),
     auction:auctions(id, timezone, format, pickup_required, pickup_line1, pickup_city, pickup_state, pickup_postal_code,
-      buyer_premium_pct, seller_name, auctioneer))` as const;
+      buyer_premium_pct, seller_name, auctioneer, lot_count))` as const;
 
 /** Where an auction says its lots are collected (auctions.pickup_*). */
 export interface AuctionPickup {
@@ -73,6 +73,14 @@ export interface WatchedLot {
   readonly auctionPickup?: AuctionPickup | null;
   /** Who is selling: auctions.seller_name, else the auctioneer. */
   readonly sellerName?: string | null;
+  /**
+   * 0023: a watched row that stands for a whole sale. Bids shows it as a sale
+   * (no price, no walk-away), and "you owe" leaves it out. Optional so fixtures
+   * shaped before 0023 still type-check; absent means a lot.
+   */
+  readonly saleLevel?: boolean;
+  /** 0023: how many lots the row's auction has (auctions.lot_count). */
+  readonly saleLotCount?: number | null;
 }
 
 export interface WatchEntry {
@@ -136,6 +144,8 @@ export async function listMyWatchlist(userId: string): Promise<WatchEntry[]> {
               }
             : null,
           sellerName: lot.auction?.seller_name ?? lot.auction?.auctioneer ?? null,
+          saleLevel: lot.sale_level === true,
+          saleLotCount: lot.auction?.lot_count ?? null,
         }
       : null,
   }));

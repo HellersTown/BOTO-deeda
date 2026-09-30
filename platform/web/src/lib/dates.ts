@@ -154,6 +154,35 @@ export function describeClose(input: CloseInput, now: Date, viewerTimeZone?: str
   return { text: `Closes ${when}`, tone: 'normal', countdown: false, dateTime: at.toISOString() };
 }
 
+/** "2026-10-03" for "2026-10-02": the next calendar date, whatever the clocks do overnight. */
+function nextIsoDate(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}
+
+/**
+ * Card label for a sale's close (0023): the time of day in the viewer's zone,
+ * never a countdown. "Closes today, 7:00 PM", "Closes tomorrow, 10:00 AM",
+ * "Closes Fri, Oct 2, 6:00 PM". A date-only or unknown close has no time to
+ * state, so it reads exactly as describeClose has it.
+ */
+export function describeCloseLocal(input: CloseInput, now: Date, viewerTimeZone?: string): CloseLabel {
+  const at = valid(input.closesAt);
+  if (input.closed || !at || input.precision !== 'precise') return describeClose(input, now, viewerTimeZone);
+  const left = at.getTime() - now.getTime();
+  if (left <= 0) return { text: 'Close time has passed', tone: 'muted', countdown: false, dateTime: at.toISOString() };
+  const day = isoDateIn(at, viewerTimeZone);
+  const today = isoDateIn(now, viewerTimeZone);
+  const time = fmt(at, { hour: 'numeric', minute: '2-digit' }, viewerTimeZone);
+  const when =
+    day === today
+      ? `today, ${time}`
+      : day === nextIsoDate(today)
+        ? `tomorrow, ${time}`
+        : fmt(at, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }, viewerTimeZone);
+  return { text: `Closes ${when}`, tone: left < HOUR ? 'urgent' : 'normal', countdown: false, dateTime: at.toISOString() };
+}
+
 export interface CloseSentence {
   /** "Closes Thursday, Oct 2." / "Closes Thursday, Oct 2 at 6:00 PM CDT." */
   readonly headline: string;
@@ -210,6 +239,24 @@ export function reminderInstant(input: {
     return zonedWallTimeToInstant(year, month, day, 8, 0, zone);
   }
   return new Date(at.getTime() - (input.remindSecondsBefore ?? 600) * 1000);
+}
+
+/**
+ * When the lot page says the reminder comes: "Oct 2, 5:50 PM, 10 minutes
+ * before it closes", or "8:00 AM EDT that morning" for a date-only close, in
+ * the auction's zone. Null when there is no close to remind before.
+ */
+export function reminderWords(input: {
+  readonly closesAt: string | null;
+  readonly precise: boolean;
+  readonly timeZone: string | null;
+  readonly remindSecondsBefore: number;
+}): string | null {
+  const reminder = reminderInstant(input);
+  if (!reminder) return null;
+  return input.precise
+    ? `${formatShortDateTime(reminder)}, ${Math.round(input.remindSecondsBefore / 60)} minutes before it closes`
+    : `${formatTimeIn(reminder, input.timeZone ?? DATE_ONLY_DEFAULT_ZONE)} that morning`;
 }
 
 /** "Oct 2, 8:00 AM" in the viewer's zone. */

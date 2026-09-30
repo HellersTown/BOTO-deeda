@@ -78,6 +78,8 @@ describe('lot summaries', () => {
     sleeper_reasons: null,
     relevance: 1.2,
     match_basis: 'nearby',
+    sale_level: false,
+    sale_lot_count: null,
   };
 
   it('marks precision unknown until the close-info lookup answers', () => {

@@ -70,6 +70,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    // .test.tsx files render components to static markup (react-dom/server), so node is enough.
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 });

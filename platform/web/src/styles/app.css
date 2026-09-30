@@ -895,6 +895,38 @@ select.input {
   border-radius: 4px;
 }
 
+/*
+ * A sale (0023): the manifest and "Sale · 421 lots" in mono caps on pine light,
+ * where a lot has its price tag. Squared, not a luggage tag: it is not a price.
+ */
+.sale-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 3px 9px 3px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--pine-light);
+  color: var(--pine);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.sale-tag svg {
+  flex-shrink: 0;
+}
+
+.sale-tag--lg {
+  gap: 8px;
+  padding: 5px 12px 5px 9px;
+  font-size: 14px;
+}
+
 /* Who is selling: mono caps, pine for public sellers, muted for the rest. */
 .tier-tag {
   flex-shrink: 0;
@@ -1300,6 +1332,13 @@ select.input {
   min-height: 36px;
   padding: 0 4px;
   font-size: 13px;
+}
+
+/* "Sales have no price, so they come after the lots." (0023) */
+.results-note {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
 }
 
 .sort-select {
@@ -1709,6 +1748,11 @@ select.input {
   font-size: 12px;
 }
 
+.lot-title__sale {
+  display: flex;
+  margin-top: 4px;
+}
+
 .worth-reasons {
   padding-left: 18px;
   font-size: 13px;
@@ -1794,6 +1838,38 @@ select.input {
   line-height: 1.5;
   white-space: pre-line;
   color: var(--ink-2);
+}
+
+/* In this sale (0023): the listing's own words for what a sale-level row holds, in Count the cost's place. */
+.sale-contents {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 16px 0;
+  padding: 16px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.sale-contents__title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.sale-contents__text {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.sale-contents__source {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
 }
 
 /* Count the cost */
@@ -3327,6 +3403,10 @@ select.input {
     font-size: 15px;
   }
 
+  .results-note {
+    order: 2;
+  }
+
   .lot-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3464,7 +3544,8 @@ select.input {
   .close-box,
   .trip,
   .calc,
-  .plan {
+  .plan,
+  .sale-contents {
     margin-left: 0;
     margin-right: 0;
   }

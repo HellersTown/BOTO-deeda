@@ -30,7 +30,7 @@ describe('routes', () => {
 // ------------------------------------------------------------------ the name
 
 /** Every file the app is built from (tests excluded: they spell out what is forbidden). */
-const APP_FILES = import.meta.glob(['./**/*.{ts,tsx,css}', '!./**/*.test.ts'], {
+const APP_FILES = import.meta.glob(['./**/*.{ts,tsx,css}', '!./**/*.test.{ts,tsx}'], {
   query: '?raw',
   import: 'default',
   eager: true,

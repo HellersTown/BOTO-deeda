@@ -12,10 +12,11 @@ const LOT_DETAIL_SELECT = `id, title, description, lot_number, brand, model, con
   starting_bid_cents, current_bid_cents, next_bid_cents, estimate_low_cents, estimate_high_cents,
   sold_price_cents, bid_count, reserve_met, closes_at, closed, extended_count,
   pickup_city, pickup_state, pickup_postal_code, pickup_geo_source, ships,
-  primary_image_url, image_urls, image_count, desc_richness, sleeper_score, sleeper_reasons,
+  primary_image_url, image_urls, image_count, desc_richness, sleeper_score, sleeper_reasons, sale_level,
   meta:raw->_meta,
   auction:auctions(id, title, auctioneer, url, format, timezone, pickup_line1, pickup_city, pickup_state,
-    pickup_postal_code, pickup_geo_source, pickup_required, ships, ships_note, seller_name, buyer_premium_pct, buyer_premium_note, terms_url),
+    pickup_postal_code, pickup_geo_source, pickup_required, ships, ships_note, seller_name, buyer_premium_pct, buyer_premium_note, terms_url,
+    lot_count),
   source:sources(id, name, tier, url, platform),
   category:categories(slug, label),
   images:lot_images(url, position)` as const;
@@ -96,6 +97,14 @@ export interface LotDetail {
   readonly auction: LotAuction | null;
   readonly source: LotSource | null;
   readonly category: { readonly slug: string; readonly label: string } | null;
+  /**
+   * 0023: the row stands for a whole sale; the lot page draws it as a sale.
+   * Optional so LotDetail fixtures shaped before 0023 still type-check; absent
+   * means a lot.
+   */
+  readonly saleLevel?: boolean;
+  /** 0023: how many lots the row's auction has (auctions.lot_count), for a sale "Sale · 421 lots". */
+  readonly saleLotCount?: number | null;
 }
 
 export interface SleeperReason {
@@ -207,5 +216,7 @@ export async function getLotDetail(lotId: string): Promise<LotDetail | null> {
       : null,
     source: s ? { id: s.id, name: s.name, tier: s.tier, url: s.url, platform: s.platform } : null,
     category: data.category ? { slug: data.category.slug, label: data.category.label } : null,
+    saleLevel: data.sale_level === true,
+    saleLotCount: a?.lot_count ?? null,
   };
 }

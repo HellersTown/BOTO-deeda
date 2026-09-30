@@ -5,8 +5,9 @@
 import type { SourceTier } from '../data/database.types';
 import { distanceTag, distanceWords } from '../lib/distance';
 import { formatCentsShort } from '../lib/money';
+import { saleLotsText } from '../lib/sale';
 import { isGovernment, TIER_LABEL, TIER_TAG } from '../lib/tiers';
-import { TrailIcon } from './Icons';
+import { ManifestIcon, TrailIcon } from './Icons';
 
 /**
  * Show "Worth the trip" from this sleeper score (0-10, compute_sleeper in
@@ -30,6 +31,20 @@ export function TierTag({ tier }: { tier: SourceTier | null | undefined }) {
   return (
     <span className={`tier-tag ${isGovernment(tier) ? 'tier-tag--public' : 'tier-tag--private'}`} title={TIER_LABEL[tier]}>
       {TIER_TAG[tier]}
+    </span>
+  );
+}
+
+/**
+ * Where a lot has its price tag, a sale (0023) has this: the manifest and
+ * "Sale · 421 lots" in mono caps on pine light. It is not a price and does not
+ * look like one.
+ */
+export function SaleTag({ lotCount, size = 'md', className = '' }: { lotCount: number | null | undefined; size?: 'md' | 'lg'; className?: string }) {
+  return (
+    <span className={`sale-tag sale-tag--${size} ${className}`.trim()}>
+      <ManifestIcon size={size === 'lg' ? 16 : 13} strokeWidth={2.2} />
+      <span>{saleLotsText(lotCount)}</span>
     </span>
   );
 }

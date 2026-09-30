@@ -82,8 +82,9 @@ theme (`color-scheme: light`).
 canvas dot, a rounded left end); seller tags in mono caps, pine for federal, state, county, city and
 school, muted for private, estate and the rest; the brass "Worth the trip" badge (sleeper score 5 or
 more); distance in mono caps with the trail icon ("1.4 MI"); close dates as deadline chips; hunts as a
-numbered manifest (01, 02, …) with dashed separators and status pills. The Hunts tab uses the compass;
-the Bids tab keeps the paddle.
+numbered manifest (01, 02, …) with dashed separators and status pills; the sale tag (the manifest icon
+and "Sale · 421 lots" in mono caps on pine light, squared, where a sale-level row has no price tag). The
+Hunts tab uses the compass; the Bids tab keeps the paddle.
 
 **Plans.** The database tiers stay `free`, `pro` and `dealer`; the app shows them as Traveler,
 Outfitter and Quartermaster (`lib/plans.ts`). Display only: nothing is written with those names.
@@ -116,7 +117,7 @@ public/               manifest, icons, _redirects, _headers
 | Route | Access | Page |
 |---|---|---|
 | `/` | public | Search: "What do you need?", the "Read as" line, sort chips, the web filter sidebar, results, "N farther away", "Keep watch for this" |
-| `/lot/:id` | public | Lot: photos, the luggage-tag price, the close date, The trip, Count the cost, the plan, Bid on the source, Watch and remind me |
+| `/lot/:id` | public | Lot: photos, the luggage-tag price, the close date, The trip, Count the cost, the plan, Bid on the source, Watch and remind me. A sale-level row: the sale tag, the close, The trip, In this sale, Open the sale, Watch and remind me |
 | `/welcome` | sign-in | Before you set out: home ZIP, how far, what you are gathering (each pick becomes a hunt) |
 | `/hunts` | sign-in | The hunts manifest, with plan usage |
 | `/hunts/new` | sign-in | New hunt from plain language: removable chips, distance, name, "Tell me when one is listed" |
@@ -198,6 +199,20 @@ by its rebuilt `websearchQuery` alone.
 `pickup_geo_source`. When it is `city`, the point is the city's centroid, so a distance to it is shown
 as approximate: "≈ 18 MI" on cards, "about 18 mi from 53202" on the lot page (`lib/distance.ts`).
 
+**Sale-level rows (0023).** Some sources list sales, not lots (AuctionGuide: "Farm and tool auction, 421
+lots, Greenleaf WI, ends today"). Such a sale is one `lots` row with `sale_level = true`: its title,
+description, close and `url` are the sale's, and its price, next bid, bid count and sleeper score are null.
+`search_lots` returns `sale_level` and `sale_lot_count` (the auction's `lot_count`); the lot page, the
+watchlist and hunt matches read `lots.sale_level` and `auctions.lot_count`. `LotCard` draws such a row as a
+sale: "Sale · 421 lots" where a lot has its price, the close as a time of day in the viewer's zone
+("Closes today, 7:00 PM"; a date-only close keeps its rule), the place and distance, and the auctioneer
+(else the source); the whole card opens the lot page. There `components/SaleDetail.tsx` shows the
+listing's description ("In this sale"), the close, The trip and the seller, with "Open the sale" as the
+action; there is no price, bid, Count the cost or plan, and Watch saves no walk-away. On Bids a watched
+sale shows as a sale and is left out of "If every bid wins, you owe"; it joins the pickup run only once
+marked Won. Under the Price and Worth the trip sorts, sales come after the lots (nulls last), and the
+results say so.
+
 ### The engines
 
 Both are sibling zero-dependency packages imported from source through path aliases
@@ -264,7 +279,9 @@ output to the hunts insert (and chip edits), the hunts manifest line, sidebar fi
 `search_lots` parameters (with `p_tsquery`), approximate distances, portfolio exposure, plan names,
 onboarding (each choice's hunt through the New Hunt path, and the plan cap), the pickup run (stop
 grouping, nearest-neighbour order, the Maps link, the checklist key), the route table, the
-name rule, and the row mappers.
+name rule, the row mappers, and sale-level rows. The `*.test.tsx` files render components to static
+markup with `react-dom/server` (no DOM needed): the sale card, the sale's lot page and a watched sale on
+Bids, beside the unchanged lot card, lot page and watch card.
 
 ZIP code data: U.S. Census Bureau ZCTA gazetteer (public domain) and GeoNames (CC BY 4.0), credited on
 the Profile page.

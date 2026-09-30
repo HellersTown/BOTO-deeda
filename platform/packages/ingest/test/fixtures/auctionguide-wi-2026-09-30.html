@@ -1,0 +1,1694 @@
+<!--
+  REAL CAPTURE, EXCERPT. AuctionGuide state directory for Wisconsin:
+    GET https://www.auctionguide.com/dir/Locations/USA/Wisconsin/
+  fetched 2026-09-30 between 19:36 and 19:44 UTC as WaystockBot through
+  public.inspect_url (Supabase egress). Six fetches (net._http_response ids 483,
+  485, 487, 489, 491 and 492) each answered HTTP 200 with the same 151,421-byte
+  page. Their raw 20,000-byte slices, page offsets 30,000 to 149,000, were each
+  checked by MD5 against the stored response and joined where overlapping bytes
+  matched. This file is page bytes 30,510 to 131,006, unchanged: the map
+  container and its script (31 map points), the count heading, all 31 sale
+  cards with the two ad slots the site places among them, and the script and
+  heading that follow the list. Line endings are the site's own LF.
+-->
+<div id="map"></div>
+
+			<script>
+
+				var local_iconUrl = "/front/addons/Leaflet.markercluster-1.4.1/leaflet-color-markers-master/img/";
+				var greencircleIcon = new L.Icon({
+					iconUrl: local_iconUrl+"marker-icon-2x-green-circle.png",
+					iconSize: [25, 41],
+					iconAnchor: [12, 41],
+					popupAnchor: [1, -19],
+					shadowSize: [41, 41]
+				});
+
+				var redIcon = new L.Icon({
+					iconUrl: local_iconUrl+"marker-icon-2x-red.png",
+					shadowUrl: local_iconUrl+"marker-shadow.png",
+					iconSize: [25, 41],
+					iconAnchor: [12, 41],
+					popupAnchor: [1, -34],
+					shadowSize: [41, 41]
+				});
+
+				var greenIcon = new L.Icon({
+					iconUrl: local_iconUrl+"marker-icon-2x-green.png",
+					shadowUrl: local_iconUrl+"marker-shadow.png",
+					iconSize: [25, 41],
+					iconAnchor: [12, 41],
+					popupAnchor: [1, -34],
+					shadowSize: [41, 41]
+				});
+
+				var orangeIcon = new L.Icon({
+					iconUrl: local_iconUrl+"marker-icon-2x-orange.png",
+					shadowUrl: local_iconUrl+"marker-shadow.png",
+					iconSize: [25, 41],
+					iconAnchor: [12, 41],
+					popupAnchor: [1, -34],
+					shadowSize: [41, 41]
+				});
+
+				var yellowIcon = new L.Icon({
+					iconUrl: local_iconUrl+"marker-icon-2x-yellow.png",
+					shadowUrl: local_iconUrl+"marker-shadow.png",
+					iconSize: [25, 41],
+					iconAnchor: [12, 41],
+					popupAnchor: [1, -34],
+					shadowSize: [41, 41]
+				});
+
+				var violetIcon = new L.Icon({
+					iconUrl: local_iconUrl+"marker-icon-2x-violet.png",
+					shadowUrl: local_iconUrl+"marker-shadow.png",
+					iconSize: [25, 41],
+					iconAnchor: [12, 41],
+					popupAnchor: [1, -34],
+					shadowSize: [41, 41]
+				});
+
+				var greyIcon = new L.Icon({
+					iconUrl: local_iconUrl+"marker-icon-2x-grey.png",
+					shadowUrl: local_iconUrl+"marker-shadow.png",
+					iconSize: [25, 41],
+					iconAnchor: [12, 41],
+					popupAnchor: [1, -34],
+					shadowSize: [41, 41]
+				});
+
+				var blackIcon = new L.Icon({
+					iconUrl: local_iconUrl+"marker-icon-2x-black.png",
+					shadowUrl: local_iconUrl+"marker-shadow.png",
+					iconSize: [25, 41],
+					iconAnchor: [12, 41],
+					popupAnchor: [1, -34],
+					shadowSize: [41, 41]
+				});
+
+				var addressPoints = [[44.2937000,-88.0275000,"<a href='/auction/antiques-books-jewelry-holiday-home-decor-2026-9-30-221137/'><b>Antiques, Books, Jewelry, Holiday & Home Decor, Tools</b></a><br>8252 County Road W, Greenleaf<br>Wisconsin, 54126. USA<br>Date: 30th Sep<br>Lots: 421<br>Type: Live auction<br><span style='color:#ff6600'>Live auction today</span> <a href='/auction/antiques-books-jewelry-holiday-home-decor-2026-9-30-221137/' target='_blank'><b></b><span class='icon-popup'></span></a>",221137,"orange"],[43.5966000,-90.4266000,"<a href='/auction/sept-30th-2026-9-30-221030/'><b>Sept 30th</b></a><br>E15696 Burr Salem Road, Hillsboro<br>Wisconsin, 54634. USA<br>Date: 3rd Sep - 30th Sep<br>Lots: 533<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/sept-30th-2026-9-30-221030/' target='_blank'><b></b><span class='icon-popup'></span></a>",221030,"red"],[43.1930000,-88.7185000,"<a href='/auction/tools-tool-boxes-power-tools-matco-snap-on-2026-10-1-220976/'><b>Tools, Tool Boxes, Power Tools, Matco Snap On, Woodworking +</b></a><br>W1360 County Road CW At the Outbuilding, Watertown<br>Wisconsin, 53094. USA<br>Date: 21st Sep - 1st Oct<br>Lots: 209<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/tools-tool-boxes-power-tools-matco-snap-on-2026-10-1-220976/' target='_blank'><b></b><span class='icon-popup'></span></a>",220976,"red"],[43.5501000,-89.4714000,"<a href='/auction/october-guns-online-only-2026-10-1-220577/'><b>October Guns Online Only</b></a><br>W9833 Hogan Rd, Portage<br>Wisconsin, 53901. USA<br>Date: 16th Sep - 1st Oct<br>Lots: 68<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/october-guns-online-only-2026-10-1-220577/' target='_blank'><b></b><span class='icon-popup'></span></a>",220577,"red"],[45.9552000,-91.2783000,"<a href='/auction/roger-c-osmundson-estate-online-auction-2026-10-1-221201/'><b>Roger C. Osmundson Estate Online Auction</b></a><br>12649 Hwy. 63, Hayward<br>Wisconsin, 54843. USA<br>Date: 23rd Sep - 1st Oct<br>Lots: 735<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/roger-c-osmundson-estate-online-auction-2026-10-1-221201/' target='_blank'><b></b><span class='icon-popup'></span></a>",221201,"red"],[44.2820000,-89.8814000,"<a href='/auction/hoffmans-consignments-2026-10-2-221411/'><b>Hoffmans Consignments</b></a><br>556 state highway 73, nekoosa<br>Wisconsin, 54457. USA<br>Date: 5th Sep - 2nd Oct<br>Lots: 727<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/hoffmans-consignments-2026-10-2-221411/' target='_blank'><b></b><span class='icon-popup'></span></a>",221411,"red"],[42.5350000,-88.6027000,"<a href='/auction/davis-estate-auction-2-walworth-wi-2026-10-3-216165/'><b>Davis Estate Auction #2 Walworth WI</b></a><br>W6554 Stateline Rd, walworth<br>Wisconsin, 53184. USA<br>Date: 3rd Oct<br>Type: Live auction with webcast bidding <a href='/auction/davis-estate-auction-2-walworth-wi-2026-10-3-216165/' target='_blank'><b></b><span class='icon-popup'></span></a>",216165,""],[43.1832000,-88.9838000,"<a href='/auction/collectors-downsizing-auction-5-2026-10-4-220860/'><b>COLLECTOR'S DOWNSIZING AUCTION 5</b></a><br>W11141 Hubbleton Rd, Waterloo<br>Wisconsin, 53594. USA<br>Date: 20th Sep - 4th Oct<br>Lots: 356<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/collectors-downsizing-auction-5-2026-10-4-220860/' target='_blank'><b></b><span class='icon-popup'></span></a>",220860,"red"],[43.7516000,-90.2889000,"<a href='/auction/antique-collectible-household-2026-10-5-221031/'><b>Antique, Collectible & Household</b></a><br>33243 Oxbow Avenue, Elroy<br>Wisconsin, 53929. USA<br>Date: 21st Sep - 5th Oct<br>Lots: 477<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/antique-collectible-household-2026-10-5-221031/' target='_blank'><b></b><span class='icon-popup'></span></a>",221031,"red"],[44.9657000,-92.3655000,"<a href='/auction/october-5th-tools-lawn-garden-equipment-2026-10-5-220417/'><b>OCTOBER 5TH - TOOLS, LAWN, GARDEN & EQUIPMENT AUCTION</b></a><br>2231 US HIGHWAY 12 STE 100, BALDWIN<br>Wisconsin, 54002. USA<br>Date: 14th Sep - 5th Oct<br>Lots: 349<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/october-5th-tools-lawn-garden-equipment-2026-10-5-220417/' target='_blank'><b></b><span class='icon-popup'></span></a>",220417,"red"],[45.9552000,-91.2783000,"<a href='/auction/lac-courte-oreilles-online-auction-2026-10-5-221530/'><b>Lac Courte Oreilles Online Auction</b></a><br>8048 M Cty Rd K, Hayward<br>Wisconsin, 54843. USA<br>Date: 28th Sep - 5th Oct<br>Lots: 722<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/lac-courte-oreilles-online-auction-2026-10-5-221530/' target='_blank'><b></b><span class='icon-popup'></span></a>",221530,"red"],[44.4820000,-88.0205000,"<a href='/auction/newcap-bankrupcy-auction-green-bay-shelter-2026-10-6-220426/'><b>NEWCAP Bankrupcy Auction - Green Bay Shelter - Cherry St</b></a><br>932 Cherry Street, Green Bay<br>Wisconsin, 54301. USA<br>Date: 15th Sep - 6th Oct<br>Lots: 232<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/newcap-bankrupcy-auction-green-bay-shelter-2026-10-6-220426/' target='_blank'><b></b><span class='icon-popup'></span></a>",220426,"red"],[43.3951000,-90.1588000,"<a href='/auction/country-home-on-483-acres-town-of-willow-2026-10-7-219550/'><b>Country Home on 4.83 Acres - Town of Willow</b></a><br>33981 Smyth Hollow Rd (1 Mile South of Lime..., Hillpoint<br>Wisconsin, 53937. USA<br>Date: 4th Sep - 7th Oct<br>Lots: 1<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/country-home-on-483-acres-town-of-willow-2026-10-7-219550/' target='_blank'><b></b><span class='icon-popup'></span></a>",219550,"red"],[44.0220000,-88.5436000,"<a href='/auction/fall-extravaganza-auction-the-finale-good-stuff-2026-10-7-221607/'><b>Fall Extravaganza Auction THE FINALE! GOOD STUFF!</b></a><br>512 Evans Street, Oshkosh<br>Wisconsin, 54901. USA<br>Date: 28th Sep - 7th Oct<br>Lots: 258<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/fall-extravaganza-auction-the-finale-good-stuff-2026-10-7-221607/' target='_blank'><b></b><span class='icon-popup'></span></a>",221607,"red"],[44.9842000,-92.7271000,"<a href='/auction/924-107-clothing-collectibles-storage-unit-2026-10-7-221279/'><b>9/24 - 10/7 Clothing, Collectibles, Storage Unit, & More</b></a><br>494 County Road A, HUDSON<br>Wisconsin, 54016. USA<br>Date: 24th Sep - 7th Oct<br>Lots: 240<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/924-107-clothing-collectibles-storage-unit-2026-10-7-221279/' target='_blank'><b></b><span class='icon-popup'></span></a>",221279,"red"],[44.2091000,-89.4559000,"<a href='/auction/plainfield-wi-estate-auction-3-2026-9-30-219451/'><b>Plainfield, WI Estate Auction #3</b></a><br>W11619 County Road P, Plainfield<br>Wisconsin, 54966. USA<br>Date: 25th Sep - 7th Oct<br>Lots: 642<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/plainfield-wi-estate-auction-3-2026-9-30-219451/' target='_blank'><b></b><span class='icon-popup'></span></a>",219451,"red"],[43.4825000,-89.7462000,"<a href='/auction/local-antique-collector-baraboo-2026-10-8-221191/'><b>Local Antique Collector- Baraboo</b></a><br>112 5th Ave, Baraboo<br>Wisconsin, 53913. USA<br>Date: 23rd Sep - 8th Oct<br>Lots: 614<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/local-antique-collector-baraboo-2026-10-8-221191/' target='_blank'><b></b><span class='icon-popup'></span></a>",221191,"red"],[43.5501000,-89.4714000,"<a href='/auction/the-comic-book-stamp-collection-online-only-2026-10-8-221283/'><b>The Comic Book & Stamp Collection Online Only</b></a><br>1303 Wauona Trail, Portage<br>Wisconsin, 53901. USA<br>Date: 24th Sep - 8th Oct<br>Lots: 506<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/the-comic-book-stamp-collection-online-only-2026-10-8-221283/' target='_blank'><b></b><span class='icon-popup'></span></a>",221283,"red"],[43.9896000,-89.8149000,"<a href='/auction/3bedroom-ranch-home-in-adams-county-online-only-2026-10-8-220045/'><b>3-Bedroom Ranch Home in Adams County Online Only</b></a><br>1191 S Czech Court, Friendship<br>Wisconsin, 53934. USA<br>Date: 10th Sep - 8th Oct<br>Lots: 1<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/3bedroom-ranch-home-in-adams-county-online-only-2026-10-8-220045/' target='_blank'><b></b><span class='icon-popup'></span></a>",220045,"red"],[43.4616000,-88.8407000,"<a href='/auction/2026-fall-consignment-auction-2026-10-10-221269/'><b>2026 Fall Consignment Auction</b></a><br>W9663 County Road S, Beaver Dam<br>Wisconsin, 53916. USA<br>Date: 10th Oct<br>Lots: 332<br>Type: Live auction with webcast bidding <a href='/auction/2026-fall-consignment-auction-2026-10-10-221269/' target='_blank'><b></b><span class='icon-popup'></span></a>",221269,""],[43.2357000,-89.3297000,"<a href='/auction/shadow-hill-farms-real-estate-auction-2-2026-10-12-221180/'><b>SHADOW HILL FARMS REAL ESTATE AUCTION 2</b></a><br>5978 Portage Rd, DeForest<br>Wisconsin, 53532. USA<br>Date: 28th Sep - 12th Oct<br>Lots: 4<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/shadow-hill-farms-real-estate-auction-2-2026-10-12-221180/' target='_blank'><b></b><span class='icon-popup'></span></a>",221180,"red"],[44.9657000,-92.3655000,"<a href='/auction/october-12th-firearms-sporting-goods-auction-2026-10-12-221328/'><b>OCTOBER 12TH - FIREARMS & SPORTING GOODS AUCTION</b></a><br>2231 US HIGHWAY 12 STE 100, BALDWIN<br>Wisconsin, 54002. USA<br>Date: 14th Sep - 12th Oct<br>Lots: 209<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/october-12th-firearms-sporting-goods-auction-2026-10-12-221328/' target='_blank'><b></b><span class='icon-popup'></span></a>",221328,"red"],[43.2357000,-89.3297000,"<a href='/auction/shadow-hill-farms-real-estate-auction-2026-10-12-221038/'><b>SHADOW HILL FARMS REAL ESTATE AUCTION 1</b></a><br>6101 Portage Rd, DeForest<br>Wisconsin, 53532. USA<br>Date: 28th Sep - 12th Oct<br>Lots: 4<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/shadow-hill-farms-real-estate-auction-2026-10-12-221038/' target='_blank'><b></b><span class='icon-popup'></span></a>",221038,"red"],[45.1619000,-91.1733000,"<a href='/auction/tucson-coin-collection-coins-jewelry-2026-10-13-221735/'><b>Tucson Coin Collection, Coins & Jewelry!</b></a><br>22989 220th Ave., Cornell<br>Wisconsin, 54732. USA<br>Date: 29th Sep - 13th Oct<br>Lots: 429<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/tucson-coin-collection-coins-jewelry-2026-10-13-221735/' target='_blank'><b></b><span class='icon-popup'></span></a>",221735,"red"],[43.5501000,-89.4714000,"<a href='/auction/rohr-estate-portage-2026-10-13-221393/'><b>Rohr Estate - Portage</b></a><br>W11054 CTH - O, Portage<br>Wisconsin, 53901. USA<br>Date: 24th Sep - 13th Oct<br>Lots: 253<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/rohr-estate-portage-2026-10-13-221393/' target='_blank'><b></b><span class='icon-popup'></span></a>",221393,"red"],[45.0874000,-87.6697000,"<a href='/auction/coleman-collector-tom-lee-estate-auction-2026-10-14-220239/'><b>Coleman Collector Tom Lee Estate Auction</b></a><br>, Coleman<br>Wisconsin, 54143. USA<br>Date: 5th Sep - 14th Oct<br>Lots: 102<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/coleman-collector-tom-lee-estate-auction-2026-10-14-220239/' target='_blank'><b></b><span class='icon-popup'></span></a>",220239,"red"],[43.1869000,-89.2227000,"<a href='/auction/dennis-jesberger-estate-real-estate-auction-2026-10-18-220897/'><b>DENNIS JESBERGER ESTATE REAL ESTATE AUCTION</b></a><br>2270 Muller Rd., Sun Prairie<br>Wisconsin, 53590. USA<br>Date: 4th Oct - 18th Oct<br>Lots: 6<br>Type: Internet-only (timed) auction <a href='/auction/dennis-jesberger-estate-real-estate-auction-2026-10-18-220897/' target='_blank'><b></b><span class='icon-popup'></span></a>",220897,""],[44.0242000,-88.1827000,"<a href='/auction/beaudry-firearms-taxidermy-and-collectibles-2026-10-19-220561/'><b>Beaudry Firearms, Taxidermy and Collectibles</b></a><br>23 W Main Street, Chilton<br>Wisconsin, 53014. USA<br>Date: 17th Sep - 19th Oct<br>Lots: 692<br>Type: Internet-only (timed) auction<br><span style='color:#cc0000'>Online bidding now</span> <a href='/auction/beaudry-firearms-taxidermy-and-collectibles-2026-10-19-220561/' target='_blank'><b></b><span class='icon-popup'></span></a>",220561,"red"],[44.0242000,-88.1827000,"<a href='/auction/tractor-tool-stoneware-antique-consignment-2026-10-22-220998/'><b>Tractor, Tool, Stoneware & Antique Consignment Sale!</b></a><br>23 W Main Street (Main Office), Chilton<br>Wisconsin, 53014. USA<br>Date: 5th Oct - 22nd Oct<br>Type: Internet-only (timed) auction <a href='/auction/tractor-tool-stoneware-antique-consignment-2026-10-22-220998/' target='_blank'><b></b><span class='icon-popup'></span></a>",220998,""],[43.9341000,-87.9956000,"<a href='/auction/coming-soon-estate-auction-kiel-wi-2026-10-26-221033/'><b>Coming Soon- Estate Auction Kiel WI</b></a><br>Main Street, Kiel<br>Wisconsin, 53042. USA<br>Date: 9th Oct - 26th Oct<br>Type: Internet-only (timed) auction <a href='/auction/coming-soon-estate-auction-kiel-wi-2026-10-26-221033/' target='_blank'><b></b><span class='icon-popup'></span></a>",221033,""],[44.0242000,-88.1827000,"<a href='/auction/coin-silver-goldonline-auction-2026-10-29-221036/'><b>Coin, Silver & Gold-Online Auction</b></a><br>23 W Main Street, Chilton<br>Wisconsin, 53014. USA<br>Date: 8th Oct - 29th Oct<br>Lots: 1<br>Type: Internet-only (timed) auction <a href='/auction/coin-silver-goldonline-auction-2026-10-29-221036/' target='_blank'><b></b><span class='icon-popup'></span></a>",221036,""]];
+
+				var tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+						maxZoom: 12,
+						attribution: "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>"
+					}),
+					latlng = L.latLng(42.331429,	-83.045753);
+
+				var map = L.map("map", {
+					zoom: 10, 
+					layers: [tiles],
+					scrollWheelZoom:false
+				});
+
+				var markers = L.markerClusterGroup({ 
+					spiderfyOnMaxZoom:true,
+					maxClusterRadius:10}
+				);
+				var markerList = [];
+
+				var bounds = new L.LatLngBounds();
+				
+				for (var i = 0; i < addressPoints.length; i++) {
+					var a = addressPoints[i];
+					if (a[4] == "red") {
+						var marker = L.marker(new L.LatLng(a[0], a[1]), { icon: redIcon });
+					} else if (a[4] == "orange") {
+						var marker = L.marker(new L.LatLng(a[0], a[1]), { icon: orangeIcon });
+					} else {
+						var marker = L.marker(new L.LatLng(a[0], a[1]));
+					}
+					marker.bindPopup(a[2], {
+						maxWidth : 260
+					});
+					marker._leaflet_id = a[3];
+					markers.addLayer(marker);
+					bounds.extend(marker.getLatLng());
+					markerList.push(marker);
+
+					marker.addEventListener("click", function (e){
+					  map.panTo(this.getLatLng());
+					});
+
+				}
+
+				map.addLayer(markers).fitBounds(bounds.pad(0.5));
+
+				// create fullscreen control
+				var fsControl = new L.Control.FullScreen();
+				// add fullscreen control to the map
+				map.addControl(fsControl);
+
+				// detect fullscreen toggling
+				map.on("enterFullscreen", function(){
+					if(window.console) window.console.log("enterFullscreen");
+				});
+				map.on("exitFullscreen", function(){
+					if(window.console) window.console.log("exitFullscreen");
+				});
+
+			</script>
+	<h2>(31)  Wisconsin WI auctions</h2>
+
+	<div class="hr-rule margin-tb20"></div>
+	<div id="ias-posts"> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221137">
+		<div class="table">
+			<span id="221137" class="221137 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/antiques-books-jewelry-holiday-home-decor-2026-9-30-221137/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="/imagelots/prime/t221137.jpg" title="Antiques, Books, Jewelry, Holiday &amp; Home Decor, Tools" alt="Antiques, Books, Jewelry, Holiday &amp; Home Decor, Tools"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/antiques-books-jewelry-holiday-home-decor-2026-9-30-221137/">Antiques,  Books,  Jewelry,  Holiday & Home Decor,  Tools</a></h3>						
+					</div>
+						<div class="AuctionDescription">Items Include The Following: Antiques, Wooden Wringer, Brass Fire Extinguisher, Wonder Rocking/Bouncing Horse, Jewelry,...	
+						</div>
+					<div class="ends">30th Sep <span class="dk-mid-grey f2"><span class="icon-group" title="Live auction"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="b">Live auction</span> <span class="nowrap">(today)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>421 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/mathies-auction-services-1450/">Mathies Auction Services</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Greenleaf, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/tool/">Tools and Plant</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="0" data-marker-id="221137" data-latlon="44.2937000:-88.0275000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/antiques-books-jewelry-holiday-home-decor-2026-9-30-221137/">View Auction <span><span>421</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221030">
+		<div class="table">
+			<span id="221030" class="221030 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/sept-30th-2026-9-30-221030/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8432434242&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=3SdToxVzvuxUk6x3wLzxYjTekbEsdzs9" title="Sept 30th" alt="Sept 30th"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/sept-30th-2026-9-30-221030/">Sept 30th</a></h3>						
+					</div>
+						<div class="AuctionDescription">Sept 30th	
+						</div>
+					<div class="ends">Ends 30th Sep <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(ends today)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>533 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/kickapoo-valley-auction-1320/">Kickapoo Valley Auction</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Hillsboro, WI, USA.</span></div>							
+						</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="1" data-marker-id="221030" data-latlon="43.5966000:-90.4266000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/sept-30th-2026-9-30-221030/">View Auction <span><span>533</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post220976">
+		<div class="table">
+			<span id="220976" class="220976 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/tools-tool-boxes-power-tools-matco-snap-on-2026-10-1-220976/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8419623897&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=Bw5G6qy31dHejBbN%2fqEdaYq8D%2bOpK4mq" title="Tools, Tool Boxes, Power Tools, Matco Snap On, Woodworking +" alt="Tools, Tool Boxes, Power Tools, Matco Snap On, Woodworking +"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/tools-tool-boxes-power-tools-matco-snap-on-2026-10-1-220976/">Tools,  Tool Boxes,  Power Tools,  Matco Snap On,  Woodworking +</a></h3>						
+					</div>
+						<div class="AuctionDescription">This multi consignor auction is filled with Snap On, Matco, Mac, Fluke, Dewalt, Woodworking Tools, Hardware, Pneumatic...	
+						</div>
+					<div class="ends">Ends 1st Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(1 day left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>209 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/lake-country-auction-barn-3317/">Lake Country Auction Barn</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Watertown, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/tool/">Tools and Plant</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="2" data-marker-id="220976" data-latlon="43.1930000:-88.7185000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/tools-tool-boxes-power-tools-matco-snap-on-2026-10-1-220976/">View Auction <span><span>209</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post220577">
+		<div class="table">
+			<span id="220577" class="220577 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/october-guns-online-only-2026-10-1-220577/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8429203776&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=OHc%2bfCMoK1wPiehD%2bMrJx2JodPJaLYBQ" title="October Guns Online Only" alt="October Guns Online Only"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/october-guns-online-only-2026-10-1-220577/">October Guns Online Only</a></h3>						
+					</div>
+						<div class="AuctionDescription">We DO NOT provide shipping. Shipping can be arranged with the FFL for additional fees. Make sure you are able to pick...	
+						</div>
+					<div class="ends">Ends 1st Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(1 day left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>68 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/hamele-auction-service-llc-1485/">Hamele Auction Service LLC</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Portage, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/gun-firearm/">Gun and Firearms</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="3" data-marker-id="220577" data-latlon="43.5501000:-89.4714000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/october-guns-online-only-2026-10-1-220577/">View Auction <span><span>68</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221201">
+		<div class="table">
+			<span id="221201" class="221201 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/roger-c-osmundson-estate-online-auction-2026-10-1-221201/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8433468621&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=M3V36O6CIu3XEkv%2bvG3kjgC%2fO2EvziYK" title="Roger C. Osmundson Estate Online Auction" alt="Roger C. Osmundson Estate Online Auction"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/roger-c-osmundson-estate-online-auction-2026-10-1-221201/">Roger C. Osmundson Estate Online Auction</a></h3>						
+					</div>
+						<div class="AuctionDescription">Roger was a carpenter, custom home builder and home remodeler for over 30 years. He owned & operated Southside Seely...	
+						</div>
+					<div class="ends">Ends 1st Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(1 day left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>735 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/ferris-auction-realty-co-1672/">Ferris Auction & Realty Co</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Hayward, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/estate/">Estate</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="4" data-marker-id="221201" data-latlon="45.9552000:-91.2783000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/roger-c-osmundson-estate-online-auction-2026-10-1-221201/">View Auction <span><span>735</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221411">
+		<div class="table">
+			<span id="221411" class="221411 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/hoffmans-consignments-2026-10-2-221411/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8434855746&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=9pI5TUEipLf%2bavBJmM9bLGuuthOBBS%2bx" title="Hoffmans Consignments" alt="Hoffmans Consignments"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/hoffmans-consignments-2026-10-2-221411/">Hoffmans Consignments</a></h3>						
+					</div>
+						<div class="AuctionDescription">Revolution X Aerosmith Arcade Game, New Items, Knives, Collectible Garbage Pail Kids, Yu Gi Oh, New and Lightly used...	
+						</div>
+					<div class="ends">Ends 2nd Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(2 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>727 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/Hoffmans-Warehouse-2639/">Hoffmans Warehouse</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>nekoosa, WI, USA.</span></div>							
+						</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="5" data-marker-id="221411" data-latlon="44.2820000:-89.8814000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/hoffmans-consignments-2026-10-2-221411/">View Auction <span><span>727</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post216165">
+		<div class="table">
+			<span id="216165" class="216165 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/davis-estate-auction-2-walworth-wi-2026-10-3-216165/"><img src="/front/image/no_image_icon.png?v=1.1" class="no_image_icon" alt="image unavailable"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/davis-estate-auction-2-walworth-wi-2026-10-3-216165/">Davis Estate Auction #2 Walworth WI</a></h3>						
+					</div>
+						<div class="AuctionDescription">This is the second of multiple auctions to help settle the Davis Estate. This auction will have a small online bidding...	
+						</div>
+					<div class="ends">3rd Oct <span class="dk-mid-grey f2"><span class="icon-group" title="Live auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="b">Live auction</span> <span class="nowrap">(2 days to go)</span></div>
+						</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/kitson-auctioneering-3374/">Kitson Auctioneering</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>walworth, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/estate/">Estate</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="6" data-marker-id="216165" data-latlon="42.5350000:-88.6027000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/davis-estate-auction-2-walworth-wi-2026-10-3-216165/">View Auction	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post220860">
+		<div class="table">
+			<span id="220860" class="220860 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/collectors-downsizing-auction-5-2026-10-4-220860/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8430952156&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=qLf0hJCh%2b%2b7y09bcNF4UJf54OYjsmqYb" title="COLLECTOR'S DOWNSIZING AUCTION 5" alt="COLLECTOR'S DOWNSIZING AUCTION 5"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/collectors-downsizing-auction-5-2026-10-4-220860/">COLLECTOR'S DOWNSIZING AUCTION 5</a></h3>						
+					</div>
+						<div class="AuctionDescription">After years of auctions & collecting antiques & uique items, sellers are liquidating their entire collection	
+						</div>
+					<div class="ends">Ends 4th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(4 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>356 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/schroud-auction-service-1507/">Schroud Auction Service</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Waterloo, WI, USA.</span></div>							
+						</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="7" data-marker-id="220860" data-latlon="43.1832000:-88.9838000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/collectors-downsizing-auction-5-2026-10-4-220860/">View Auction <span><span>356</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221031">
+		<div class="table">
+			<span id="221031" class="221031 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/antique-collectible-household-2026-10-5-221031/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8431820056&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=x5msdH8hMHFDGBjz%2bBZp4r8WBZB2RKxU" title="Antique, Collectible &amp; Household" alt="Antique, Collectible &amp; Household"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/antique-collectible-household-2026-10-5-221031/">Antique,  Collectible & Household</a></h3>						
+					</div>
+						<div class="AuctionDescription">PREVIEW: MONDAY, OCTOBER 5, 2026 - 9:00 A.M. to 2:00 P.M. at 33243 Oxbow Avenue, Elroy, Wisconsin. PLEASE TAKE...	
+						</div>
+					<div class="ends">Ends 5th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(5 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>477 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/Dairyland-Auction-Great-Rivers-Realty-1902/">Dairyland Auction & Great Rivers Realty</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Elroy, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/antique/">Antiques</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="8" data-marker-id="221031" data-latlon="43.7516000:-90.2889000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/antique-collectible-household-2026-10-5-221031/">View Auction <span><span>477</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post220417">
+		<div class="table">
+			<span id="220417" class="220417 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/october-5th-tools-lawn-garden-equipment-2026-10-5-220417/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8428123474&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=1%2bkLISy3OOROyncWBCMxnjyksBYwutsm" title="OCTOBER 5TH - TOOLS, LAWN, GARDEN &amp; EQUIPMENT AUCTION" alt="OCTOBER 5TH - TOOLS, LAWN, GARDEN &amp; EQUIPMENT AUCTION"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/october-5th-tools-lawn-garden-equipment-2026-10-5-220417/">OCTOBER 5TH - TOOLS,  LAWN,  GARDEN & EQUIPMENT AUCTION</a></h3>						
+					</div>
+						<div class="AuctionDescription">Online Auction	
+						</div>
+					<div class="ends">Ends 5th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(5 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>349 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/smith-auctions-llc-1249/">Smith Auctions LLC</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>BALDWIN, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/heavy-equipment/">Equipment</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="9" data-marker-id="220417" data-latlon="44.9657000:-92.3655000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/october-5th-tools-lawn-garden-equipment-2026-10-5-220417/">View Auction <span><span>349</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div>
+	<style type="text/css">		
+			.responsive_auction_list_gad_ctr { display: none; } 
+			.responsive_auction_list_gad { display: none; }
+			#LCT_google_ad-auction_list { display: none;	}
+			@media (min-width:340px) { 
+				.responsive_auction_list_gad_ctr { display:block; }
+				.responsive_auction_list_gad { display:inline-block; width: 300px; height: 100px; } 
+				#LCT_google_ad-auction_list { display:block; }
+			}
+			@media (min-width:1200px) { 
+				.responsive_auction_list_gad { width: 728px; height: 90px; } 
+			}</style>
+		<div class="ias-post margin-b responsive_auction_list_gad_ctr" style="border-bottom:1px solid #ddd">
+			<div id="LCT_google_ad-auction_list" class="LCT_google_ad"><ins class="adsbygoogle responsive_auction_list_gad" 
+					data-ad-client="ca-pub-3923499623578747" 
+					data-ad-slot="1761185131" 
+					data-ad-channel="2119017401"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+			</div>
+		</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221530">
+		<div class="table">
+			<span id="221530" class="221530 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/lac-courte-oreilles-online-auction-2026-10-5-221530/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8435814729&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=iiiSFhl44bsfBgg1OWB49UyB8eEpNOlo" title="Lac Courte Oreilles Online Auction" alt="Lac Courte Oreilles Online Auction"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/lac-courte-oreilles-online-auction-2026-10-5-221530/">Lac Courte Oreilles Online Auction</a></h3>						
+					</div>
+						<div class="AuctionDescription">HOUSEHOLD: Excellent high end furnishings throughout 2 beautiful lake homes. Yamaha Vertical Grand Piano, Ibanez...	
+						</div>
+					<div class="ends">Ends 5th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(5 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>722 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/Kubarek-Auction-And-Estate-Services-1789/">Kubarek Auction and Estate Services</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Hayward, WI, USA.</span></div>							
+						</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="10" data-marker-id="221530" data-latlon="45.9552000:-91.2783000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/lac-courte-oreilles-online-auction-2026-10-5-221530/">View Auction <span><span>722</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post220426">
+		<div class="table">
+			<span id="220426" class="220426 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/newcap-bankrupcy-auction-green-bay-shelter-2026-10-6-220426/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8428669098&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=yYaB8ZlYW33MTT2o053cgqbb0PVzmbg3" title="NEWCAP Bankrupcy Auction - Green Bay Shelter - Cherry St" alt="NEWCAP Bankrupcy Auction - Green Bay Shelter - Cherry St"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/newcap-bankrupcy-auction-green-bay-shelter-2026-10-6-220426/">NEWCAP Bankrupcy Auction - Green Bay Shelter - Cherry St</a></h3>						
+					</div>
+						<div class="AuctionDescription">NEWCAP Bankrupcy Auction - Green Bay Shelter - Cherry St	
+						</div>
+					<div class="ends">Ends 6th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(6 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>232 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/Titletown-Auction-Company-1974/">Titletown Auction Company</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Green Bay, WI, USA.</span></div>							
+						</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="11" data-marker-id="220426" data-latlon="44.4820000:-88.0205000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/newcap-bankrupcy-auction-green-bay-shelter-2026-10-6-220426/">View Auction <span><span>232</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post219550">
+		<div class="table">
+			<span id="219550" class="219550 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/country-home-on-483-acres-town-of-willow-2026-10-7-219550/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8422689111&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=0KQItYfk0f0AA4D%2f%2b6glDdecaA8%2fqChE" title="Country Home on 4.83 Acres - Town of Willow" alt="Country Home on 4.83 Acres - Town of Willow"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/country-home-on-483-acres-town-of-willow-2026-10-7-219550/">Country Home on 4.83 Acres - Town of Willow</a></h3>						
+					</div>
+						<div class="AuctionDescription">4.83 Acre rural property in the Town of Willow with a 1995 mobile home. Peaceful wooded setting on a quiet country...	
+						</div>
+					<div class="ends">Ends 7th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(7 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>1 lot</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/Gavin-Bros-Auctioneers-LLC-2672/">Gavin Bros Auctioneers LLC</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Hillpoint, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/real-estate/">Real Estate</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="12" data-marker-id="219550" data-latlon="43.3951000:-90.1588000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/country-home-on-483-acres-town-of-willow-2026-10-7-219550/">View Auction <span><span>1</span> lot</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221607">
+		<div class="table">
+			<span id="221607" class="221607 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/fall-extravaganza-auction-the-finale-good-stuff-2026-10-7-221607/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8436266251&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=Wy09%2fxTLedvVDeHnbr4cK7pU3kHRNvLx" title="Fall Extravaganza Auction THE FINALE! GOOD STUFF!" alt="Fall Extravaganza Auction THE FINALE! GOOD STUFF!"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/fall-extravaganza-auction-the-finale-good-stuff-2026-10-7-221607/">Fall Extravaganza Auction THE FINALE! GOOD STUFF!</a></h3>						
+					</div>
+						<div class="AuctionDescription">Introducing the finale to our annual Fall Extravaganza Auction! You will encounter a vast array of collectible antique...	
+						</div>
+					<div class="ends">Ends 7th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(7 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>258 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/the-wisconsin-picker-3318/">The Wisconsin Picker</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Oshkosh, WI, USA.</span></div>							
+						</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="13" data-marker-id="221607" data-latlon="44.0220000:-88.5436000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/fall-extravaganza-auction-the-finale-good-stuff-2026-10-7-221607/">View Auction <span><span>258</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221279">
+		<div class="table">
+			<span id="221279" class="221279 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/924-107-clothing-collectibles-storage-unit-2026-10-7-221279/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8383354303&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=Wpxt0fnlA7iX507%2f5xUKiognSJioF8fg" title="9/24 - 10/7 Clothing, Collectibles, Storage Unit, &amp; More" alt="9/24 - 10/7 Clothing, Collectibles, Storage Unit, &amp; More"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/924-107-clothing-collectibles-storage-unit-2026-10-7-221279/">9/24 - 10/7 Clothing,  Collectibles,  Storage Unit,  & More</a></h3>						
+					</div>
+						<div class="AuctionDescription">9/24 - 10/7 Clothing, Collectibles, Storage Unit, & More	
+						</div>
+					<div class="ends">Ends 7th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(7 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>240 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/Rustic-Road-Sales-Auction-2649/">Rustic Road Sales Auction</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>HUDSON, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/storage/">Storage</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="14" data-marker-id="221279" data-latlon="44.9842000:-92.7271000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/924-107-clothing-collectibles-storage-unit-2026-10-7-221279/">View Auction <span><span>240</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post219451">
+		<div class="table">
+			<span id="219451" class="219451 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/plainfield-wi-estate-auction-3-2026-9-30-219451/"><img src="/front/image/no_image_icon.png?v=1.1" class="no_image_icon" alt="image unavailable"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/plainfield-wi-estate-auction-3-2026-9-30-219451/">Plainfield,  WI Estate Auction #3</a></h3>						
+					</div>
+						<div class="AuctionDescription">John Deere 115 Automatic 42" Deck Lawn Tractor - Yamaha Receiver ~ Vintage Astatic MDL D-104 Lolli-pop Mic ~ 1990 World...	
+						</div>
+					<div class="ends">Ends 7th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(7 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>642 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/lrw-auctions-llc-3313/">LRW Auctions LLC</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Plainfield, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/estate/">Estate</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="15" data-marker-id="219451" data-latlon="44.2091000:-89.4559000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/plainfield-wi-estate-auction-3-2026-9-30-219451/">View Auction <span><span>642</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221191">
+		<div class="table">
+			<span id="221191" class="221191 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/local-antique-collector-baraboo-2026-10-8-221191/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8433417457&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=IuzzhFS2FM8%2bhlaSbxfAQUY%2b2c8aquF3" title="Local Antique Collector- Baraboo" alt="Local Antique Collector- Baraboo"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/local-antique-collector-baraboo-2026-10-8-221191/">Local Antique Collector- Baraboo</a></h3>						
+					</div>
+						<div class="AuctionDescription">Large collection of antiques consisting of oil cans, sports, glass jars, signs, coins & much more	
+						</div>
+					<div class="ends">Ends 8th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(8 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>614 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/Gavin-Bros-Auctioneers-LLC-2672/">Gavin Bros Auctioneers LLC</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Baraboo, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/antique/">Antiques</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="16" data-marker-id="221191" data-latlon="43.4825000:-89.7462000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/local-antique-collector-baraboo-2026-10-8-221191/">View Auction <span><span>614</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221283">
+		<div class="table">
+			<span id="221283" class="221283 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/the-comic-book-stamp-collection-online-only-2026-10-8-221283/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8434079516&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=e7VQD77ciI1JCVAJ3gG4iUAmYPo9zw7v" title="The Comic Book &amp; Stamp Collection Online Only" alt="The Comic Book &amp; Stamp Collection Online Only"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/the-comic-book-stamp-collection-online-only-2026-10-8-221283/">The Comic Book & Stamp Collection Online Only</a></h3>						
+					</div>
+						<div class="AuctionDescription">Comic books all appear to be in good condition. Any defects noticed are noted in pictures taken only. All Items Sold...	
+						</div>
+					<div class="ends">Ends 8th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(8 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>506 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/hamele-auction-service-llc-1485/">Hamele Auction Service LLC</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Portage, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/book-comic/">Books and Comics</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="17" data-marker-id="221283" data-latlon="43.5501000:-89.4714000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/the-comic-book-stamp-collection-online-only-2026-10-8-221283/">View Auction <span><span>506</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post220045">
+		<div class="table">
+			<span id="220045" class="220045 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/3bedroom-ranch-home-in-adams-county-online-only-2026-10-8-220045/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8425828102&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=rhHA%2ff0MAb8PiyZAvSt9pAmq4g0O5wXY" title="3-Bedroom Ranch Home in Adams County Online Only" alt="3-Bedroom Ranch Home in Adams County Online Only"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/3bedroom-ranch-home-in-adams-county-online-only-2026-10-8-220045/">3-Bedroom Ranch Home in Adams County Online Only</a></h3>						
+					</div>
+						<div class="AuctionDescription">ONLINE ONLY REAL ESTATE AUCTION Town of Preston - Adams County, Wisconsin 3 Bedroom Ranch Home on 2+/- Acres Online...	
+						</div>
+					<div class="ends">Ends 8th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(8 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>1 lot</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/hamele-auction-service-llc-1485/">Hamele Auction Service LLC</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Friendship, WI, USA.</span></div>							
+						</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="18" data-marker-id="220045" data-latlon="43.9896000:-89.8149000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/3bedroom-ranch-home-in-adams-county-online-only-2026-10-8-220045/">View Auction <span><span>1</span> lot</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221269">
+		<div class="table">
+			<span id="221269" class="221269 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/2026-fall-consignment-auction-2026-10-10-221269/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8434817211&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=0NNvWc24VjaUUCrt%2fGNKyGsPyCR5uW0Z" title="2026 Fall Consignment Auction" alt="2026 Fall Consignment Auction"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/2026-fall-consignment-auction-2026-10-10-221269/">2026 Fall Consignment Auction</a></h3>						
+					</div>
+						<div class="AuctionDescription">CONSIGNMENTS WILL INCLUDE! Farm tractors, skid loaders, farm machinery. Livestock equipment; compact tractors, lawn &...	
+						</div>
+					<div class="ends">10th Oct <span class="dk-mid-grey f2"><span class="icon-group" title="Live auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="b">Live auction</span> <span class="nowrap">(9 days to go)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>332 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/Bobs-Auction-Service-2561/">Bob's Auction Service</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Beaver Dam, WI, USA.</span></div>							
+						</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="19" data-marker-id="221269" data-latlon="43.4616000:-88.8407000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/2026-fall-consignment-auction-2026-10-10-221269/">View Auction <span><span>332</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div>
+	<style type="text/css">		
+			.responsive_auction_list_gad_ctr { display: none; } 
+			.responsive_auction_list_gad { display: none; }
+			#LCT_google_ad-auction_list { display: none;	}
+			@media (min-width:340px) { 
+				.responsive_auction_list_gad_ctr { display:block; }
+				.responsive_auction_list_gad { display:inline-block; width: 300px; height: 100px; } 
+				#LCT_google_ad-auction_list { display:block; }
+			}
+			@media (min-width:1200px) { 
+				.responsive_auction_list_gad { width: 728px; height: 90px; } 
+			}</style>
+		<div class="ias-post margin-b responsive_auction_list_gad_ctr" style="border-bottom:1px solid #ddd">
+			<div id="LCT_google_ad-auction_list" class="LCT_google_ad"><ins class="adsbygoogle responsive_auction_list_gad" 
+					data-ad-client="ca-pub-3923499623578747" 
+					data-ad-slot="1761185131" 
+					data-ad-channel="2119017401"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+			</div>
+		</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221180">
+		<div class="table">
+			<span id="221180" class="221180 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/shadow-hill-farms-real-estate-auction-2-2026-10-12-221180/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8433325845&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=eFcmrYfUiZMJDNB0e33l553AWmsAdSdN" title="SHADOW HILL FARMS REAL ESTATE AUCTION 2" alt="SHADOW HILL FARMS REAL ESTATE AUCTION 2"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/shadow-hill-farms-real-estate-auction-2-2026-10-12-221180/">SHADOW HILL FARMS REAL ESTATE AUCTION 2</a></h3>						
+					</div>
+						<div class="AuctionDescription">Shadow Hill Farms is offering two properties for auction. A very exciiting & highly desirable property being offered...	
+						</div>
+					<div class="ends">Ends 12th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(12 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>4 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/schroud-auction-service-1507/">Schroud Auction Service</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>DeForest, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/real-estate/">Real Estate</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="20" data-marker-id="221180" data-latlon="43.2357000:-89.3297000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/shadow-hill-farms-real-estate-auction-2-2026-10-12-221180/">View Auction <span><span>4</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221328">
+		<div class="table">
+			<span id="221328" class="221328 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/october-12th-firearms-sporting-goods-auction-2026-10-12-221328/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8434363753&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=zMdEaEnBKs3r6y4li6XnQSNSnworFxPd" title="OCTOBER 12TH - FIREARMS &amp; SPORTING GOODS AUCTION" alt="OCTOBER 12TH - FIREARMS &amp; SPORTING GOODS AUCTION"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/october-12th-firearms-sporting-goods-auction-2026-10-12-221328/">OCTOBER 12TH - FIREARMS & SPORTING GOODS AUCTION</a></h3>						
+					</div>
+						<div class="AuctionDescription">ONLINE AUCTION	
+						</div>
+					<div class="ends">Ends 12th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(12 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>209 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/smith-auctions-llc-1249/">Smith Auctions LLC</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>BALDWIN, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/gun-firearm/">Gun and Firearms</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="21" data-marker-id="221328" data-latlon="44.9657000:-92.3655000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/october-12th-firearms-sporting-goods-auction-2026-10-12-221328/">View Auction <span><span>209</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221038">
+		<div class="table">
+			<span id="221038" class="221038 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/shadow-hill-farms-real-estate-auction-2026-10-12-221038/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8432186111&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=rNRPxK1N78BUbjw6siEnlhA9W60Twdww" title="SHADOW HILL FARMS REAL ESTATE AUCTION 1" alt="SHADOW HILL FARMS REAL ESTATE AUCTION 1"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/shadow-hill-farms-real-estate-auction-2026-10-12-221038/">SHADOW HILL FARMS REAL ESTATE AUCTION 1</a></h3>						
+					</div>
+						<div class="AuctionDescription">Shadow Hill Farms is offering two properties for auction. A very exciiting & highly desirable property being offered...	
+						</div>
+					<div class="ends">Ends 12th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(12 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>4 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/schroud-auction-service-1507/">Schroud Auction Service</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>DeForest, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/real-estate/">Real Estate</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="22" data-marker-id="221038" data-latlon="43.2357000:-89.3297000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/shadow-hill-farms-real-estate-auction-2026-10-12-221038/">View Auction <span><span>4</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221735">
+		<div class="table">
+			<span id="221735" class="221735 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/tucson-coin-collection-coins-jewelry-2026-10-13-221735/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8437132434&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=2buffnKPGtX1bsFq5QTjHxPCjSNpkt5U" title="Tucson Coin Collection, Coins &amp; Jewelry!" alt="Tucson Coin Collection, Coins &amp; Jewelry!"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/tucson-coin-collection-coins-jewelry-2026-10-13-221735/">Tucson Coin Collection,  Coins & Jewelry!</a></h3>						
+					</div>
+						<div class="AuctionDescription">1938-S 1 of 5 Known Boone Commem MS68, 1911-D Pre-33 Gold U.S. Indian *THE KEY DATE, 1800 Draped Bust Half Cent...	
+						</div>
+					<div class="ends">Ends 13th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(13 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>429 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/Wilson-Creek-Auctions-LLC-1533/">Wilson Creek Auctions LLC</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Cornell, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/coin-currency/">Coin and Currency</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="23" data-marker-id="221735" data-latlon="45.1619000:-91.1733000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/tucson-coin-collection-coins-jewelry-2026-10-13-221735/">View Auction <span><span>429</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221393">
+		<div class="table">
+			<span id="221393" class="221393 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/rohr-estate-portage-2026-10-13-221393/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8434797973&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=x6XV1ndJgVbCRgAGK2FZTKv97O%2bWjjyM" title="Rohr Estate - Portage" alt="Rohr Estate - Portage"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/rohr-estate-portage-2026-10-13-221393/">Rohr Estate - Portage</a></h3>						
+					</div>
+						<div class="AuctionDescription">Personal property auction featuring vehicles, tools, outdoor equipment and more. Real Estate to be sold at auction on...	
+						</div>
+					<div class="ends">Ends 13th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(13 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>253 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/Gavin-Bros-Auctioneers-LLC-2672/">Gavin Bros Auctioneers LLC</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Portage, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/estate/">Estate</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="24" data-marker-id="221393" data-latlon="43.5501000:-89.4714000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/rohr-estate-portage-2026-10-13-221393/">View Auction <span><span>253</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post220239">
+		<div class="table">
+			<span id="220239" class="220239 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/coleman-collector-tom-lee-estate-auction-2026-10-14-220239/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8427166718&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=lmhZM9NiiFlk1%2bRnKml%2bxXstHCdMy%2fc7" title="Coleman Collector Tom Lee Estate Auction" alt="Coleman Collector Tom Lee Estate Auction"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/coleman-collector-tom-lee-estate-auction-2026-10-14-220239/">Coleman Collector Tom Lee Estate Auction</a></h3>						
+					</div>
+						<div class="AuctionDescription">OPEN FOR BIDDING NOW! MANY MORE ITEMS WILL BE ADDED! Tom Lee spent most of his life living in Coleman, Wi with his...	
+						</div>
+					<div class="ends">Ends 14th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(14 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>102 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/old-school-trading-co-1386/">Old School Trading Co.</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Coleman, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/estate/">Estate</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="25" data-marker-id="220239" data-latlon="45.0874000:-87.6697000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/coleman-collector-tom-lee-estate-auction-2026-10-14-220239/">View Auction <span><span>102</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post220897">
+		<div class="table">
+			<span id="220897" class="220897 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/dennis-jesberger-estate-real-estate-auction-2026-10-18-220897/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8431338287&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=eJazJnQBvgkD3A55kbM6AjdUGKxiDHB3" title="DENNIS JESBERGER ESTATE REAL ESTATE AUCTION" alt="DENNIS JESBERGER ESTATE REAL ESTATE AUCTION"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/dennis-jesberger-estate-real-estate-auction-2026-10-18-220897/">DENNIS JESBERGER ESTATE REAL ESTATE AUCTION</a></h3>						
+					</div>
+						<div class="AuctionDescription">Online real estate auction, approximately 123.023+/- acres of prime agricultural land in Dane County, town of Bristol,...	
+						</div>
+					<div class="ends">4th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="b">Online auction</span> <span class="nowrap">(starts in 3 days)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>6 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/schroud-auction-service-1507/">Schroud Auction Service</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Sun Prairie, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/estate/">Estate</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="26" data-marker-id="220897" data-latlon="43.1869000:-89.2227000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/dennis-jesberger-estate-real-estate-auction-2026-10-18-220897/">View Auction <span><span>6</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post220561">
+		<div class="table">
+			<span id="220561" class="220561 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/beaudry-firearms-taxidermy-and-collectibles-2026-10-19-220561/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8429099765&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=AESJIizcd5nvIy4bUN9ZE%2fE5EnJ%2fhZui" title="Beaudry Firearms, Taxidermy and Collectibles" alt="Beaudry Firearms, Taxidermy and Collectibles"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/beaudry-firearms-taxidermy-and-collectibles-2026-10-19-220561/">Beaudry Firearms,  Taxidermy and Collectibles</a></h3>						
+					</div>
+						<div class="AuctionDescription">The Beaudry Firearms, Taxidermy & Collectibles Online Auction features an oustanding collection of 200+ Firearms, with...	
+						</div>
+					<div class="ends">Ends 19th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="green b">Bidding online now</span> <span class="nowrap">(19 days left)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>692 lots</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/thiel-and-thiel-auction-service-1285/">Thiel and Thiel Auction Service</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Chilton, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/gun-firearm/">Gun and Firearms</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="27" data-marker-id="220561" data-latlon="44.0242000:-88.1827000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/beaudry-firearms-taxidermy-and-collectibles-2026-10-19-220561/">View Auction <span><span>692</span> lots</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post220998">
+		<div class="table">
+			<span id="220998" class="220998 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/tractor-tool-stoneware-antique-consignment-2026-10-22-220998/"><img src="/front/image/no_image_icon.png?v=1.1" class="no_image_icon" alt="image unavailable"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/tractor-tool-stoneware-antique-consignment-2026-10-22-220998/">Tractor,  Tool,  Stoneware & Antique Consignment Sale!</a></h3>						
+					</div>
+						<div class="AuctionDescription">WE HAVE A GREAT LINEUP FOR THIS FALL CONSIGNMENT SALE IN CHILTON WI. WATCH FOR DETAILS TO FOLLOW. Stoneware, Tractors,...	
+						</div>
+					<div class="ends">5th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="b">Online auction</span> <span class="nowrap">(starts in 4 days)</span></div>
+						</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/thiel-and-thiel-auction-service-1285/">Thiel and Thiel Auction Service</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Chilton, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/tool/">Tools and Plant</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="28" data-marker-id="220998" data-latlon="44.0242000:-88.1827000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/tractor-tool-stoneware-antique-consignment-2026-10-22-220998/">View Auction	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221033">
+		<div class="table">
+			<span id="221033" class="221033 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/coming-soon-estate-auction-kiel-wi-2026-10-26-221033/"><img src="/front/image/no_image_icon.png?v=1.1" class="no_image_icon" alt="image unavailable"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/coming-soon-estate-auction-kiel-wi-2026-10-26-221033/">Coming Soon- Estate Auction Kiel WI</a></h3>						
+					</div>
+						<div class="AuctionDescription">Watch for this great Estate sale of sporting goods, vehicles, antiques, tools and more.	
+						</div>
+					<div class="ends">9th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="b">Online auction</span> <span class="nowrap">(starts in 8 days)</span></div>
+						</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/thiel-and-thiel-auction-service-1285/">Thiel and Thiel Auction Service</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Kiel, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/estate/">Estate</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="29" data-marker-id="221033" data-latlon="43.9341000:-87.9956000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/coming-soon-estate-auction-kiel-wi-2026-10-26-221033/">View Auction	</span></div>
+						</div>
+			</div>
+		</div>
+	</div> 
+	<div class="ias-post LCT_auction_list_view" id="ias-post221036">
+		<div class="table">
+			<span id="221036" class="221036 blue fav"><span class="icon-heart-empty-1 f4" title="add to favourites"></span></span>
+
+			<div>		
+
+				<div>	
+
+					<div class="click-tracker" data-href="https://www.auctionguide.com/auction/coin-silver-goldonline-auction-2026-10-29-221036/"><img src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" class="lazy" data-original="//cdn.hibid.com/img.axd?id=8433431940&wid=&rwl=false&p=&ext=&w=200&h=200&t=&lp=&c=true&wt=false&sz=MAX&checksum=eCJus4TkmW%2fk%2fe%2fhhxCWIw71tId7PIoC" title="Coin, Silver &amp; Gold-Online Auction" alt="Coin, Silver &amp; Gold-Online Auction"></div>				
+				</div>		
+				<div>
+					<div>						
+						<h3><a class="cb_jq_loading" href="https://www.auctionguide.com/auction/coin-silver-goldonline-auction-2026-10-29-221036/">Coin,  Silver & Gold-Online Auction</a></h3>						
+					</div>
+						<div class="AuctionDescription">Consign your gold, silver or other currency by October 5th 2026 to get in this sale. CALL MICK AT 920.418.5390 TO...	
+						</div>
+					<div class="ends">8th Oct <span class="dk-mid-grey f2"><span class="icon-clock" title="Internet-only (timed) auction"></span><span class="icon-desktop" title="Internet bidding"></span></span></div>
+					<div class="table">
+						<div>
+							<div></div>
+							<div><span class="b">Online auction</span> <span class="nowrap">(starts in 7 days)</span></div>
+						</div>						
+							<div class="lots">
+								<div>Lots:</div>
+								<div>1 lot</div>
+							</div>						
+						<div>
+							<div>By:</div>
+							<div class="b"><a class="cb_jq_loading" href="https://www.auctionguide.com/auctioneer/thiel-and-thiel-auction-service-1285/">Thiel and Thiel Auction Service</a>
+							</div>						
+						</div>
+						<div>
+							<div>At:</div>
+							<div class="b"><span>Chilton, WI, USA.</span></div>							
+						</div>
+							<div class="cat">
+								<div>In:</div>
+								<div class="b"><a href="/auctions/coin-currency/">Coin and Currency</a></div>							
+							</div>					
+							<div>
+								<div><i class="icon-location-1 blue"></i></div>
+								<div><span class="alink" data-array-id="30" data-marker-id="221036" data-latlon="44.0242000:-88.1827000">Find on the map</span></div>							
+							</div>						
+					</div>
+						<div><span class="button button-orange button-round nowrap click-tracker" data-href="https://www.auctionguide.com/auction/coin-silver-goldonline-auction-2026-10-29-221036/">View Auction <span><span>1</span> lot</span>	</span></div>
+						</div>
+			</div>
+		</div>
+	</div>
+	</div>	
+		<script>
+			//<![CDATA[
+			$(".alink").on("click", function(event){
+				event.preventDefault();
+				var themId = $(this).attr("data-array-id");
+				var theId = $(this).attr("data-marker-id");
+				var latlon = $(this).attr("data-latlon");
+				var array_latlon = latlon.split(":");
+				$("body,html").animate({
+					scrollTop: 0
+				}, 300, function() {
+					if ($("#map").height() <= 150) {
+						$("#map").css("height","300px");
+						map.invalidateSize();
+					}
+					map.closePopup();
+					var m = markerList[themId];
+					markers.zoomToShowLayer(m, function () {
+						m.openPopup();
+					});
+				});
+			});	
+
+			//]]>
+		</script>
+			<h2>Wisconsin Auctioneers</h2>

@@ -155,6 +155,18 @@ export const SORT_OPTIONS: readonly { readonly value: SearchSort; readonly label
   { value: 'sleeper', label: 'Worth the trip' },
 ];
 
+/**
+ * 0023: a sale-level row has no price and no sleeper score, and search_lots
+ * sorts both with nulls last, so under "Price" and "Worth the trip" sales come
+ * after every lot. The line that says so, or null when no sale is in the list.
+ */
+export function saleSortNote(sort: SearchSort, hasSales: boolean): string | null {
+  if (!hasSales) return null;
+  if (sort === 'cheapest') return 'Sales have no price, so they come after the lots.';
+  if (sort === 'sleeper') return 'Sales have no score, so they come after the lots.';
+  return null;
+}
+
 /** The four chips the design shows, plus the active sort when the words picked another one. */
 export function sortChips(active: SearchSort): { value: SearchSort; label: string }[] {
   const base = SORT_OPTIONS.slice(0, 4);

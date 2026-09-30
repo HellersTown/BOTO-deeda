@@ -34,6 +34,17 @@ export interface LotSummary {
   readonly sourceTier: SourceTier | null;
   readonly sleeperScore: number | null;
   readonly matchBasis: MatchBasis | null;
+  /** 0023: the row stands for a whole sale (no price, bids or score); cards draw it as a sale. */
+  readonly saleLevel: boolean;
+  /** 0023: the lot count of the row's auction: for a sale-level row, how many lots the sale has. */
+  readonly saleLotCount: number | null;
+  /** Who runs the auction (auctions.auctioneer), when the source says. */
+  readonly auctioneer: string | null;
+}
+
+/** A whole, positive lot count, or null. */
+function lotCount(n: number | null | undefined): number | null {
+  return typeof n === 'number' && Number.isSafeInteger(n) && n > 0 ? n : null;
 }
 
 export function fromSearchRow(row: SearchLotRow, info: LotCloseInfo | undefined): LotSummary {
@@ -59,6 +70,10 @@ export function fromSearchRow(row: SearchLotRow, info: LotCloseInfo | undefined)
     sourceTier: row.source_tier,
     sleeperScore: row.sleeper_score === null ? null : Number(row.sleeper_score),
     matchBasis: row.match_basis,
+    // `=== true`: a row from before 0023 has no such column and is a lot.
+    saleLevel: row.sale_level === true,
+    saleLotCount: lotCount(row.sale_lot_count),
+    auctioneer: row.auctioneer,
   };
 }
 
@@ -80,9 +95,17 @@ export interface EmbeddedLot {
   sleeper_score: number | null;
   /** 0016. Optional so fixtures shaped before it still type-check. */
   pickup_geo_source?: PickupGeoSource | null;
+  /** 0023. Optional so fixtures shaped before it still type-check; absent means a lot. */
+  sale_level?: boolean;
   precise: Json;
   source: { name: string; tier: SourceTier | null } | null;
-  auction: { timezone: string | null; pickup_postal_code: string | null } | null;
+  auction: {
+    timezone: string | null;
+    pickup_postal_code: string | null;
+    /** Optional so fixtures shaped before 0023 still type-check. */
+    auctioneer?: string | null;
+    lot_count?: number | null;
+  } | null;
 }
 
 export function fromEmbeddedLot(lot: EmbeddedLot, distanceMiles: number | null = null, matchBasis: MatchBasis | null = null): LotSummary {
@@ -108,5 +131,8 @@ export function fromEmbeddedLot(lot: EmbeddedLot, distanceMiles: number | null =
     sourceTier: lot.source?.tier ?? null,
     sleeperScore: lot.sleeper_score === null ? null : Number(lot.sleeper_score),
     matchBasis,
+    saleLevel: lot.sale_level === true,
+    saleLotCount: lotCount(lot.auction?.lot_count),
+    auctioneer: lot.auction?.auctioneer ?? null,
   };
 }

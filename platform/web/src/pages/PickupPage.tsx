@@ -21,6 +21,7 @@ import {
   placeLabel,
   type Located,
   type PickupStop,
+  wonForPickup,
 } from '../lib/pickup';
 import { readStored, writeStored } from '../lib/storage';
 import { useAuth } from '../providers/AuthProvider';
@@ -96,10 +97,8 @@ export function PickupPage() {
   const home = useHome();
   const list = useAsync(() => listMyWatchlist(user?.id ?? ''), [user?.id], Boolean(user));
 
-  const won = useMemo(
-    () => (list.data ?? []).filter((e) => e.watch.outcome === 'won' && e.lot).map((e) => e.lot as WatchedLot),
-    [list.data],
-  );
+  // Won lots only; a watched sale-level row (0023) joins the run only once it is marked won.
+  const won = useMemo(() => wonForPickup(list.data ?? []), [list.data]);
   const { stops, unlocated } = useMemo(() => groupStops(won, pickupPlaceOf), [won]);
 
   // Where each stop is: its ZIP's centroid, or (no ZIP) its city's, through the gazetteer.

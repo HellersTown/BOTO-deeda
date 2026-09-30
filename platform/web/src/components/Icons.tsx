@@ -82,6 +82,14 @@ export const TruckIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** The manifest (Kit.dc.html): a list of what is in it, for a sale of many lots. */
+export const ManifestIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="4" y="4" width="16" height="17" rx="2" />
+    <path d="M8 9h8M8 13h8M8 17h5" />
+  </Svg>
+);
+
 /** The price tag: fees and costs. */
 export const PriceIcon = (p: IconProps) => (
   <Svg {...p}>

@@ -20,6 +20,7 @@ import {
   fartherArgs,
   fartherCount,
   filtersFromParse,
+  saleSortNote,
   SORT_OPTIONS,
   sortChips,
   toSearchArgs,
@@ -233,6 +234,8 @@ export function SearchPage() {
   const nearby = rows.filter((r) => r.match_basis === 'nearby').length;
   const shipping = rows.filter((r) => r.match_basis === 'ships_to_you').length;
   const inState = rows.filter((r) => r.match_basis === 'in_state').length;
+  // 0023: under "Price" and "Worth the trip", sales (no price, no score) come after the lots; say so.
+  const sortNote = search.loading || search.error ? null : saleSortNote(filters.sort, rows.some((r) => r.sale_level === true));
   const more = farther.data != null && search.data ? fartherCount(farther.data, rows.length, SEARCH_LIMIT_MAX) : null;
   const lots = (n: number) => `${n} ${n === 1 ? 'lot' : 'lots'}`;
 
@@ -390,6 +393,7 @@ export function SearchPage() {
               </select>
             </label>
           </div>
+          {sortNote ? <p className="results-note">{sortNote}</p> : null}
           <p className="visually-hidden" aria-live="polite">
             {status}
           </p>

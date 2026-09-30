@@ -9,6 +9,17 @@
  */
 import { haversineMiles, type LatLon } from './distance';
 
+/**
+ * What goes on the run: the watched lots marked won. A sale-level row (0023)
+ * stands for a whole sale; it goes on the run the same way, only once it is
+ * marked won (something was won there), never for being watched.
+ */
+export function wonForPickup<L>(entries: readonly { readonly watch: { readonly outcome: string | null }; readonly lot: L | null }[]): L[] {
+  const out: L[] = [];
+  for (const e of entries) if (e.watch.outcome === 'won' && e.lot !== null) out.push(e.lot);
+  return out;
+}
+
 /** A pickup address, as the lot and auction rows state it. */
 export interface PickupPlace {
   readonly line1: string | null;

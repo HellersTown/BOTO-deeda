@@ -55,6 +55,8 @@ describe('distances measured to a city centroid are shown as approximate (0016, 
       relevance: 1,
       match_basis: 'nearby',
       pickup_geo_source: 'city',
+      sale_level: false,
+      sale_lot_count: null,
     } satisfies SearchLotRow;
     expect(fromSearchRow(row, undefined).distanceApprox).toBe(true);
     expect(fromSearchRow({ ...row, pickup_geo_source: 'postal_code' }, undefined).distanceApprox).toBe(false);

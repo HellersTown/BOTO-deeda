@@ -1,27 +1,29 @@
 import { recommend, type RankedStrategy } from '@platform/strategy';
 import { useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { BackIcon, ExternalIcon, PriceIcon, ShareIcon, TrailIcon, TruckIcon } from '../components/Icons';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import { ExternalIcon, PriceIcon, TrailIcon, TruckIcon } from '../components/Icons';
 import { LocationButton } from '../components/LocationDialog';
 import type { LotLinkState } from '../components/LotCard';
+import { LotHead } from '../components/LotHead';
 import { Photo } from '../components/Photo';
+import { SaleDetail } from '../components/SaleDetail';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { isWorthTheTrip, PriceTag, TierTag, WorthTheTrip } from '../components/Tags';
 import { WalkAwayCalculator } from '../components/WalkAwayCalculator';
-import type { WatchlistInsert } from '../data/database.types';
+import type { WatchlistInsert, WatchlistRow } from '../data/database.types';
 import { describeError } from '../data/errors';
 import { getLotDetail, type LotDetail } from '../data/lots';
 import { lookupPostalCodes } from '../data/postal';
 import { getMyEntitlements } from '../data/profile';
 import { getMyWatch, watchLot } from '../data/watchlist';
-import { useAsync } from '../hooks/useAsync';
+import { useAsync, type AsyncState } from '../hooks/useAsync';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useNow } from '../hooks/useNow';
-import { describeCloseLong, formatShortDateTime, formatTimeIn, reminderInstant, DATE_ONLY_DEFAULT_ZONE } from '../lib/dates';
+import { describeCloseLong, reminderWords } from '../lib/dates';
 import { distanceWords, haversineMiles, isApproximateGeo } from '../lib/distance';
 import { buildLotContext, factsFromDetail } from '../lib/lotContext';
 import { formatCents, formatPercent, parseDollarsToCents, parsePercent } from '../lib/money';
-import { planName } from '../lib/plans';
+import { watchlistFullMessage } from '../lib/plans';
 import { useAuth } from '../providers/AuthProvider';
 import { useHome } from '../providers/HomeProvider';
 
@@ -63,13 +65,24 @@ function bidLabel(lot: LotDetail): { cents: number | null; label: string } {
   return { cents: null, label: 'No price listed; check the listing' };
 }
 
+/** What a loaded lot page draws from: LotPage loads it, and the tests pass it in. */
+export interface LotViewProps {
+  readonly detail: LotDetail;
+  /** One-way miles from the home ZIP, or null when unknown. */
+  readonly distanceMiles: number | null;
+  /** The distance was measured to a city's centroid (0016), so it is approximate. */
+  readonly distanceApprox: boolean;
+  /** Where "back" goes when the page was opened directly: the search or hunt that linked here. */
+  readonly from: string | null;
+  /** The user's watchlist row for this lot: null when it is not watched, or no one is signed in. */
+  readonly watch: AsyncState<WatchlistRow | null>;
+}
+
 export function LotPage() {
   const { id = '' } = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const home = useHome();
-  const now = useNow();
   const link = (location.state ?? null) as LotLinkState | null;
 
   const lot = useAsync(() => getLotDetail(id), [id]);
@@ -94,6 +107,41 @@ export function LotPage() {
 
   const watch = useAsync(() => (user ? getMyWatch(user.id, id) : Promise.resolve(null)), [user?.id, id]);
 
+  if (lot.loading && !detail) return <LoadingState label="Loading the lot" />;
+  if (lot.error) {
+    return (
+      <div className="page">
+        <ErrorState error={lot.error} onRetry={lot.reload} title="This lot did not load" />
+      </div>
+    );
+  }
+  if (!detail) {
+    return (
+      <div className="page">
+        <EmptyState title="We could not find that lot" action={<Link className="btn btn--secondary" to="/">Back to search</Link>}>
+          <p>It may have been removed by the source. Lots stay listed here until the source drops them.</p>
+        </EmptyState>
+      </div>
+    );
+  }
+  return (
+    <LotDetailView detail={detail} distanceMiles={distanceMiles} distanceApprox={distanceApprox} from={link?.from ?? null} watch={watch} />
+  );
+}
+
+/**
+ * A loaded lot row: the sale page for a sale-level row (0023), which has no
+ * price and so no bid, walk-away or plan, else the lot page.
+ */
+export function LotDetailView(props: LotViewProps) {
+  return props.detail.saleLevel ? <SaleDetail {...props} /> : <LotView {...props} />;
+}
+
+function LotView({ detail, distanceMiles, distanceApprox, from, watch }: LotViewProps) {
+  const { user } = useAuth();
+  const home = useHome();
+  const now = useNow();
+
   const [worthText, setWorthText] = useState('');
   const [cushionText, setCushionText] = useState('');
   const worthCents = parseDollarsToCents(worthText);
@@ -103,42 +151,21 @@ export function LotPage() {
   // Count the cost runs the engine's personal-use arm: what it is worth to you, less the cushion you keep.
   const rec = useMemo(
     () =>
-      detail
-        ? recommend(
-            buildLotContext(factsFromDetail(detail), distanceMiles, {
-              estimatedResaleCents: null,
-              estimatedValueCents: worthCents,
-              targetMarginPct: cushionPct,
-              userGoal: 'use',
-            }),
-            new Date(minute * 60_000),
-          )
-        : null,
+      recommend(
+        buildLotContext(factsFromDetail(detail), distanceMiles, {
+          estimatedResaleCents: null,
+          estimatedValueCents: worthCents,
+          targetMarginPct: cushionPct,
+          userGoal: 'use',
+        }),
+        new Date(minute * 60_000),
+      ),
     [detail, distanceMiles, worthCents, cushionPct, minute],
   );
 
   const [saving, setSaving] = useState(false);
   const [watchMessage, setWatchMessage] = useState<string | null>(null);
   const [watchError, setWatchError] = useState<string | null>(null);
-  const [shareNote, setShareNote] = useState<string | null>(null);
-
-  if (lot.loading && !detail) return <LoadingState label="Loading the lot" />;
-  if (lot.error) {
-    return (
-      <div className="page">
-        <ErrorState error={lot.error} onRetry={lot.reload} title="This lot did not load" />
-      </div>
-    );
-  }
-  if (!detail || !rec) {
-    return (
-      <div className="page">
-        <EmptyState title="We could not find that lot" action={<Link className="btn btn--secondary" to="/">Back to search</Link>}>
-          <p>It may have been removed by the source. Lots stay listed here until the source drops them.</p>
-        </EmptyState>
-      </div>
-    );
-  }
 
   const sourceName = detail.source?.name ?? 'the source site';
   const bidUrl = detail.url ?? detail.auction?.url ?? null;
@@ -147,12 +174,7 @@ export function LotPage() {
   const close = describeCloseLong({ closesAt: detail.closesAt, precision: precise ? 'precise' : 'date_only', timeZone, closed: detail.closed }, now);
   const watching = watch.data ?? null;
   const remindLead = watching?.remind_seconds_before ?? rec.timing?.alertSecondsBefore ?? 600;
-  const reminder = reminderInstant({ closesAt: detail.closesAt, precise, timeZone, remindSecondsBefore: remindLead });
-  const reminderText = reminder
-    ? precise
-      ? `${formatShortDateTime(reminder)}, ${Math.round(remindLead / 60)} minutes before it closes`
-      : `${formatTimeIn(reminder, timeZone ?? DATE_ONLY_DEFAULT_ZONE)} that morning`
-    : null;
+  const reminderText = reminderWords({ closesAt: detail.closesAt, precise, timeZone, remindSecondsBefore: remindLead });
   const bid = bidLabel(detail);
   const spec = specLine(detail);
   const seller = sellerLine(detail);
@@ -172,34 +194,17 @@ export function LotPage() {
         : `premium not published; the count assumes ${formatPercent(rec.walkAway.rates.buyerPremiumPct)} (unverified)`;
   const terms = detail.meta.terms;
 
-  async function share() {
-    const url = window.location.href;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: detail?.title ?? 'Lot', url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setShareNote('Link copied');
-      }
-    } catch {
-      // The user closed the share sheet.
-    }
-  }
-
   async function watchAndRemind() {
-    if (!user || !detail || !rec) return;
+    if (!user) return;
     setSaving(true);
     setWatchError(null);
     setWatchMessage(null);
     try {
       if (!watching) {
-        // No trigger enforces max_watchlist, so this is the only check; if the
-        // entitlements view cannot be read, watching still works.
-        const ent = await getMyEntitlements().catch(() => null);
-        if (ent && ent.max_watchlist !== null && (ent.watchlist_count ?? 0) >= ent.max_watchlist) {
-          setWatchError(
-            `Your ${planName(ent.tier)} plan holds ${ent.max_watchlist} watched lots, and all are in use. Remove one in Bids to watch this lot.`,
-          );
+        // If the entitlements view cannot be read, watching still works.
+        const full = watchlistFullMessage(await getMyEntitlements().catch(() => null), 'lot');
+        if (full) {
+          setWatchError(full);
           return;
         }
       }
@@ -226,25 +231,7 @@ export function LotPage() {
 
   return (
     <div className="page page--lot">
-      <header className="lot-head">
-        <button
-          type="button"
-          className="icon-btn"
-          aria-label="Back"
-          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate(link?.from ?? '/'))}
-        >
-          <BackIcon />
-        </button>
-        <span className="lot-head__source">{sourceName}</span>
-        <button type="button" className="icon-btn" aria-label="Share lot" onClick={share}>
-          <ShareIcon size={20} strokeWidth={2} />
-        </button>
-      </header>
-      {shareNote ? (
-        <p className="toast" role="status">
-          {shareNote}
-        </p>
-      ) : null}
+      <LotHead sourceName={sourceName} title={detail.title} from={from} shareLabel="Share lot" />
 
       <div className="lot-layout">
         <div className="lot-layout__media">

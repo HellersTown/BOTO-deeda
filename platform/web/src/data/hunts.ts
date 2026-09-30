@@ -74,9 +74,9 @@ export async function deleteHunt(huntId: string): Promise<void> {
   if (error) throw toDataError(error, 'delete hunt');
 }
 
-/** The lots columns a card needs, embedded wherever a table points at lots. */
+/** The lots columns a card needs, embedded wherever a table points at lots (sale_level and the auction's lot count: 0023). */
 export const EMBEDDED_LOT_COLUMNS =
-  'id, title, url, primary_image_url, current_bid_cents, next_bid_cents, bid_count, closes_at, closed, pickup_city, pickup_state, pickup_postal_code, ships, sleeper_score, pickup_geo_source, precise:raw->_meta->closeTimePrecise, source:sources(name, tier), auction:auctions(timezone, pickup_postal_code)' as const;
+  'id, title, url, primary_image_url, current_bid_cents, next_bid_cents, bid_count, closes_at, closed, pickup_city, pickup_state, pickup_postal_code, ships, sleeper_score, pickup_geo_source, sale_level, precise:raw->_meta->closeTimePrecise, source:sources(name, tier), auction:auctions(timezone, pickup_postal_code, auctioneer, lot_count)' as const;
 
 const MATCH_SELECT =
   `id, score, reason, matched_at, lot:lots(${EMBEDDED_LOT_COLUMNS})` as const;
