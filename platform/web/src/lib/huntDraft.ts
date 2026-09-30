@@ -266,7 +266,7 @@ export function chipsFor(draft: HuntDraft): Chip[] {
   }
   if (f.min_sleeper_score !== null) {
     const v = `score ${f.min_sleeper_score}+`;
-    chips.push({ id: 'sleeper', kind: 'sleeper', label: 'Treasure in plain sight', value: v, removeLabel: 'Remove minimum sleeper score' });
+    chips.push({ id: 'sleeper', kind: 'sleeper', label: 'Worth the trip', value: v, removeLabel: 'Remove the Worth the trip filter' });
   }
   return chips;
 }
@@ -350,6 +350,13 @@ function toJson(value: unknown): Json {
  * of removed chips). category_ids stay empty: the parser leaves ids to the
  * database, and lots.category_id is not populated by ingest yet, so a category
  * id would stop the hunt from matching anything. The slugs remain in `parsed`.
+ *
+ * run_hunt_matcher passes parsed.tsquery to search_lots as p_tsquery (0018),
+ * falling back to websearchQuery when it is empty. An unedited draft keeps the
+ * parser's tsquery. After a chip edit it cannot be rebuilt faithfully here:
+ * each unit's to_tsquery form depends on parser state ParsedQuery does not
+ * expose (which model designators get a ':*' prefix), so the edited hunt
+ * stores '' and the matcher uses the rebuilt websearch string alone.
  */
 export function toHuntInsert(
   draft: HuntDraft,
@@ -419,8 +426,8 @@ export function deriveHuntName(draft: HuntDraft, placeName?: string | null): str
   return `${(space > 20 ? cut.slice(0, space) : cut).trim()}…`;
 }
 
-/** "DJI · drone · thermal · up to $1,500 · within 50 mi of 53202 · every source type". */
-export function summarizeHunt(hunt: {
+/** What summarizeHunt and manifestLine read from a hunts row. */
+export interface HuntSummaryInput {
   readonly keywords: readonly string[];
   readonly brands: readonly string[];
   readonly exclude_keywords: readonly string[];
@@ -431,24 +438,67 @@ export function summarizeHunt(hunt: {
   readonly states: readonly string[];
   readonly tiers_only: readonly SourceTier[];
   readonly include_shippable: boolean | null;
-}): string {
-  const parts: string[] = [];
+  /** The stored reading: either-or choices live only here (they are not required keywords). */
+  readonly parsed?: Json | null;
+}
+
+/** parsed.alternatives from a stored hunt, read defensively: [["canner", "canning"], …]. */
+export function readAlternatives(parsed: Json | null | undefined): string[][] {
+  if (parsed === null || parsed === undefined || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
+  const alts = parsed.alternatives;
+  if (!Array.isArray(alts)) return [];
+  return alts
+    .map((g) => (Array.isArray(g) ? g.filter((w): w is string => typeof w === 'string' && w.trim() !== '') : []))
+    .filter((g) => g.length > 0);
+}
+
+/** The words a hunt looks for, brands in their own spelling, then its either-or choices. */
+function lookedFor(hunt: HuntSummaryInput, shorten: boolean): string[] {
   const brandKeySets = hunt.brands.map((b) => ({ name: b, keys: brandKeys(b) }));
   const words = hunt.keywords.map((k) => brandKeySets.find((b) => b.keys.has(k))?.name ?? k);
   const listed = new Set(words);
-  parts.push(...words, ...hunt.brands.filter((b) => !listed.has(b)));
-  for (const x of hunt.exclude_keywords) parts.push(`not ${x}`);
+  const choices = readAlternatives(hunt.parsed).map((g) =>
+    shorten && g.length > 3 ? `${g.slice(0, 3).join(', ')} or ${g.length - 3} more` : g.join(' or '),
+  );
+  return [...words, ...hunt.brands.filter((b) => !listed.has(b)), ...choices];
+}
+
+function priceWords(hunt: HuntSummaryInput): string | null {
   if (hunt.min_price_cents !== null && hunt.max_price_cents !== null) {
-    parts.push(`${formatCentsShort(hunt.min_price_cents)} to ${formatCentsShort(hunt.max_price_cents)}`);
-  } else if (hunt.max_price_cents !== null) {
-    parts.push(`up to ${formatCentsShort(hunt.max_price_cents)}`);
-  } else if (hunt.min_price_cents !== null) {
-    parts.push(`at least ${formatCentsShort(hunt.min_price_cents)}`);
+    return `${formatCentsShort(hunt.min_price_cents)} to ${formatCentsShort(hunt.max_price_cents)}`;
   }
+  if (hunt.max_price_cents !== null) return `up to ${formatCentsShort(hunt.max_price_cents)}`;
+  if (hunt.min_price_cents !== null) return `at least ${formatCentsShort(hunt.min_price_cents)}`;
+  return null;
+}
+
+/** "DJI · drone · thermal · up to $1,500 · within 50 mi of 53202 · every source type". */
+export function summarizeHunt(hunt: HuntSummaryInput): string {
+  const parts: string[] = [...lookedFor(hunt, false)];
+  for (const x of hunt.exclude_keywords) parts.push(`not ${x}`);
+  const price = priceWords(hunt);
+  if (price) parts.push(price);
   if (hunt.postal_code) parts.push(`within ${hunt.radius_miles ?? 50} mi of ${hunt.postal_code}`);
   if (hunt.states.length) parts.push(`in ${hunt.states.join(', ')}`);
   if (!hunt.postal_code && hunt.states.length === 0) parts.push('near your home ZIP');
   parts.push(hunt.tiers_only.length ? hunt.tiers_only.map((t) => TIER_LABEL[t]).join(', ') : 'every source type');
+  if (hunt.include_shippable === false) parts.push('pickup only');
+  return parts.join(' · ');
+}
+
+/**
+ * The Hunts manifest's one-line reading (Hunts.dc.html, shown in mono caps):
+ * "generator · up to $800 · 60 mi". Shorter than summarizeHunt: long either-or
+ * lists are cut to three, and the home ZIP is left to the Profile page.
+ */
+export function manifestLine(hunt: HuntSummaryInput): string {
+  const parts: string[] = [...lookedFor(hunt, true)];
+  for (const x of hunt.exclude_keywords) parts.push(`not ${x}`);
+  const price = priceWords(hunt);
+  if (price) parts.push(price);
+  if (hunt.postal_code) parts.push(`${hunt.radius_miles ?? 50} mi`);
+  else if (hunt.states.length) parts.push(`in ${hunt.states.join(', ')}`);
+  if (hunt.tiers_only.length) parts.push(hunt.tiers_only.map((t) => TIER_LABEL[t]).join(', '));
   if (hunt.include_shippable === false) parts.push('pickup only');
   return parts.join(' · ');
 }

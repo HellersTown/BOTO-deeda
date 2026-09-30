@@ -3,7 +3,7 @@
  * row and its lot_images, in one request through PostgREST embedding along the
  * foreign keys declared in 0002.
  */
-import type { AuctionFormat, Json, SourceTier } from './database.types';
+import type { AuctionFormat, Json, PickupGeoSource, SourceTier } from './database.types';
 import { toDataError } from './errors';
 import { readClosePrecise } from './search';
 import { db } from './supabase';
@@ -11,11 +11,11 @@ import { db } from './supabase';
 const LOT_DETAIL_SELECT = `id, title, description, lot_number, brand, model, condition, quantity, url,
   starting_bid_cents, current_bid_cents, next_bid_cents, estimate_low_cents, estimate_high_cents,
   sold_price_cents, bid_count, reserve_met, closes_at, closed, extended_count,
-  pickup_city, pickup_state, pickup_postal_code, ships,
+  pickup_city, pickup_state, pickup_postal_code, pickup_geo_source, ships,
   primary_image_url, image_urls, image_count, desc_richness, sleeper_score, sleeper_reasons,
   meta:raw->_meta,
   auction:auctions(id, title, auctioneer, url, format, timezone, pickup_line1, pickup_city, pickup_state,
-    pickup_postal_code, pickup_required, ships, ships_note, seller_name, buyer_premium_pct, buyer_premium_note, terms_url),
+    pickup_postal_code, pickup_geo_source, pickup_required, ships, ships_note, seller_name, buyer_premium_pct, buyer_premium_note, terms_url),
   source:sources(id, name, tier, url, platform),
   category:categories(slug, label),
   images:lot_images(url, position)` as const;
@@ -81,6 +81,11 @@ export interface LotDetail {
   readonly pickupCity: string | null;
   readonly pickupState: string | null;
   readonly pickupPostalCode: string | null;
+  /**
+   * How the pickup point was found (0016); 'city' means distances to it are
+   * approximate. Optional so LotDetail fixtures shaped before 0016 still type-check.
+   */
+  readonly pickupGeoSource?: PickupGeoSource | null;
   readonly ships: boolean;
   readonly imageUrls: readonly string[];
   readonly imageCount: number | null;
@@ -171,6 +176,7 @@ export async function getLotDetail(lotId: string): Promise<LotDetail | null> {
     pickupCity: data.pickup_city ?? a?.pickup_city ?? null,
     pickupState: data.pickup_state ?? a?.pickup_state ?? null,
     pickupPostalCode: data.pickup_postal_code ?? a?.pickup_postal_code ?? null,
+    pickupGeoSource: data.pickup_geo_source ?? a?.pickup_geo_source ?? null,
     ships: data.ships === true,
     imageUrls: orderImages(data.images ?? [], data.image_urls, data.primary_image_url),
     imageCount: data.image_count,

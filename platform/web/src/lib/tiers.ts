@@ -14,6 +14,21 @@ export const TIER_LABEL: Readonly<Record<SourceTier, string>> = {
   dealer: 'Dealer',
 };
 
+/** The seller tag on cards and the lot page (set in mono caps): one short word each. */
+export const TIER_TAG: Readonly<Record<SourceTier, string>> = {
+  federal: 'Federal',
+  state: 'State',
+  county: 'County',
+  municipal: 'City',
+  school: 'School',
+  private: 'Private',
+  estate: 'Estate',
+  wholesale: 'Wholesale',
+  marketplace: 'Market',
+  dealer: 'Dealer',
+};
+
+/** Public sellers: their tags are pine; private, estate and the rest are muted. */
 export const GOVERNMENT_TIERS: ReadonlySet<SourceTier> = new Set(['federal', 'state', 'county', 'municipal', 'school']);
 
 export function isGovernment(tier: SourceTier | null | undefined): boolean {

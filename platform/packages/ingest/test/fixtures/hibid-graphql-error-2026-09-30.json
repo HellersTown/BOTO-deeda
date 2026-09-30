@@ -1,0 +1,1 @@
+{"errors":[{"message":"Cannot query field \u0027matchingLotCount\u0027 on type \u0027AuctionMatchType\u0027. Did you mean \u0027matchinglotcount\u0027 or \u0027matchingCategoryCounts\u0027?","locations":[{"line":1,"column":297}],"extensions":{"code":"FIELDS_ON_CORRECT_TYPE","codes":["FIELDS_ON_CORRECT_TYPE"],"number":"5.3.1"}}]}

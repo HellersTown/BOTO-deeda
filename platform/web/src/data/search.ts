@@ -21,7 +21,8 @@ export async function searchLots(args: SearchLotsArgs): Promise<SearchLotRow[]> 
  * cap), without downloading them: a HEAD request with `Prefer: count=exact`.
  * HEAD sends the arguments as query parameters, where a null would arrive as
  * the text "null", so null arguments are dropped and take their SQL default
- * (which is null for every one of them).
+ * (which is null for every one of them). p_tsquery (0018) goes along like any
+ * other argument, so the count matches the search it stands beside.
  */
 export async function countSearchLots(args: SearchLotsArgs): Promise<number> {
   const defined = Object.fromEntries(

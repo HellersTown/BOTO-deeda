@@ -7,7 +7,7 @@
  * the engine rather than guessed here, so this maps only what the rows
  * actually hold and passes null for the rest.
  */
-import type { AuctionFormat, LotContext, SourceTier } from '@platform/strategy';
+import type { AuctionFormat, LotContext, SourceTier, UserGoal } from '@platform/strategy';
 import type { Json } from '../data/database.types';
 import { readLotMeta, type LotDetail } from '../data/lots';
 import type { WatchedLot } from '../data/watchlist';
@@ -43,10 +43,24 @@ export interface LotFacts {
 
 /** What the user typed into the calculator. */
 export interface WalkAwayInputs {
-  /** "It sells for": median of recent SOLD prices, in cents. */
+  /** A resale estimate: median of recent SOLD prices, in cents (the engine's default 'resell' goal). */
   readonly estimatedResaleCents: number | null;
-  /** "Profit you want", percent of resale. null keeps the category default (a PLACEHOLDER). */
+  /**
+   * With a resale estimate, the profit wanted, percent of resale (null keeps the
+   * category default, a PLACEHOLDER). With userGoal 'use', the cushion kept
+   * below what it is worth (null: none).
+   */
   readonly targetMarginPct: number | null;
+  /**
+   * "Worth to you" (Count the cost): what the same thing costs at a fixed price
+   * elsewhere, in cents. The engine reads it when userGoal is 'use'.
+   */
+  readonly estimatedValueCents?: number | null;
+  /**
+   * 'use': a buyer who keeps the thing (docs/06 S2). The engine then drops
+   * selling fees, outbound shipping and the resale profit target.
+   */
+  readonly userGoal?: UserGoal | null;
 }
 
 export const NO_INPUTS: WalkAwayInputs = { estimatedResaleCents: null, targetMarginPct: null };
@@ -152,5 +166,7 @@ export function buildLotContext(facts: LotFacts, distanceMiles: number | null, i
     ships: facts.ships,
     estimatedResaleCents: cents(inputs.estimatedResaleCents),
     targetMarginPct: pct(inputs.targetMarginPct),
+    ...(inputs.userGoal ? { userGoal: inputs.userGoal } : {}),
+    ...(inputs.estimatedValueCents !== undefined ? { estimatedValueCents: cents(inputs.estimatedValueCents) } : {}),
   };
 }

@@ -23,8 +23,8 @@ export interface SearchFilters {
   readonly sort: SearchSort;
 }
 
-/** The sidebar's distance choices (the design's 25 / 50 / 100 / anywhere). */
-export const RADIUS_CHOICES: readonly number[] = [25, 50, 100];
+/** The sidebar's distance choices (the design's 25 / 60 / 100 / anywhere). */
+export const RADIUS_CHOICES: readonly number[] = [25, 60, 100];
 
 export function defaultFilters(homeRadiusMiles: number | null | undefined): SearchFilters {
   return {
@@ -85,17 +85,27 @@ export interface PageRequest {
  * search_lots() arguments. `homeZip` is the fallback origin when the query
  * named no place (the parser already fills it when it was given one).
  * `resolvedZip` is a ZIP the app looked up for a place name the parser could
- * not turn into one. Returns null when the filters cannot match anything (every
- * seller type unchecked), so the caller skips the request.
+ * not turn into one. `tsquery` is the parser's grouped query (ParsedQuery
+ * .tsquery), sent as p_tsquery beside p_query (0018): the server prefers it and
+ * falls back to p_query when it does not parse. Pass only the parser's own
+ * string, never one edited after the parse. Returns null when the filters
+ * cannot match anything (every seller type unchecked), so the caller skips the
+ * request.
  */
 export function toSearchArgs(
   params: SearchLotsParams,
   filters: SearchFilters,
-  options: { readonly homeZip?: string | null; readonly resolvedZip?: string | null; readonly page?: PageRequest } = {},
+  options: {
+    readonly homeZip?: string | null;
+    readonly resolvedZip?: string | null;
+    readonly page?: PageRequest;
+    readonly tsquery?: string | null;
+  } = {},
 ): SearchLotsArgs | null {
   if (filters.tiers !== null && filters.tiers.length === 0) return null;
   const origin = params.p_postal_code ?? options.resolvedZip ?? options.homeZip ?? null;
   const anywhere = filters.radius === 'anywhere';
+  const tsquery = options.tsquery?.trim() ? options.tsquery : undefined;
   return {
     p_query: params.p_query,
     p_postal_code: anywhere ? null : origin,
@@ -113,6 +123,9 @@ export function toSearchArgs(
     p_sort: filters.sort,
     p_limit: options.page?.limit ?? 50,
     p_offset: options.page?.offset ?? 0,
+    // Absent (not null) when there is none: the count call drops nulls anyway,
+    // and an absent key leaves the SQL default in charge.
+    ...(tsquery ? { p_tsquery: tsquery } : {}),
   };
 }
 
@@ -139,7 +152,7 @@ export const SORT_OPTIONS: readonly { readonly value: SearchSort; readonly label
   { value: 'nearest', label: 'Nearest' },
   { value: 'cheapest', label: 'Price' },
   { value: 'newest', label: 'Newest' },
-  { value: 'sleeper', label: 'Treasure in plain sight' },
+  { value: 'sleeper', label: 'Worth the trip' },
 ];
 
 /** The four chips the design shows, plus the active sort when the words picked another one. */
