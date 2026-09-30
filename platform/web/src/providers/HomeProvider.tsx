@@ -1,5 +1,5 @@
 /**
- * Where the user bids from: home ZIP and driving radius.
+ * Where the user sets out from: home ZIP and how far they will travel.
  *
  * Signed in, these are profiles.home_postal_code and radius_miles (0009 lets the
  * user write both). Signed out, they live in this device's localStorage, so
@@ -32,6 +32,8 @@ export interface HomeState {
   /** City, state and centroid of the home ZIP, when the gazetteer knows it. */
   readonly place: PostalPlace | null;
   readonly profile: ProfileRow | null;
+  /** The user whose profile load has finished (with a row, none, or an error); null before the first. */
+  readonly profileFor: string | null;
   readonly profileLoading: boolean;
   readonly profileError: unknown;
   readonly setHome: (zip: string | null, radiusMiles: number) => Promise<void>;
@@ -49,6 +51,7 @@ export function HomeProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<unknown>(null);
+  const [profileFor, setProfileFor] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
   const [place, setPlace] = useState<PostalPlace | null>(null);
 
@@ -80,7 +83,10 @@ export function HomeProvider({ children }: { children: ReactNode }) {
         if (active) setProfileError(err);
       })
       .finally(() => {
-        if (active) setProfileLoading(false);
+        if (active) {
+          setProfileLoading(false);
+          setProfileFor(userId);
+        }
       });
     return () => {
       active = false;
@@ -140,8 +146,8 @@ export function HomeProvider({ children }: { children: ReactNode }) {
   const reloadProfile = useCallback(() => setNonce((n) => n + 1), []);
 
   const value = useMemo<HomeState>(
-    () => ({ zip, radiusMiles, place, profile, profileLoading, profileError, setHome, updateProfile, reloadProfile }),
-    [zip, radiusMiles, place, profile, profileLoading, profileError, setHome, updateProfile, reloadProfile],
+    () => ({ zip, radiusMiles, place, profile, profileFor, profileLoading, profileError, setHome, updateProfile, reloadProfile }),
+    [zip, radiusMiles, place, profile, profileFor, profileLoading, profileError, setHome, updateProfile, reloadProfile],
   );
   return <HomeContext.Provider value={value}>{children}</HomeContext.Provider>;
 }

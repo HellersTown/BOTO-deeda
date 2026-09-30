@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
-import { JarMark } from '../components/Logo';
+import { Link } from 'react-router-dom';
+import { AfterSignIn } from '../components/AfterSignIn';
+import { Wordmark } from '../components/Logo';
 import { exchangeCode } from '../data/auth';
 import { describeError } from '../data/errors';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -42,13 +43,11 @@ export function AuthCallbackPage() {
     return () => window.clearTimeout(timer);
   }, [error]);
 
-  if (user && !error) return <Navigate to={recallNext()} replace />;
+  if (user && !error) return <AfterSignIn next={recallNext()} />;
 
   return (
     <div className="signin signin--center">
-      <div className="signin__mark">
-        <JarMark size={38} />
-      </div>
+      <Wordmark size={28} markSize={34} />
       {error || (slow && !loading) ? (
         <div className="state state--error" role="alert">
           <p className="state__title">We could not sign you in</p>

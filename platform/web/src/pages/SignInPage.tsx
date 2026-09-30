@@ -1,7 +1,8 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { AfterSignIn } from '../components/AfterSignIn';
 import { ConfigMissing } from '../components/ConfigMissing';
-import { JarMark } from '../components/Logo';
+import { Wordmark } from '../components/Logo';
 import { sendMagicLink, signInWithPassword, signUpWithPassword } from '../data/auth';
 import { DataError, describeError } from '../data/errors';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -35,6 +36,28 @@ function authMessage(err: unknown): string {
   return describeError(err);
 }
 
+/** The road from home to the horizon (SignIn.dc.html): decorative. */
+function RoadAhead() {
+  return (
+    <svg className="signin__road" viewBox="0 0 342 168" aria-hidden="true" focusable="false">
+      <circle cx="266" cy="58" r="26" fill="var(--brass)" />
+      <rect x="0" y="58" width="342" height="110" fill="var(--ground)" />
+      <path d="M0 58L46 40L82 54L128 30L172 58" fill="none" stroke="var(--pine)" strokeWidth="2" strokeLinejoin="round" />
+      <line x1="0" y1="58" x2="342" y2="58" stroke="var(--line-field)" strokeWidth="1.5" />
+      <path
+        d="M34 162C132 150 36 116 152 104S262 86 266 62"
+        fill="none"
+        stroke="var(--ink)"
+        strokeWidth="2.2"
+        strokeDasharray="3 7"
+        strokeLinecap="round"
+      />
+      <circle cx="152" cy="104" r="4.5" fill="var(--pine)" />
+      <circle cx="34" cy="162" r="6" fill="var(--ember)" />
+    </svg>
+  );
+}
+
 export function SignInPage() {
   useDocumentTitle('Sign in');
   const { user, loading, configured } = useAuth();
@@ -52,7 +75,7 @@ export function SignInPage() {
   useEffect(() => rememberNext(next), [next]);
 
   if (!configured) return <ConfigMissing />;
-  if (!loading && user) return <Navigate to={next} replace />;
+  if (!loading && user) return <AfterSignIn next={next} />;
 
   async function run(fn: () => Promise<void>) {
     setError(null);
@@ -97,13 +120,12 @@ export function SignInPage() {
   return (
     <div className="signin">
       <div className="signin__intro">
-        <div className="signin__mark">
-          <JarMark size={38} />
-        </div>
-        <h1 className="signin__title">Every useful thing, at every auction near you.</h1>
+        <Wordmark size={28} markSize={34} />
+        <RoadAhead />
+        <h1 className="signin__title">Equip for the road ahead.</h1>
         <p className="signin__lead">
-          Federal, state, county, school, private and estate sales, checked every hour. Describe what you need and Skeuos
-          keeps looking.
+          Tools, provisions and gear from government, school, private and estate auctions near you, checked every hour and
+          watched until you have what you need.
         </p>
       </div>
 
@@ -173,10 +195,10 @@ export function SignInPage() {
         )}
 
         <p className="signin__note">
-          Skeuos never bids for you. When it is time, it opens the lot on the auction’s own site so you place the bid there.
+          Skeuos never bids for you. When it’s time, it opens the lot on the auction’s own site and you bid there.
         </p>
         <p className="signin__note">
-          <Link to="/">Search without an account</Link> · <Link to="/about">What does Skeuos mean?</Link>
+          <Link to="/">Search without an account</Link>
         </p>
       </form>
     </div>

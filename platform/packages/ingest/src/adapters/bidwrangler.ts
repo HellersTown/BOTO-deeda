@@ -490,6 +490,10 @@ export function bwImages(v: unknown): NormalizedImage[] {
   return out;
 }
 
+/** Observed live on 2026-09-30. */
+const OPEN_ITEM_STATUSES = new Set(['accepting_bids', 'pending']);
+
+/** Plausible end states; none was observed live, so `closed` also checks the clock. */
 const CLOSED_ITEM_STATUSES = new Set([
   'closed', 'sold', 'no_sale', 'unsold', 'passed', 'complete', 'completed', 'ended',
   'canceled', 'cancelled', 'withdrawn',
@@ -769,7 +773,7 @@ export async function runBidwrangler(
   // 3. Items, in plan order, inside the request and byte budgets.
   const lots: NormalizedLot[] = [];
   const skippedForBudget: number[] = [];
-  const incompleteAuctions: number[] = [];
+  const unknownStatuses = new Set<string>();
   let infoLots = 0;
   let unnamed = 0;
   let foreignItems = 0;
@@ -833,6 +837,10 @@ export async function runBidwrangler(
           unnamed++;
           continue;
         }
+        const status = str(item.status);
+        if (status && !OPEN_ITEM_STATUSES.has(status) && !CLOSED_ITEM_STATUSES.has(status)) {
+          unknownStatuses.add(status);
+        }
         lots.push(lot);
       }
       if (itemWalkDone(parsed, page, perPage)) {
@@ -846,12 +854,15 @@ export async function runBidwrangler(
       warnings.push(`Auction ${auctionId}: received ${seen} of ${total} items; treated as incomplete.`);
       gotAll = false;
     }
-    if (!gotAll) {
-      complete = false;
-      if (!skippedForBudget.includes(auctionId)) incompleteAuctions.push(auctionId);
-    }
+    if (!gotAll) complete = false;
   }
 
+  if (unknownStatuses.size) {
+    // Only accepting_bids and pending were observed live. Anything else is kept
+    // (closed is then decided by the clock) and reported so the vocabulary can
+    // be pinned down from real runs instead of guessed.
+    warnings.push(`Unrecognised item status value(s): ${[...unknownStatuses].slice(0, 8).join(', ')}.`);
+  }
   if (infoLots) warnings.push(`Skipped ${infoLots} informational pseudo-lot(s) (e.g. "Payment Information").`);
   if (unnamed) warnings.push(`Skipped ${unnamed} item(s) without an id or name.`);
   if (foreignItems) warnings.push(`Skipped ${foreignItems} item(s) whose auction_id did not match the request.`);

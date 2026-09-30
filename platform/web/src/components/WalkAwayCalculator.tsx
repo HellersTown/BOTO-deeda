@@ -1,6 +1,6 @@
 import { SPEC, type ParamUse, type Recommendation } from '@platform/strategy';
 import { useId } from 'react';
-import { formatMiles } from '../lib/distance';
+import { distanceWords } from '../lib/distance';
 import { formatCents, formatPercent } from '../lib/money';
 
 const UNVERIFIED = new Set(['PLACEHOLDER', 'UNVERIFIED']);
@@ -29,50 +29,55 @@ function premiumSource(p: ParamUse | undefined): string | null {
   return null;
 }
 
+/**
+ * "Count the cost" (Lot.dc.html): the walk-away number for someone who will
+ * keep the thing. It runs the strategy engine's personal-use arm (userGoal
+ * 'use', docs/06 S2): "Worth to you" is the fixed-price alternative, the
+ * cushion is the margin kept below it, and resale costs do not apply. The
+ * caller builds `rec` with those inputs (see LotPage).
+ */
 export function WalkAwayCalculator({
   rec,
-  resaleText,
-  onResaleText,
-  marginText,
-  onMarginText,
+  worthText,
+  onWorthText,
+  cushionText,
+  onCushionText,
   distanceMiles,
+  distanceApprox,
   homeZip,
 }: {
   rec: Recommendation;
-  resaleText: string;
-  onResaleText: (v: string) => void;
-  marginText: string;
-  onMarginText: (v: string) => void;
+  worthText: string;
+  onWorthText: (v: string) => void;
+  cushionText: string;
+  onCushionText: (v: string) => void;
   distanceMiles: number | null;
+  distanceApprox: boolean;
   homeZip: string | null;
 }) {
-  const resaleId = useId();
-  const marginId = useId();
+  const worthId = useId();
+  const cushionId = useId();
   const w = rec.walkAway;
   const b = w.breakdown;
   const params = w.parameters;
   const byName = (name: string) => params.find((p) => p.name === name);
   const hasValue = b.expectedResaleCents !== null;
-  const categoryKey = rec.rules.categoryKey ?? 'other';
-  const defaultMargin = SPEC.categories[categoryKey]?.target_margin_rate;
-  const resaleInvalid = resaleText.trim() !== '' && !hasValue;
+  const worthInvalid = worthText.trim() !== '' && !hasValue;
 
-  const transportLabel =
-    b.transportBasis === 'distance'
-      ? `Pickup${distanceMiles !== null ? `, ${formatMiles(distanceMiles)}` : ''}`
-      : b.transportBasis === 'shipping'
-        ? 'Shipping to you'
-        : 'Pickup';
-  const transportValue =
+  const tripLabel =
+    b.transportBasis === 'shipping'
+      ? 'Shipping to you'
+      : `The trip${distanceMiles !== null ? `, ${distanceWords(distanceMiles, distanceApprox)}` : ''}`;
+  const tripValue =
     b.transportBasis === 'none'
       ? distanceMiles === null && homeZip === null
         ? 'Set your ZIP'
         : 'Not included'
-      : formatCents(b.transportCents);
+      : `${hasValue ? '−' : ''}${formatCents(b.transportCents)}`;
 
   let result: { big: string; note: string | null; tone: 'accent' | 'muted' | 'stop' };
   if (w.status === 'insufficient_data') {
-    result = { big: 'Add a price', note: 'Enter what it sells for to get your number.', tone: 'muted' };
+    result = { big: 'Add its worth', note: 'Enter what it is worth to you to get your number.', tone: 'muted' };
   } else if (w.status === 'invalid_input') {
     result = { big: 'Not available', note: w.reason, tone: 'muted' };
   } else if (w.hammerCeilingCents === 0) {
@@ -84,43 +89,41 @@ export function WalkAwayCalculator({
   }
 
   return (
-    <section className="calc" aria-labelledby="walkaway">
-      <h2 id="walkaway" className="calc__title">
-        Your walk-away number
+    <section className="calc" aria-labelledby="cost">
+      <h2 id="cost" className="calc__title">
+        Count the cost
       </h2>
-      <p className="calc__intro">
-        Decide it now, from what the item sells for, then bid it once. Never raise it because other people are bidding.
-      </p>
+      <p className="calc__intro">Set your walk-away before you bid, from what it is worth to you. Then bid it once.</p>
       <div className="field-grid">
         <div className="field">
-          <label htmlFor={resaleId}>It sells for</label>
+          <label htmlFor={worthId}>Worth to you</label>
           <input
-            id={resaleId}
-            className="input"
+            id={worthId}
+            className="input input--mono"
             inputMode="decimal"
-            placeholder="$ recent sold price"
-            value={resaleText}
-            onChange={(e) => onResaleText(e.target.value)}
-            aria-invalid={resaleInvalid || undefined}
-            aria-describedby={`${resaleId}-hint`}
+            placeholder="$"
+            value={worthText}
+            onChange={(e) => onWorthText(e.target.value)}
+            aria-invalid={worthInvalid || undefined}
+            aria-describedby={`${worthId}-hint`}
           />
-          <span id={`${resaleId}-hint`} className="field__hint">
-            {resaleInvalid ? 'Enter a dollar amount' : 'Median of recent sold prices, same condition'}
+          <span id={`${worthId}-hint`} className={worthInvalid ? 'field-error' : 'field__hint'}>
+            {worthInvalid ? 'Enter a dollar amount' : 'What the same thing costs new or from a dealer'}
           </span>
         </div>
         <div className="field">
-          <label htmlFor={marginId}>Profit you want</label>
+          <label htmlFor={cushionId}>Cushion you keep</label>
           <input
-            id={marginId}
-            className="input"
+            id={cushionId}
+            className="input input--mono"
             inputMode="decimal"
-            placeholder={defaultMargin !== undefined ? `${formatPercent(defaultMargin * 100)} default` : '%'}
-            value={marginText}
-            onChange={(e) => onMarginText(e.target.value)}
-            aria-describedby={`${marginId}-hint`}
+            placeholder="0%"
+            value={cushionText}
+            onChange={(e) => onCushionText(e.target.value)}
+            aria-describedby={`${cushionId}-hint`}
           />
-          <span id={`${marginId}-hint`} className="field__hint">
-            {marginText.trim() === '' ? 'Category default, unverified' : 'Percent of the sale price'}
+          <span id={`${cushionId}-hint`} className="field__hint">
+            Percent kept below its worth
           </span>
         </div>
       </div>
@@ -128,36 +131,16 @@ export function WalkAwayCalculator({
       <dl className="calc__rows">
         {hasValue ? (
           <>
-            <dt>It sells for</dt>
+            <dt>Worth to you</dt>
             <dd>{formatCents(b.expectedResaleCents ?? 0)}</dd>
-            <dt>
-              Selling fees <Tag show={unverified(params, ['category.sell_fee_rate'])} />
-            </dt>
-            <dd>−{formatCents(b.sellFeesCents ?? 0)}</dd>
-            <dt>
-              Shipping to your buyer <Tag show={unverified(params, ['category.outbound_ship_cents'])} />
-            </dt>
-            <dd>−{formatCents(b.outboundShipCents ?? 0)}</dd>
-            <dt>
-              Profit you want{' '}
-              <Tag show={unverified(params, ['category.target_margin_rate', 'category.min_profit_cents'])} />
-            </dt>
-            <dd>−{formatCents(b.profitTargetCents ?? 0)}</dd>
-            <dt>
-              Risk reserve <Tag show={unverified(params, ['category.uncertainty_haircut_rate'])} />
-            </dt>
-            <dd>−{formatCents(b.uncertaintyReserveCents ?? 0)}</dd>
-            <dt>
-              Repairs <Tag show={unverified(params, ['category.repair_reserve_rate'])} />
-            </dt>
-            <dd>−{formatCents(b.repairReserveCents ?? 0)}</dd>
+            {(b.profitTargetCents ?? 0) > 0 ? (
+              <>
+                <dt>Cushion you keep</dt>
+                <dd>−{formatCents(b.profitTargetCents ?? 0)}</dd>
+              </>
+            ) : null}
           </>
         ) : null}
-        <dt>
-          {transportLabel}{' '}
-          <Tag show={b.transportBasis === 'distance' && PICKUP_UNVERIFIED} />
-        </dt>
-        <dd>{b.transportBasis === 'none' ? transportValue : `${hasValue ? '−' : ''}${transportValue}`}</dd>
         <dt>
           Buyer’s premium <Tag show={unverified(params, ['buyer_premium_pct'])} />
           {premiumSource(byName('buyer_premium_pct')) ? (
@@ -166,21 +149,36 @@ export function WalkAwayCalculator({
         </dt>
         <dd>{formatPercent(w.rates.buyerPremiumPct)}</dd>
         <dt>
-          Card fee, tax <Tag show={unverified(params, ['card_fee_rate', 'sales_tax_rate'])} />
+          Sales tax, card fee <Tag show={unverified(params, ['card_fee_rate', 'sales_tax_rate'])} />
         </dt>
         <dd>
-          {formatPercent(w.rates.cardFeePct)} · {formatPercent(w.rates.salesTaxPct)}
+          {formatPercent(w.rates.salesTaxPct)} · {formatPercent(w.rates.cardFeePct)}
         </dd>
-        {!hasValue ? (
+        <dt>
+          {tripLabel} <Tag show={b.transportBasis === 'distance' && PICKUP_UNVERIFIED} />
+        </dt>
+        <dd>{tripValue}</dd>
+        {hasValue ? (
+          <>
+            <dt>
+              Repairs <Tag show={unverified(params, ['category.repair_reserve_rate'])} />
+            </dt>
+            <dd>−{formatCents(b.repairReserveCents ?? 0)}</dd>
+            <dt>
+              Risk reserve <Tag show={unverified(params, ['category.uncertainty_haircut_rate'])} />
+            </dt>
+            <dd>−{formatCents(b.uncertaintyReserveCents ?? 0)}</dd>
+          </>
+        ) : (
           <>
             <dt>Repairs</dt>
-            <dd className="muted">After you add a price</dd>
+            <dd className="calc__pending">After you add its worth</dd>
           </>
-        ) : null}
+        )}
       </dl>
 
       <div className={`calc__result calc__result--${result.tone}`}>
-        <span className="calc__result-label">Bid at most</span>
+        <span className="calc__result-label">Walk away above</span>
         <span className="calc__result-value">{result.big}</span>
       </div>
       {result.note ? <p className="calc__note">{result.note}</p> : null}
@@ -198,7 +196,8 @@ export function WalkAwayCalculator({
           ))}
         </ul>
       ) : null}
-      <p className="calc__foot">Values the research could not verify are marked “unverified” wherever they are used.</p>
+      <p className="calc__foot">If the price passes it, let it go. Another will come.</p>
+      <p className="calc__fine">Values the research could not verify are marked “unverified” wherever they are used.</p>
     </section>
   );
 }

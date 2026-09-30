@@ -1,50 +1,38 @@
-import type { ReactNode } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { RequireAuth } from './components/RequireAuth';
-import { AboutPage } from './pages/AboutPage';
-import { AlertsPage } from './pages/AlertsPage';
-import { AuthCallbackPage } from './pages/AuthCallbackPage';
-import { BidsPage } from './pages/BidsPage';
-import { HuntDetailPage } from './pages/HuntDetailPage';
-import { HuntsPage } from './pages/HuntsPage';
-import { LotPage } from './pages/LotPage';
-import { NewHuntPage } from './pages/NewHuntPage';
-import { NotFoundPage } from './pages/NotFoundPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { SearchPage } from './pages/SearchPage';
-import { SignInPage } from './pages/SignInPage';
 import { AlertsProvider } from './providers/AlertsProvider';
 import { AuthProvider } from './providers/AuthProvider';
 import { HomeProvider } from './providers/HomeProvider';
+import { APP_ROUTES, NOT_FOUND, type AppRoute } from './routes';
 
-const priv = (page: ReactNode) => <RequireAuth>{page}</RequireAuth>;
+function page({ Page, access }: AppRoute) {
+  return access === 'account' ? (
+    <RequireAuth>
+      <Page />
+    </RequireAuth>
+  ) : (
+    <Page />
+  );
+}
 
-/**
- * Routes. Search, lots and About are public (the catalogue is world-readable,
- * 0003); hunts, bids, alerts and the profile are the user's own data and need
- * a session.
- */
+/** The routes in routes.ts: the full-screen ones, then the rest inside the app shell. */
 export function App() {
+  const NotFound = NOT_FOUND;
   return (
     <AuthProvider>
       <HomeProvider>
         <AlertsProvider>
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
-              <Route path="/signin" element={<SignInPage />} />
-              <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              {APP_ROUTES.filter((r) => !r.shell).map((r) => (
+                <Route key={r.path} path={r.path} element={page(r)} />
+              ))}
               <Route element={<AppShell />}>
-                <Route index element={<SearchPage />} />
-                <Route path="lot/:id" element={<LotPage />} />
-                <Route path="hunts" element={priv(<HuntsPage />)} />
-                <Route path="hunts/new" element={priv(<NewHuntPage />)} />
-                <Route path="hunts/:id" element={priv(<HuntDetailPage />)} />
-                <Route path="bids" element={priv(<BidsPage />)} />
-                <Route path="alerts" element={priv(<AlertsPage />)} />
-                <Route path="profile" element={priv(<ProfilePage />)} />
-                <Route path="about" element={<AboutPage />} />
-                <Route path="*" element={<NotFoundPage />} />
+                {APP_ROUTES.filter((r) => r.shell).map((r) => (
+                  <Route key={r.path} path={r.path} element={page(r)} />
+                ))}
+                <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>
           </BrowserRouter>

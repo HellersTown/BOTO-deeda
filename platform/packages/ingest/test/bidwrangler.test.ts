@@ -381,9 +381,10 @@ function routes(map: Record<string, string>) {
   const fetch: Fetcher = async (url) => {
     calls.push(url);
     const body = map[url];
+    const headers: Record<string, string> = body === undefined ? {} : { 'content-type': 'application/json' };
     return body === undefined
-      ? { status: 404, headers: {}, text: 'not found' }
-      : { status: 200, headers: { 'content-type': 'application/json' }, text: body };
+      ? { status: 404, headers, text: 'not found' }
+      : { status: 200, headers, text: body };
   };
   return { calls, fetch };
 }

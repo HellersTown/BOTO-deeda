@@ -51,7 +51,7 @@ function PriceInput({
       </label>
       <input
         id={id}
-        className="input input--compact"
+        className="input input--compact input--mono"
         inputMode="decimal"
         placeholder={placeholder}
         value={text}
@@ -70,7 +70,7 @@ function PriceInput({
   );
 }
 
-/** Distance, shipping, seller type and price: the design's desktop sidebar (also the mobile filter sheet). */
+/** How far, who is selling and price: the design's desktop sidebar (also the mobile filter sheet). */
 export function FilterPanel({
   filters,
   onChange,
@@ -92,7 +92,8 @@ export function FilterPanel({
   return (
     <div className="filters">
       <fieldset className="filters__group">
-        <legend className="filters__legend">{zip ? `Distance from ${zip}` : 'Distance (set your ZIP first)'}</legend>
+        <legend className="filters__legend">How far you will travel</legend>
+        <p className="filters__hint filters__hint--lead">{zip ? `From ${zip}` : 'Set your ZIP to limit by distance.'}</p>
         {radii.map((r) => (
           <label key={String(r)} className="check">
             <input
@@ -116,7 +117,7 @@ export function FilterPanel({
       </fieldset>
 
       <fieldset className="filters__group">
-        <legend className="filters__legend">Seller</legend>
+        <legend className="filters__legend">Who is selling</legend>
         {SELLER_GROUPS.map((g) => (
           <label key={g.key} className="check">
             <input

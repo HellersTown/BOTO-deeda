@@ -4,11 +4,12 @@ import { describeError } from '../data/errors';
 import { lookupPostalCode, normalizeZip } from '../data/postal';
 import { useAuth } from '../providers/AuthProvider';
 import { useHome } from '../providers/HomeProvider';
-import { CloseIcon, PinIcon } from './Icons';
+import { CloseIcon, TrailIcon } from './Icons';
 
-export const RADIUS_OPTIONS: readonly number[] = [25, 50, 100, 200];
+/** How far you will travel: the design's 25 / 60 / 100 / 200 miles. */
+export const RADIUS_OPTIONS: readonly number[] = [25, 60, 100, 200];
 
-/** "Where you bid from": ZIP and radius, checked against the postal_codes gazetteer before saving. */
+/** "Where you set out from": ZIP and radius, checked against the postal_codes gazetteer before saving. */
 export function LocationDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const home = useHome();
@@ -66,14 +67,14 @@ export function LocationDialog({ open, onClose }: { open: boolean; onClose: () =
       <form className="sheet__body" onSubmit={submit} noValidate>
         <div className="sheet__head">
           <h2 id={`${zipId}-title`} className="sheet__title">
-            Where you bid from
+            Where you set out from
           </h2>
           <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}>
             <CloseIcon />
           </button>
         </div>
         <p className="muted small">
-          Results are ranked by distance from this ZIP.{' '}
+          Every distance and pickup trip starts here.{' '}
           {user ? 'It is saved to your profile.' : 'It is kept on this device until you sign in.'}
         </p>
         <div className="field-grid">
@@ -81,7 +82,7 @@ export function LocationDialog({ open, onClose }: { open: boolean; onClose: () =
             <label htmlFor={zipId}>Home ZIP</label>
             <input
               id={zipId}
-              className="input"
+              className="input input--mono"
               inputMode="numeric"
               autoComplete="postal-code"
               maxLength={10}
@@ -92,7 +93,7 @@ export function LocationDialog({ open, onClose }: { open: boolean; onClose: () =
             />
           </div>
           <div className="field">
-            <label htmlFor={radiusId}>Drive up to</label>
+            <label htmlFor={radiusId}>How far you will travel</label>
             <select id={radiusId} className="input" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
               {options.map((r) => (
                 <option key={r} value={r}>
@@ -116,21 +117,20 @@ export function LocationDialog({ open, onClose }: { open: boolean; onClose: () =
   );
 }
 
-/** The "53202 · 50 mi" pill that opens the dialog. */
+/** The "53202 · 60 MI" button that opens the dialog: mono caps with the trail. */
 export function LocationButton({ variant = 'pill' }: { variant?: 'pill' | 'field' }) {
   const { zip, radiusMiles } = useHome();
   const [open, setOpen] = useState(false);
-  const label = zip ? `${zip} · ${radiusMiles} mi` : 'Set your ZIP';
   return (
     <>
       <button
         type="button"
         className={variant === 'pill' ? 'location-pill' : 'location-field'}
-        aria-label={zip ? `Change location: ZIP ${zip}, ${radiusMiles} miles` : 'Set your home ZIP code'}
+        aria-label={zip ? `Change where you set out from: ZIP ${zip}, ${radiusMiles} miles` : 'Set where you set out from'}
         onClick={() => setOpen(true)}
       >
-        {variant === 'pill' ? <PinIcon size={16} strokeWidth={2} /> : null}
-        <span>{label}</span>
+        <TrailIcon size={15} strokeWidth={2.2} />
+        {zip ? <span className="location-pill__mono">{`${zip} · ${radiusMiles} mi`}</span> : <span>Set your ZIP</span>}
       </button>
       <LocationDialog open={open} onClose={() => setOpen(false)} />
     </>
