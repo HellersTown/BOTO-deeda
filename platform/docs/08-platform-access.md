@@ -100,6 +100,27 @@ So the answer is not a better scraper:
    ATG, EstateSales.NET and .org), because the lead time is the constraint, not
    the code.
 
+### Pacing across tools (0024)
+
+Three things contact source hosts: the crawl workers, the hourly probe, and
+`inspect-page` (the adapter-development tool). The workers' gate paces each run
+itself. Since 2026-09-30 the probe and `inspect-page` also share one record per
+host in the database (`private.crawl_hosts`):
+
+- **Turns.** Before every request to a host, each tool takes that host's turn
+  (`crawl_host_turn`). A turn is granted only when the gap since the host's last
+  request is at least max(floor, Crawl-delay): the floor is 5 s for
+  `inspect-page` and 1 s for the probe. A tool waits at most 20 s for a turn; a
+  longer wait means the request is not made this time. The probe then keeps the
+  host's previous verdict, and `inspect-page` answers 429 with `Retry-After`.
+- **robots.txt cache.** Definitive answers (2xx rules, or 4xx meaning "none")
+  are cached: 6 h for the probe, 1 h for `inspect-page` (RFC 9309 allows up to
+  24 h). A bot manager's answer, a 5xx, a 429 or a network error is never cached,
+  and is fetched again, on a turn.
+
+This closed a real lapse: shopgoodwill.com asks for `Crawl-delay: 120`, and on
+2026-09-30 both tools had fetched its home page moments after its robots.txt.
+
 ### What counts as "bypass" (policy for the fetcher and for code review)
 
 Any of the following, used to get content a site refused our honest client, is
