@@ -182,35 +182,27 @@ could write that tier. A database check is only as strong as its input. After
 
 ## Applying the database work
 
-Migrations `0001`–`0009` are all applied to project `sfolywzqtxcdorjwnmsz`.
+Migrations `0001`–`0026` are all applied to project `sfolywzqtxcdorjwnmsz`.
 
-### Do NOT load `seed/sources.sql` yet
+### The source registry
 
-The database already holds **23 source rows from the original Waystock build**
-(created 2026-06-03). Testing found three problems with them:
+`seed/sources.sql` registers every source with `robots_allows = null`, which the
+crawler treats as **do not crawl**, so loading it authorises zero requests. A
+source becomes crawlable only after its `robots.txt` has been fetched, the
+verdict recorded, and its adapter verified against live pages.
 
-- **`slug` is NULL on all 23.** The seed upserts `on conflict (slug)`, so it cannot
-  match them. Loading it creates 35 new rows beside the 23 old ones instead of
-  updating them — duplicates.
-- **All 23 are `active = true` and `verified = true`** with `tier` and `ingest`
-  NULL. They predate those columns and were never classified.
-- **Facebook Marketplace and Craigslist are among them, marked active and
-  verified**, with no `deeplink_only` method and no `ingest_allowed = false`
-  guard. A crawler iterating `sources where active` would try to scrape both.
+The seed was loaded once, after the 23 rows from the original Waystock build
+were reconciled in place (slugs assigned by name, a snapshot kept in `archive`,
+Facebook Marketplace and Craigslist made `deeplink_only`). Since then the live
+registry is kept by migrations: terms holds with their verbatim clauses (0020,
+0022), platforms, states and pacing (0019, 0025), and new sources (0026).
 
-The only thing currently preventing a crawl of those two is `robots_allows = null`,
-which the crawler treats as "do not crawl". That held — but it is the last line of
-defence, not the first.
-
-The fix is a reconciliation step that assigns slugs to the legacy rows by name,
-applies the seed's classification to them, and marks Marketplace and Craigslist
-`deeplink_only`. It modifies data from the original build, so it is left for an
-explicit go-ahead rather than applied automatically.
-
-Once that runs, the seed is safe to load. It registers every source with
-`robots_allows = null`, which the crawler treats as **do not crawl**, so loading it
-authorises zero requests. A source becomes crawlable only after its `robots.txt`
-has been fetched, the verdict recorded, and one passing fixture captured.
+- **Re-running the seed** only adds rows the database lacks (`on conflict do
+  nothing`). It never changes an existing row, so it cannot undo a hold.
+- **A fresh database** runs its migrations before the seed, so the migrations'
+  updates find no rows. The seed therefore carries the holds itself: every
+  source whose terms forbid automated collection is seeded with
+  `ingest_allowed = false`. The clauses are quoted in `docs/08` section 1a.
 
 ---
 
@@ -235,7 +227,7 @@ platform/
 │   │   ├── 0008_downgrade_reconciliation.sql    applied  (bug 5)
 │   │   └── 0009_column_privileges.sql           applied  (bug 6, critical)
 │   ├── seed/
-│   │   └── sources.sql          do not load yet; see "Applying the database work"
+│   │   └── sources.sql          the source registry; see "Applying the database work"
 │   └── tests/
 │       └── platform_functions.sql   27 checks, rolls back, safe on prod
 └── packages/ingest/

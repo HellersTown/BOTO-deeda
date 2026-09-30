@@ -15,7 +15,14 @@
 -- `active` is set true only for sources whose URL was confirmed live this session;
 -- everything else starts inactive and is promoted by hand.
 --
--- Idempotent: safe to re-run.
+-- Sources whose terms forbid automated collection are seeded with
+-- ingest_allowed = false (HiBid and its Wisconsin tenants, Public Surplus,
+-- Wisconsin Surplus, Municibid, BidSpotter, Purple Wave, ShopGoodwill,
+-- LiveAuctioneers, Invaluable, Schrager): a fresh database runs its migrations
+-- before this file, so the holds of 0019, 0020 and 0022 must be here too. The
+-- clauses behind each hold are quoted in docs/08 section 1a.
+--
+-- Idempotent: safe to re-run. Rows that already exist are left untouched.
 
 insert into sources (
   slug, name, url, api_base, tier, ingest, platform, states,
@@ -50,7 +57,7 @@ insert into sources (
 
 ('public-surplus', 'Public Surplus', 'https://www.publicsurplus.com',
  null, 'school', 'internal_json', 'public-surplus', null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'Schools, municipalities, state agencies. Searchable by keyword and state.',
  20, true, false, 60, 10,
  null, 'Surplus from schools and local government.',
@@ -58,7 +65,7 @@ insert into sources (
 
 ('municibid', 'Municibid', 'https://municibid.com',
  null, 'municipal', 'internal_json', 'municibid', null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'Private platform, government sellers. Strongest in the Northeast but carries Midwest inventory.',
  20, true, false, 60, 25,
  null, 'Government equipment and vehicles, public bidding.',
@@ -108,7 +115,7 @@ insert into sources (
 
 ('wisconsin-surplus', 'Wisconsin Surplus Online Auction', 'https://wisconsinsurplus.com',
  null, 'state', 'html', 'custom-dotnet', array['WI','IL','MI','IA','MN'],
- false, false, false, true, true,
+ false, false, false, true, false,
  'THE most important Wisconsin source. A PRIVATE company (Mount Horeb) that is a contracted vendor for the State of Wisconsin: state vehicle auctions, DNR, Revenue (unclaimed and seized property), Corrections, Health Services, UW campuses and technical colleges; also the de facto county channel (22+ counties including every sheriff office found) and the cities of Milwaukee, Madison, Janesville and Kenosha. tier is state because that is what the inventory IS, not what the company is. Research 2026-09-27 (docs/07): the Department of Administration also names GovDeals for state online auctions, so the state uses more than one channel. '
  'CRITICAL: bidding host is bid.wisconsinsurplus.com and auction IDs are opaque URL-encoded tokens (e.g. AuctionId=wTEQql9u1r8eDoI02hWnbw%3D%3D). Lot URLs CANNOT be constructed - the listing index must be crawled and links followed. '
  'Before writing the adapter, determine whether those tokens are stable across sessions. If they are not, external_id must be derived from stable content (auction number such as #25-832 plus lot number), or every crawl will create duplicate rows instead of updating existing ones.',
@@ -128,7 +135,7 @@ insert into sources (
 
 ('hibid', 'HiBid', 'https://hibid.com',
  null, 'private', 'json_ld', 'hibid', null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'HIGHEST-LEVERAGE ADAPTER IN THE PROJECT. Nearly every small and mid-size Wisconsin auction house runs on HiBid/AuctionFlex. Each tenant gets a *.hibid.com subdomain, and some additionally run white-label on their own domain (e.g. bids.beloitauction.com) - the SAME platform, so one adapter serves both. '
  'RSS: UNVERIFIED, has_rss is false. An earlier note here claimed per-auctioneer RSS exists; that came from a snippet saying third-party TOOLS can export HiBid data as RSS, which is not the same as the platform emitting a feed. Research found no confirmed native RSS on any major auction platform. Probe /rss, /feed and a <link rel=alternate> tag before believing otherwise. '
  'JSON-LD IS A FLOOR, NOT A SOLUTION: schema.org has no Auction type, no Bid type, and no bidCount, currentBid, reservePrice or estimate property, so even perfect markup cannot state that a price is a live bid rather than a fixed ask. Expect title, image, price-at-crawl-time and close time from JSON-LD; bid_count, reserve_met, estimates and buyer premium must come from the internal JSON endpoint or embedded app state. '
@@ -172,7 +179,7 @@ insert into sources (
 
 ('invaluable', 'Invaluable', 'https://www.invaluable.com',
  null, 'private', 'internal_json', 'invaluable', null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'Art, antiques, collectibles. Already an aggregator itself, so read its terms carefully - aggregating an aggregator is the case most likely to draw a complaint. Schrager Galleries (Milwaukee, WI) lists here.',
  10, true, false, 60, 80,
  null, 'Global art and antiques auction aggregator.',
@@ -180,7 +187,7 @@ insert into sources (
 
 ('liveauctioneers', 'LiveAuctioneers', 'https://www.liveauctioneers.com',
  null, 'private', 'internal_json', 'liveauctioneers', null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'Art, antiques, collectibles. Krueger & Krueger LLC (WI) lists here. Same aggregator-of-aggregator caution as Invaluable.',
  10, true, false, 60, 82,
  null, 'Live and timed art and collectibles auctions.',
@@ -188,7 +195,7 @@ insert into sources (
 
 ('purple-wave', 'Purple Wave', 'https://www.purplewave.com',
  null, 'dealer', 'internal_json', 'purple-wave', null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'No-reserve absolute auctions, ag and construction equipment. Strong Midwest and Plains inventory - directly relevant to Wisconsin.',
  20, true, false, 60, 35,
  null, 'No-reserve agricultural and construction equipment.',
@@ -224,7 +231,7 @@ insert into sources (
 
 ('hamele', 'Hamele Auction Service', 'https://www.hameleauctions.com',
  null, 'private', 'json_ld', 'hibid', array['WI'],
- false, false, false, true, true,
+ false, false, false, true, false,
  'Central Wisconsin, 30+ years. Bidding at hameleauctions.hibid.com - a HiBid tenant, so the HiBid adapter serves it. '
  'Terms observed: 10% online buyer premium plus 3.5% for card payment. Record both on the auction so the displayed total is honest.',
  10, false, false, 60, 15,
@@ -233,7 +240,7 @@ insert into sources (
 
 ('beloit-auction', 'Beloit Auction & Realty', 'https://www.beloitauction.com',
  null, 'private', 'json_ld', 'hibid', array['WI','IL'],
- false, false, false, true, true,
+ false, false, false, true, false,
  'Beloit, WISCONSIN (not Kansas - see the warning below). 50+ years, southern WI and northern IL. Bidding at bids.beloitauction.com, which is a WHITE-LABEL HiBid instance on a custom domain: same platform, different hostname. Proof that adapters must key on platform, not on domain.',
  10, false, false, 60, 16,
  null, 'Southern Wisconsin estate and real estate auctions.',
@@ -241,7 +248,7 @@ insert into sources (
 
 ('wisconsin-auction-co', 'Wisconsin Auction Company', 'https://auctionwi.hibid.com',
  null, 'private', 'json_ld', 'hibid', array['WI'],
- false, false, false, true, true,
+ false, false, false, true, false,
  'HiBid tenant.',
  10, false, false, 60, 18,
  null, 'Wisconsin general auctions.',
@@ -258,7 +265,7 @@ insert into sources (
 
 ('schrager', 'Schrager Auction Galleries', 'https://www.schragerauction.com',
  null, 'private', 'internal_json', 'invaluable', array['WI'],
- false, false, false, false, true,
+ false, false, false, false, false,
  'Milwaukee, WI (2915 N Sherman Blvd). Lists via Invaluable. Own-domain URL not confirmed this session.',
  10, false, false, 60, 48,
  null, 'Milwaukee estate and fine art auctions.',
@@ -367,7 +374,7 @@ insert into sources (
 
 ('bidspotter', 'BidSpotter', 'https://www.bidspotter.com',
  null, 'private', 'html', 'atg', null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'Auction Technology Group marketplace: commercial, industrial and business-liquidation sales from many houses. No Wisconsin sellers found by research (docs/07); kept for industrial equipment coverage.',
  10, true, false, 60, 60,
  null, 'Industrial and commercial auctions from many auction houses.',
@@ -415,7 +422,7 @@ insert into sources (
 
 ('shopgoodwill', 'ShopGoodwill', 'https://shopgoodwill.com',
  null, 'private', 'internal_json', 'shopgoodwill', null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'Nonprofit online auctions from Goodwill stores nationwide. Thin, hurried descriptions and real photos make it one of the best SLEEPER sources there is. Most lots ship.',
  10, true, false, 60, 32,
  null, 'Goodwill online auctions; ships nationwide.',
@@ -423,7 +430,7 @@ insert into sources (
 
 ('jones-auction-service', 'Jones Auction Service', 'https://jonesauctionservice.hibid.com',
  null, 'private', 'json_ld', 'hibid', array['WI'],
- false, false, false, true, true,
+ false, false, false, true, false,
  'HiBid tenant (jonesauctionservice). Location unconfirmed by research (docs/07, confidence low): verify it is the Wisconsin company before trusting the state.',
  10, false, false, 60, 22,
  null, 'Wisconsin auction house on HiBid.',
@@ -431,7 +438,7 @@ insert into sources (
 
 ('smith-auctions', 'Smith Auctions', 'https://smithauctions.hibid.com',
  null, 'private', 'json_ld', 'hibid', array['WI','MN'],
- false, false, false, true, true,
+ false, false, false, true, false,
  'HiBid tenant (smithauctions, "Smith Sales LLC"). Location unconfirmed by research (docs/07, confidence low).',
  10, false, false, 60, 24,
  null, 'Upper-Midwest auction house on HiBid.',
@@ -454,26 +461,9 @@ insert into sources (
  null, 'Wholesale liquidation lots.',
  'https://www.liquidation.com/robots.txt', null)
 
-on conflict (slug) do update set
-  name            = excluded.name,
-  url             = excluded.url,
-  api_base        = excluded.api_base,
-  tier            = excluded.tier,
-  ingest          = excluded.ingest,
-  platform        = excluded.platform,
-  states          = excluded.states,
-  has_api         = excluded.has_api,
-  has_rss         = excluded.has_rss,
-  ingest_allowed  = excluded.ingest_allowed,
-  ingest_note     = excluded.ingest_note,
-  rate_limit_rpm  = excluded.rate_limit_rpm,
-  requires_js     = excluded.requires_js,
-  auth_required   = excluded.auth_required,
-  crawl_cadence_min = excluded.crawl_cadence_min,
-  priority        = excluded.priority,
-  search_template = excluded.search_template,
-  description     = excluded.description,
-  robots_url      = excluded.robots_url;
-  -- Deliberately NOT overwriting robots_allows or verified: once a human has
-  -- recorded a robots verdict or verified a source, re-running this seed must not
-  -- silently revoke or re-grant it.
+on conflict (slug) do nothing;
+  -- A row that exists is never changed by this file. The live registry is kept
+  -- by migrations (0019 onward): terms holds with their verbatim clauses (0020,
+  -- 0022), platforms, states, pacing and robots verdicts. Re-running an upsert
+  -- here would silently undo them; with DO NOTHING, re-running only adds rows
+  -- the database lacks.
