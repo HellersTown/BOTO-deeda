@@ -130,6 +130,33 @@ has authorized it.
 
 ---
 
+## 1a. Terms of use as read on 2026-09-30
+
+The table below was first written from a search index. On 2026-09-30 the terms
+of the five sources then live in production were read directly, through
+`inspect_url` as WaystockBot (every page answered 200; none was refused). The
+rule applied is the one this document already applies to HiBid: **terms that
+expressly forbid automated collection make a source RED until the operator
+gives written permission or the owner decides otherwise.** Held sources keep
+`ingest_allowed = false` (migrations 0019, 0020) and stay available as deep
+links.
+
+| Source | Terms read | Verdict | Clause (verbatim) |
+|---|---|---|---|
+| Public Surplus | Buyer Agreement, `/sms/all,wi/login/plainTermsAndConditions` (undated) | **PROHIBITS** (RED, held) | §1.5(v): "You will not use any robot, spider, other automatic device, or manual process to monitor or copy our web pages or the content contained herein without our prior express written permission". Acceptance is tied to registering, but the agreement also says "IF YOU DO NOT AGREE TO ACCEPT THIS AGREEMENT, YOU MAY NOT ACCESS THE SITE". |
+| Wisconsin Surplus | User Agreement & Terms of Use, `wisconsinsurplus.com/terms-2/` (modified 2024-10-23) | **PROHIBITS** (RED, held) | Legal 21: "You agree that you will not use any robot, spider, other automatic device, or manual process to monitor or copy the Site or the content contained herein without Wisconsin Surplus' prior, express written permission." Legal 1: "BY ACCESSING THIS SITE, YOU, THE BIDDER, AGREE". |
+| Municibid | Terms of Use, `info.municibid.com/terms` (updated 05/04/26) | **PROHIBITS** (RED, held) | §c prohibits "Accessing or attempting to access the Website through automated means" and "Scraping, reproducing, republishing, selling, reselling, duplicating, or trading the Website or its content". The MCP connector is "for discovery and research only" and is not carved out; the only route named is "a separate written agreement". |
+| PropertyRoom | User Agreement (Freshdesk articles, 2019-09-27; Conduct of Users 2020-06-24) | **AMBIGUOUS** (on) | No clause on automated access. Conduct of Users: "nor will you redeliver any content using framing, hyperlinks, or other technology without PropertyRoom.com's express written permission". A public app should link out, not show their photos. |
+| Hansen Auction Group (BidWrangler) | Per-auction Terms (undated); no site-wide page; BidWrangler's platform terms not retrievable | **AMBIGUOUS** (on) | No clause on automated access. "Media used on Hansen Auction Group's bidding platform or marketing platforms cannot be used by customers." |
+
+What this means for Wisconsin coverage: of the platforms carrying most
+Wisconsin public-sector inventory, every one read so far (HiBid, Public
+Surplus, Wisconsin Surplus, Municibid, and GovDeals behind Akamai) is closed to
+an unpermitted crawler. The route is the one section 1 names: written
+permission or a feed from each operator. Wisconsin Surplus in particular
+describes itself as the State of Wisconsin DOA's contracted auction vendor, so
+a request that cites public-sector transparency has a reasonable chance.
+
 ## 2. Summary table
 
 Postures: **GREEN** (sanctioned or public-domain, no block) · **YELLOW**

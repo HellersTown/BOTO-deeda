@@ -18,7 +18,7 @@ This document re-checks every instruction the owner has given against what actua
 
 | # | Instruction (owner's words, condensed) | Status | Evidence / what remains |
 |---|---|---|---|
-| 1 | Centralized auction aggregator, mobile + web | PARTIAL | The data platform is live in Supabase. `platform/web` is an installable web app (PWA): search, lot detail, hunts, bids, alerts, profile. It is not deployed to a public URL yet, and is being restyled to the approved concept (row 34). |
+| 1 | Centralized auction aggregator, mobile + web | PARTIAL | The data platform is live in Supabase. `platform/web` is an installable web app (PWA) restyled to the approved concept: search, lot detail, hunts, bids, alerts, profile, onboarding and the pickup run (122 tests, clean build). It is not deployed to a public URL yet. |
 | 2 | Profiles and logins | DONE | Supabase Auth (magic link and password) and `profiles` with RLS. The app has sign-in, a profile page (home ZIP, radius, notifications, quiet hours, plan) and an auth callback. Column privileges are hardened (0009). |
 | 3 | Manage bids; deep link to bid direct at snipe time | DONE | The Bids page tracks watching, bid placed and closed lots, with exposure against a budget. "Bid on <source>" opens the lot on the auction's own site. No platform offers a bidding API except eBay's limited-release one, so "bid direct" is a deep link. |
 | 4 | Alerts | PARTIAL | In-app alerts are live (Realtime, unread badge): hunt matches, hunt digests, closing-soon reminders, outbid and sold notices (0013), queued every 30 s. **Email alerts are queued but not sent: BLOCKED on an email provider key (e.g. Resend).** Web push is not built. |
@@ -29,14 +29,14 @@ This document re-checks every instruction the owner has given against what actua
 | 9 | eBay + Facebook Marketplace | PARTIAL | Facebook Marketplace and Craigslist are deep-link only, never crawled (policy + DB). **eBay is BLOCKED on the owner re-enabling the eBay production keyset;** the Browse API is the only eBay route. |
 | 10 | Hold wholesale | DONE | B-Stock, Liquidation.com and Nellis are registered but inactive. |
 | 11 | Better name | DONE | The owner chose **Skeuos** (2026-09-30). The brand idea is equipping for a long journey, and the app never explains the name (row 34). The crawler still identifies as `WaystockBot/0.1 (+https://waystock.org/bot)` until a Skeuos domain exists. |
-| 12 | Monitor and scrape Wisconsin auction houses and estate sales by ZIP | IN PROGRESS | 46 sources registered, plus 181 Wisconsin sellers catalogued (`docs/07`). GSA is ingested. Connectors for the open Wisconsin sources are being built from live pages (row 33). |
+| 12 | Monitor and scrape Wisconsin auction houses and estate sales by ZIP | PARTIAL | 46 sources registered, plus 181 Wisconsin sellers catalogued (`docs/07`). Live and verified: GSA (federal) and Hansen Auction Group (private, 225 Wisconsin lots, all placed on the map). PropertyRoom is live. Adapters built, tested and verified on live pages but HELD on terms of use: HiBid, Public Surplus, Wisconsin Surplus, Municibid (row 33). |
 | 13 | 24/7 tool plus hosting | DONE | Supabase hosts the DB and Edge Functions. 7 pg_cron jobs (0014): hourly probe, crawl every 5 min (claims only due sources), hunt matcher and watch alerts every 30 s, close expired, sleeper refresh, housekeeping. |
 | 14 | See who is bidding against you | LATER | `bid_events` and `rivals` tables exist, paywalled by tier. Needs sources that publish bid history; GSA publishes bidder counts only. |
 | 15 | Industry bidding strategies | DONE | `docs/06` (21 strategies, a max-bid formula, a JSON rules spec) and `packages/strategy`, the engine (168 tests). The lot page shows the walk-away number ("count the cost"), what to type in, and the plan, with unverified values tagged. |
 | 16 | Natural-language search ("DJI drone with thermal") | DONE | `packages/query` (100 tests) turns a description into search parameters and a hunt. Search and hunts use its synonym and model-variant groups (0018): "chevy pickup truck" found 0 live lots before and 17 after. |
 | 17 | Image search (coins, gems, sleepers) | BLOCKED | `lot_images.clip_embedding`, an HNSW index and `match_lots_by_image` exist, and image hunts are wired into the matcher. There is no embedding provider: it needs an owner-supplied key (an image-embedding API, or a vision model to describe photos). |
 | 18 | Self-sufficiency theme | DONE (design) | Expressed through the concept (row 34): tools, provisions and gear; onboarding asks what you are gathering (generators, woodstoves, canning, fencing, tractors...). |
-| 19 | Federal/state/local/private; private houses matter | IN PROGRESS | Our own probe found HiBid open to our crawler (earlier third-party reports said otherwise). The HiBid adapter covers most Wisconsin private houses (row 33). |
+| 19 | Federal/state/local/private; private houses matter | PARTIAL | Hansen Auction Group is live on BidWrangler. HiBid (82 open Wisconsin auctions, 24,565 lots) is open to our crawler and its adapter is built and tested, but its terms forbid automated collection and aggregation, so it waits for the owner or a partnership (`docs/10`). |
 | 20 | The earlier Waystock UI had connection problems | DONE (diagnosed) | Cause: client-side calls straight to sources, which block browsers and datacenters. Fixed by design: sources are contacted only server-side by the scheduler; the app reads our own database. |
 | 21 | Tier = number of standing searches; searches run for items that don't exist yet | DONE | The hunt matcher runs every 30 s within each tier's latency, sends one digest on a hunt's first run, then one alert per new match (up to 5) plus a digest for the rest. It keys on `lots.updated_at`, which moves only on a material change, so unchanged lots never re-alert. |
 | 22 | Auto mode | DONE | Owner set it. |
@@ -48,24 +48,26 @@ This document re-checks every instruction the owner has given against what actua
 | 28 | Ping monitored sites at least hourly; host internal data for active searchers | DONE | Hourly probe of every source; the database refuses any crawl cadence over 60 minutes; searches run against our own hosted copy. |
 | 29 | Bidding strategies from professional resellers and auctioneers | DONE | Row 15. Practitioner rules of thumb are tagged UNVERIFIED and never shown as fact. |
 | 30 | Natural-language search with image search alongside | PARTIAL | NL search done (row 16); image search blocked (row 17). |
-| 31 | Every federal, state, local, private and estate source; hold wholesale | IN PROGRESS | Rows 12, 19 and 33. |
-| 32 | Contact live sites and verify the tool works | PARTIAL | Every source is contacted hourly. GSA ingest is live (1,009 lots). Each new adapter is built from pages fetched live through our crawler (`inspect-page`) and must be verified by a live crawl before it counts. |
-| 33 | "Begin building out every single auction site, starting with federal, state, local and private auctions in Wisconsin" (2026-09-30) | IN PROGRESS | Order: federal (GovPlanet), state (Wisconsin Surplus Online Auction), local (Public Surplus, Municibid, PropertyRoom), private (HiBid, Hansen, Proxibid, BidSpotter). Every adapter request passes the crawl gate (robots.txt per URL, per-host pacing, stop on any bot-manager challenge). |
-| 34 | Name it Skeuos; don't explain the name in the app; build the concept designs on its meaning (God's people equipping themselves before a long journey) | PARTIAL | Concept designs published: brand board ("Provisioned": the pack mark, pine / ember / brass / canvas, Zilla Slab / Public Sans / IBM Plex Mono), signature pieces and voice, 11 screens including onboarding ("Before you set out") and the pickup run. The app's rebrand to match is in progress; the /about page is being removed. |
+| 31 | Every federal, state, local, private and estate source; hold wholesale | IN PROGRESS | Rows 12, 19 and 33. Most Wisconsin public-sector inventory sits on platforms whose terms require written permission (`docs/08` §1a); the requests are drafted in `docs/10`. |
+| 32 | Contact live sites and verify the tool works | PARTIAL | Every source is contacted hourly. Verified by live crawls on 2026-09-30: GSA (1,067 lots), Hansen (225 lots from 61 sales, exact close times, premium and card fee parsed), Wisconsin Surplus (94 sales from state agencies, UW campuses and school districts), Public Surplus (105 lots in one 201 s background run, 100 requests). The last two are now held on their terms. |
+| 33 | "Begin building out every single auction site, starting with federal, state, local and private auctions in Wisconsin" (2026-09-30) | PARTIAL | Built: Wisconsin Surplus, Public Surplus, Municibid, PropertyRoom, BidWrangler (Hansen), HiBid, each from live pages, 291 tests, behind the crawl gate. Live: Hansen, PropertyRoom (plus GSA). Held on terms of use until written permission or an owner decision: HiBid, Public Surplus, Wisconsin Surplus, Municibid. Closed to us: GovPlanet (AWS WAF CAPTCHA), Proxibid (Imperva; no way to scope to Wisconsin). Not yet built: BidSpotter (8 Wisconsin catalogues, open to us). |
+| 34 | Name it Skeuos; don't explain the name in the app; build the concept designs on its meaning (God's people equipping themselves before a long journey) | DONE | Concept designs published (brand board "Provisioned", signature pieces, 11 screens). The app is restyled to match; the /about page is gone and a test keeps any explanation of the name out of the source, shipped files and README. |
 | 35 | "Stop asking me to commit. Just do it." | DONE | Work is committed and pushed as it is finished. |
-| 36 | Full Supabase permissions (2026-09-30) | DONE | Used for migrations 0016 to 0018, the gazetteer load and deploys. |
+| 36 | Full Supabase permissions (2026-09-30) | DONE | Used for migrations 0016 to 0020, the gazetteer load, and the crawl-worker, crawl-public and crawl-private deploys. |
 
 ## Direction check
 
 Coverage is the product. The work in flight, in order:
 
-1. **Wisconsin connectors (row 33).** The adapters are built from live pages, then integrated behind the crawl gate, deployed, and verified by a live crawl.
-2. **The app rebrand (row 34),** then a public deployment of the app.
-3. **Blocked on the owner:**
+1. **Permission for the held Wisconsin sources (rows 19, 33).** The adapters are built and verified; what is missing is each operator's written permission (drafts in `docs/10`), or an owner decision on their terms.
+2. **Open sources not yet built:** BidSpotter's 8 Wisconsin catalogues, then Purple Wave, ShopGoodwill and the federal sale pages (Treasury).
+3. **A public deployment of the app.** Before publishing, sources that restrict redisplaying content (PropertyRoom, Hansen) should link out rather than show their photos.
+4. **Blocked on the owner:**
+   - the HiBid terms decision, and the Wisconsin Surplus session-cookie decision for lot-level data;
    - an email provider key (row 4);
    - the eBay keyset (row 9);
    - an image embedding or vision key (row 17);
    - a GSA API key, to replace the shared demo key;
    - a Skeuos domain for the crawler's identity (row 11).
 
-Nothing in flight is off-requirement. The lawful answer to sites that refuse our crawler stays the same: deep links, licensed data, partnerships. Never bypassing bot protection.
+Nothing in flight is off-requirement. The lawful answer to sites that refuse our crawler, by bot protection or by their terms, stays the same: deep links, licensed data, partnerships. Never bypassing bot protection.
