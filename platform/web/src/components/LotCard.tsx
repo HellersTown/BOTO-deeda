@@ -1,35 +1,36 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { LotSummary } from '../data/lotSummary';
-import { formatMiles } from '../lib/distance';
-import { formatCents } from '../lib/money';
 import { ClosePill } from './ClosePill';
 import { Photo } from './Photo';
-import { TierBadge } from './TierBadge';
-
-/**
- * Show "Treasure in plain sight" from this sleeper score (0-10, compute_sleeper
- * in 0006). A design threshold: a thin description, little bidding and enough
- * photos to judge it together reach about 6.
- */
-export const TREASURE_MIN_SCORE = 5;
+import { DistanceTag, isWorthTheTrip, PriceTag, TierTag, WorthTheTrip } from './Tags';
 
 /** What the lot page needs from the card that linked to it. */
 export interface LotLinkState {
   readonly distanceMiles: number | null;
+  /** The distance was measured to a city's centroid (0016), so it is approximate. */
+  readonly distanceApprox?: boolean;
   readonly from: string;
 }
 
-export function priceText(lot: Pick<LotSummary, 'currentBidCents' | 'nextBidCents'>): string {
-  if (lot.currentBidCents !== null) return formatCents(lot.currentBidCents);
-  if (lot.nextBidCents !== null) return `Opens at ${formatCents(lot.nextBidCents)}`;
-  return 'No price listed';
-}
-
-export function whereText(lot: Pick<LotSummary, 'city' | 'state' | 'distanceMiles' | 'ships' | 'matchBasis'>): string {
+/** "Milwaukee, WI · pickup": where, and how it gets home. The distance is shown beside it, as a tag. */
+export function whereText(lot: Pick<LotSummary, 'city' | 'state' | 'ships' | 'matchBasis'>): string {
   const place = lot.city && lot.state ? `${lot.city}, ${lot.state}` : (lot.city ?? lot.state);
   const how = lot.ships ? (lot.matchBasis === 'ships_to_you' ? 'ships to you' : 'ships') : 'pickup';
-  return [place, lot.distanceMiles !== null ? formatMiles(lot.distanceMiles) : null, how].filter(Boolean).join(' · ');
+  return [place, how].filter(Boolean).join(' · ');
+}
+
+/** The price as the card shows it: the current bid, else the opening bid; nothing is invented. */
+function CardPrice({ lot }: { lot: Pick<LotSummary, 'currentBidCents' | 'nextBidCents'> }) {
+  if (lot.currentBidCents !== null) return <PriceTag cents={lot.currentBidCents} />;
+  if (lot.nextBidCents !== null) {
+    return (
+      <span className="lot-card__opens">
+        <span className="lot-card__opens-label">Opens at</span> <PriceTag cents={lot.nextBidCents} />
+      </span>
+    );
+  }
+  return <span className="lot-card__no-price">No price listed</span>;
 }
 
 export function LotCard({
@@ -48,23 +49,34 @@ export function LotCard({
   footer?: ReactNode;
 }) {
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
-  const state: LotLinkState = { distanceMiles: lot.distanceMiles, from };
-  const treasure = lot.sleeperScore !== null && lot.sleeperScore >= TREASURE_MIN_SCORE;
+  const state: LotLinkState = { distanceMiles: lot.distanceMiles, distanceApprox: lot.distanceApprox, from };
+  const worth = isWorthTheTrip(lot.sleeperScore);
   return (
     <article className={`lot-card lot-card--${layout}${lot.closed ? ' lot-card--closed' : ''}`}>
       <Link to={`/lot/${lot.id}`} state={state} className="lot-card__link">
         <Photo src={lot.imageUrl} alt="" className="lot-card__photo" />
         <div className="lot-card__body">
           <div className="lot-card__meta">
-            <TierBadge tier={lot.sourceTier} />
+            <TierTag tier={lot.sourceTier} />
             {lot.sourceName ? <span className="lot-card__source">{lot.sourceName}</span> : null}
+            {worth ? <WorthTheTrip className="lot-card__worth lot-card__worth--meta" /> : null}
           </div>
           <Heading className="lot-card__title">{lot.title}</Heading>
-          <p className="lot-card__where">{whereText(lot)}</p>
-          {treasure ? <p className="treasure">Treasure in plain sight</p> : null}
+          <p className="lot-card__where">
+            {lot.distanceMiles !== null ? (
+              <>
+                <DistanceTag miles={lot.distanceMiles} approximate={lot.distanceApprox} />
+                <span aria-hidden="true"> · </span>
+              </>
+            ) : null}
+            <span>{whereText(lot)}</span>
+          </p>
           <div className="lot-card__foot">
-            <span className="lot-card__price">{priceText(lot)}</span>
-            <ClosePill closesAt={lot.closesAt} precision={lot.closePrecision} timeZone={lot.timeZone} closed={lot.closed} now={now} />
+            <CardPrice lot={lot} />
+            {worth ? <WorthTheTrip className="lot-card__worth lot-card__worth--foot" /> : null}
+            <span className="lot-card__close">
+              <ClosePill closesAt={lot.closesAt} precision={lot.closePrecision} timeZone={lot.timeZone} closed={lot.closed} now={now} />
+            </span>
           </div>
         </div>
       </Link>
