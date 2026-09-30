@@ -23,7 +23,16 @@ const WATCH_SELECT = `${WATCH_COLUMNS},
     meta:raw->_meta,
     source:sources(name, tier, platform),
     category:categories(slug),
-    auction:auctions(id, timezone, format, pickup_required, pickup_postal_code, buyer_premium_pct))` as const;
+    auction:auctions(id, timezone, format, pickup_required, pickup_line1, pickup_city, pickup_state, pickup_postal_code,
+      buyer_premium_pct, seller_name, auctioneer))` as const;
+
+/** Where an auction says its lots are collected (auctions.pickup_*). */
+export interface AuctionPickup {
+  readonly line1: string | null;
+  readonly city: string | null;
+  readonly state: string | null;
+  readonly postalCode: string | null;
+}
 
 export interface WatchedLot {
   readonly id: string;
@@ -58,6 +67,12 @@ export interface WatchedLot {
   readonly auctionFormat: AuctionFormat | null;
   readonly pickupRequired: boolean | null;
   readonly buyerPremiumPct: number | null;
+  /** The lot's own pickup ZIP (lots.pickup_postal_code); `postalCode` falls back to the auction's. */
+  readonly ownPostalCode?: string | null;
+  /** The auction's pickup address, for the pickup run. */
+  readonly auctionPickup?: AuctionPickup | null;
+  /** Who is selling: auctions.seller_name, else the auctioneer. */
+  readonly sellerName?: string | null;
 }
 
 export interface WatchEntry {
@@ -111,6 +126,16 @@ export async function listMyWatchlist(userId: string): Promise<WatchEntry[]> {
           buyerPremiumPct: lot.auction?.buyer_premium_pct === null || lot.auction?.buyer_premium_pct === undefined
             ? null
             : Number(lot.auction.buyer_premium_pct),
+          ownPostalCode: lot.pickup_postal_code,
+          auctionPickup: lot.auction
+            ? {
+                line1: lot.auction.pickup_line1,
+                city: lot.auction.pickup_city,
+                state: lot.auction.pickup_state,
+                postalCode: lot.auction.pickup_postal_code,
+              }
+            : null,
+          sellerName: lot.auction?.seller_name ?? lot.auction?.auctioneer ?? null,
         }
       : null,
   }));

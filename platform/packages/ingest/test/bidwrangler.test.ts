@@ -16,6 +16,7 @@ import {
   itemWalkDone,
   normalizeBwAuction,
   normalizeBwItem,
+  openFirstOrderHolds,
   parseAuctionsPage,
   parseBuyerPremium,
   parseCardFeePct,
@@ -270,6 +271,11 @@ test('the auction walk stops at the completed history, not after 69 pages', () =
   // auctions sort first), so every later page is history too.
   const history = { ...p2, records: [{ ...p2.records[0], complete: true }] };
   assert.equal(auctionWalkDone(history, 2), true);
+  // If the sort ever changes (an open sale after a completed one), the early
+  // stop is not trusted: a full page keeps the walk going.
+  const shuffled = { ...p2, perPage: 2, records: [{ ...p2.records[0], complete: true }, p2.records[0]] };
+  assert.equal(openFirstOrderHolds(shuffled.records), false);
+  assert.equal(auctionWalkDone(shuffled, 2), false);
 });
 
 test('the item walk pages until the server\'s total is reached', () => {

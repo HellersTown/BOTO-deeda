@@ -285,15 +285,29 @@ export const parseAuctionsPage = (body: unknown) => parseEnvelope(body, 'auction
 export const parseItemsPage = (body: unknown) => parseEnvelope(body, 'items');
 
 /**
+ * True when, within one page, every open auction precedes every completed one:
+ * the ordering the early stop below relies on. Checked on every page so a
+ * change in BidWrangler's sort is noticed instead of silently losing sales.
+ */
+export function openFirstOrderHolds(records: BwRecord[]): boolean {
+  let seenComplete = false;
+  for (const r of records) {
+    if (r.complete === true) seenComplete = true;
+    else if (seenComplete) return false;
+  }
+  return true;
+}
+
+/**
  * Should the /api/auctions walk stop after this page?
  *
  * Open auctions come first, so the first completed record means every later
- * page is history. The other conditions make the walk finish even if that
- * ordering ever changes, and maxListPages bounds it absolutely.
+ * page is history, but only while that ordering demonstrably holds. The other
+ * conditions end the walk regardless, and maxListPages bounds it absolutely.
  */
 export function auctionWalkDone(parsed: BwPage<BwRecord>, pageNo: number): boolean {
   if (parsed.records.length === 0) return true;
-  if (parsed.records.some((a) => a.complete === true || a.archived === true)) return true;
+  if (parsed.records.some((a) => a.complete === true) && openFirstOrderHolds(parsed.records)) return true;
   const per = parsed.perPage ?? BW_AUCTIONS_PER_PAGE;
   if (parsed.records.length < per) return true;
   if (parsed.total !== null && pageNo * per >= parsed.total) return true;
@@ -716,6 +730,13 @@ export async function runBidwrangler(
     const parsed = parseAuctionsPage(json.value);
     warnings.push(...parsed.warnings);
     listed.push(...parsed.records);
+    if (!openFirstOrderHolds(parsed.records)) {
+      warnings.push(
+        `Auction list page ${page} mixes open and completed sales out of order; ` +
+          'the early stop is disabled and this run is not a complete snapshot.',
+      );
+      complete = false;
+    }
     if (auctionWalkDone(parsed, page)) break;
     if (page >= maxListPages) {
       warnings.push(`Stopped the auction list at ${maxListPages} pages with open auctions still coming.`);
