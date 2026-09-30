@@ -1,6 +1,7 @@
 /**
- * Line icons from the design (24 x 24, round caps). All are decorative
- * (aria-hidden): every control that uses one also carries a text label.
+ * Line icons from the design (Kit.dc.html; 24 x 24, round caps). All are
+ * decorative (aria-hidden): every control that uses one also carries a text
+ * label.
  */
 import type { ReactElement, SVGProps } from 'react';
 
@@ -33,11 +34,11 @@ export const SearchIcon = (p: IconProps) => (
   </Svg>
 );
 
-export const HuntIcon = (p: IconProps) => (
+/** The compass: the Hunts tab. */
+export const CompassIcon = (p: IconProps) => (
   <Svg {...p}>
-    <circle cx="12" cy="12" r="8" />
-    <circle cx="12" cy="12" r="3" />
-    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+    <circle cx="12" cy="12" r="9" />
+    <path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z" />
   </Svg>
 );
 
@@ -63,10 +64,29 @@ export const PersonIcon = (p: IconProps) => (
   </Svg>
 );
 
-export const PinIcon = (p: IconProps) => (
+/** The trail: distance, and where you set out from. */
+export const TrailIcon = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" />
-    <circle cx="12" cy="9.5" r="2.5" />
+    <path d="M6 21c0-5 12-4 12-9s-8-4-8-9" strokeDasharray="2.5 3.5" strokeLinejoin="miter" />
+    <circle cx="10" cy="3.5" r="1.6" fill="currentColor" stroke="none" />
+  </Svg>
+);
+
+/** The truck: pickup. */
+export const TruckIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M2 6h12v10H2z" />
+    <path d="M14 10h4l3 3v3h-7" />
+    <circle cx="6.5" cy="17.5" r="2" />
+    <circle cx="17" cy="17.5" r="2" />
+  </Svg>
+);
+
+/** The price tag: fees and costs. */
+export const PriceIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 11.5V4h7.5L21 14.5 13.5 22z" />
+    <circle cx="7.5" cy="8" r="1.5" />
   </Svg>
 );
 
@@ -114,11 +134,5 @@ export const CameraIcon = (p: IconProps) => (
 export const FilterIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M4 6h16M7 12h10M10 18h4" />
-  </Svg>
-);
-
-export const SparkIcon = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
   </Svg>
 );
