@@ -27,9 +27,11 @@ export const FUNCTION_LIBS = {
   // surplus, police property.
   'crawl-public': [
     ...WORKER_CORE,
+    'jsonld.ts',
     'adapters/public-surplus.ts',
     'adapters/wisconsin-surplus.ts',
     'adapters/propertyroom.ts',
+    'adapters/municibid.ts',
   ],
   // Private auction houses on their own bidding platforms.
   'crawl-private': [...WORKER_CORE, 'adapters/bidwrangler.ts'],

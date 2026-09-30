@@ -67,8 +67,9 @@
  *    "A 3.75% credit card convenience fee" in the text.
  * 7. Weight: ~14 KB per item, almost all of it four signed CDN URLs per photo.
  *    A full Wisconsin refresh for Hansen is ~15 MB, so a run is budgeted (see
- *    planAuctions): lots closing within 24 hours always, then a rotating slice
- *    of the rest. A run is a complete snapshot only when it got everything.
+ *    planAuctions and BW_DEFAULTS): lots closing within 24 hours always, then a
+ *    rotating slice of the rest when the budget cannot cover everything. A run
+ *    is a complete snapshot only when it got everything.
  * 8. Politeness: the crawl gate spaces requests by sources.rate_limit_rpm (or
  *    the host's Crawl-delay). run() also spaces its own by 60s / rate_limit_rpm
  *    (capped at 10 s), so it stays polite behind any fetcher, including tests'.
@@ -103,9 +104,12 @@ export const BW_EST_BYTES_PER_ITEM = 15_000;
 /** Images kept per lot, in source order. The deep link shows the rest. */
 export const BW_MAX_IMAGES = 20;
 
+// A background run of the crawl worker may start requests for about 225 s: at
+// 20 rpm that is ~70 requests. Hansen's ~60 open Wisconsin sales fit in one
+// run (first live run, 2026-09-30: 24 requests reached 21 of 61 sales).
 export const BW_DEFAULTS = {
-  maxRequests: 24,
-  maxBytes: 8_000_000,
+  maxRequests: 70,
+  maxBytes: 20_000_000,
   maxListPages: 3,
   itemsPerPage: BW_ITEMS_PER_PAGE,
   /** An auction closing within this window is refreshed on every run. */
