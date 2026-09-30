@@ -180,7 +180,24 @@ The second wave, read the same day (0022):
 | LiveAuctioneers | Terms and Conditions (2025-03-26) | **PROHIBITS** (held) | §8: "You agree that you will not use any robot, spider, scraper, or other automated means to access the sites for any purpose without our express written permission." |
 | Invaluable (and Schrager, which sells there) | Terms of Use v3.11 (2019-11-05) | **PROHIBITS** (held) | §5.2: "you will not use any robot, spider, other automatic device, or manual process to monitor or copy our web pages or the content contained herein without our prior expressed written permission." |
 | K-BID | Not retrievable | Blocked | robots.txt and the home page answer HTTP 403 (awselb) to our crawler. |
-| AuctionGuide | None published (`/terms/` is 404) | **PERMITS search use** (building) | robots.txt: "As a condition of accessing this website, you agree to abide by the following content signals": `search=yes, ai-train=no, use=reference`. Search means a search index returning hyperlinks and short excerpts; `/search/` and `/calendar/` are disallowed. Built as sale-level rows (0023): one row per sale, a short excerpt, a link to the sale. |
+| AuctionGuide | None published (`/terms/` is 404) | **PERMITS search use** (live) | robots.txt: "As a condition of accessing this website, you agree to abide by the following content signals": `search=yes, ai-train=no, use=reference`. Search means a search index returning hyperlinks and short excerpts; `/search/` and `/calendar/` are disallowed. Built as sale-level rows (0023): one row per sale, a short excerpt with street addresses and phone numbers removed, a link to the sale. Live for Wisconsin and its four neighbours (0027). |
+
+The third wave, read the same day with inspect-page's `find` option, which
+returns every passage matching a pattern in one request (0028). These were the
+registered sources still marked permitted whose terms no one had read
+first-hand:
+
+| Source | Terms read | Verdict | Clause (verbatim) |
+|---|---|---|---|
+| EstateSales.NET (Vintage Software, LLC) | Terms of Service (effective 2025-10-01), `/terms-of-service` | **PROHIBITS** (held) | Expressly prohibited: "using or attempting to use any engine, software, tool, agent, or other device or mechanism (including without limitation browsers, spiders, robots, avatars, or intelligent agents) to harvest or otherwise collect information from the Service for any use". |
+| IronPlanet (RB Group) | Terms and Conditions, `/pop/terms_page.jsp` | **PROHIBITS** (held) | §1.3(c): you will not "use any robot, spider, scraper, data mining tool, data gathering or extraction tool, or any other automated means to access, collect, copy, or record the Services". Ritchie Bros and GovPlanet are RB Group too, and already refuse our crawler (Akamai 403, AWS WAF CAPTCHA); they are held on the same terms. |
+| EstateSales.org | Not readable by a crawler | Held as a precaution | robots.txt disallows `/terms` and `/privacy` for every user agent, so our tools do not read them. A third-party audit [G52] quotes §4.1 barring scraping, with liquidated damages of $0.25 a page and $3,000 a day for aggregation. Read them in a browser before any request for permission. |
+| Proxibid | Unified User Agreement and Data Use Agreement, both PDFs (`/docs/ProxibidUUA.pdf`) | Held as a precaution | The agreements are published only as PDFs, which inspect-page does not read. The same company's BidSpotter terms forbid "any data mining, robots or similar data gathering or extraction methods" (second wave). |
+
+While a source is held, the hourly probe reads only its robots.txt, which sites
+publish for crawlers to read, and does not fetch its pages: several of these
+terms forbid automated access "for any purpose". The source keeps the access
+verdict of its last full probe.
 
 What this means for Wisconsin coverage: of the platforms carrying most
 Wisconsin public-sector inventory, every one read so far (HiBid, Public

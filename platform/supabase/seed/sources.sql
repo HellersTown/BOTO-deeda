@@ -18,9 +18,10 @@
 -- Sources whose terms forbid automated collection are seeded with
 -- ingest_allowed = false (HiBid and its Wisconsin tenants, Public Surplus,
 -- Wisconsin Surplus, Municibid, BidSpotter, Purple Wave, ShopGoodwill,
--- LiveAuctioneers, Invaluable, Schrager): a fresh database runs its migrations
--- before this file, so the holds of 0019, 0020 and 0022 must be here too. The
--- clauses behind each hold are quoted in docs/08 section 1a.
+-- LiveAuctioneers, Invaluable, Schrager, EstateSales.NET, EstateSales.org,
+-- IronPlanet, Ritchie Bros, GovPlanet, Proxibid): a fresh database runs its
+-- migrations before this file, so the holds of 0019, 0020, 0022 and 0028 must
+-- be here too. The clauses behind each hold are quoted in docs/08 section 1a.
 --
 -- Idempotent: safe to re-run. Rows that already exist are left untouched.
 
@@ -81,7 +82,7 @@ insert into sources (
 
 ('govplanet', 'GovPlanet', 'https://www.govplanet.com',
  null, 'federal', 'internal_json', 'ritchie-bros', null,
- false, false, false, false, true,
+ false, false, false, false, false,
  'Ex-military vehicles and equipment. URL not independently confirmed this session.',
  20, true, false, 60, 45,
  null, 'Ex-military vehicles, parts and equipment.',
@@ -147,7 +148,7 @@ insert into sources (
 
 ('proxibid', 'Proxibid', 'https://www.proxibid.com',
  null, 'private', 'internal_json', 'proxibid', null,
- false, false, false, false, true,
+ false, false, false, false, false,
  'Mid and large houses, equipment-heavy. URL not independently confirmed this session.',
  20, true, false, 60, 30,
  null, 'Live and timed auctions, equipment and collectibles.',
@@ -285,7 +286,7 @@ insert into sources (
 
 ('estatesales-net', 'EstateSales.NET', 'https://www.estatesales.net',
  null, 'estate', 'internal_json', 'estatesales-net', null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'Category leader. Its map/radius UX is well reviewed - study it as a UX reference for our own zip filter.',
  15, true, false, 60, 52,
  null, 'Estate sale listings with map and radius search.',
@@ -293,7 +294,7 @@ insert into sources (
 
 ('estatesales-org', 'EstateSales.org', 'https://estatesales.org',
  null, 'estate', 'html', null, null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'Wisconsin listings confirmed at estatesales.org/estate-sales/wi.',
  10, false, false, 60, 58,
  null, 'Estate sale and estate auction listings by state.',
@@ -382,7 +383,7 @@ insert into sources (
 
 ('ironplanet', 'IronPlanet', 'https://www.ironplanet.com',
  null, 'dealer', 'internal_json', 'ritchie-bros', null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'Ritchie Bros online marketplace for used equipment. Sister of GovPlanet. Nationwide; Wisconsin pickup locations appear regularly.',
  10, true, false, 60, 44,
  null, 'Used heavy equipment, trucks and ag machinery.',
@@ -390,7 +391,7 @@ insert into sources (
 
 ('ritchie-bros', 'Ritchie Bros', 'https://www.rbauction.com',
  null, 'dealer', 'internal_json', 'ritchie-bros', null,
- false, false, false, true, true,
+ false, false, false, true, false,
  'Unreserved heavy-equipment auctions, live and online. Same corporate platform as IronPlanet and GovPlanet.',
  10, true, false, 60, 46,
  null, 'Unreserved equipment and truck auctions.',

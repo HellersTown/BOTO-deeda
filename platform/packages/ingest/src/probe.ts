@@ -234,3 +234,34 @@ export function concludeProbe(
 
   return { accessStatus, robotsAllows, crawlDelaySec, sitemaps, note, rows };
 }
+
+/**
+ * The verdict for a source held on its terms (ingest_allowed false: terms that
+ * forbid automated access, docs/08 section 1a). Such a source is read no
+ * further than robots.txt, which sites publish for crawlers to read, so its
+ * robots verdict is current. robots.txt alone says nothing about bot managers
+ * on the pages, so the access verdict stays the one from its last full probe.
+ *
+ * `robotsVerdict` is the robots row's verdict from concludeProbe, or undefined
+ * when robots.txt was not read this run (its turn was skipped).
+ */
+export function heldVerdict(
+  robotsVerdict: string | undefined,
+  previous: { accessStatus: string | null; robotsAllows: boolean | null },
+  fallbackAccess: string,
+): { accessStatus: string; robotsAllows: boolean | null; note: string } {
+  const robotsAllows = robotsVerdict === 'allowed' || robotsVerdict === 'absent' ? true
+    : robotsVerdict === 'disallowed' || robotsVerdict === 'unreachable' ? false
+    : previous.robotsAllows;
+  const said = robotsVerdict === 'allowed' ? 'allows our crawler'
+    : robotsVerdict === 'absent' ? 'is absent, which permits crawling'
+    : robotsVerdict === 'disallowed' ? 'disallows our crawler'
+    : robotsVerdict === 'unreachable' ? 'is unreachable or refused, which means disallow'
+    : 'was not read this run';
+  return {
+    accessStatus: previous.accessStatus ?? fallbackAccess,
+    robotsAllows,
+    note: `Held on its terms: robots.txt only (it ${said}); the site's pages are not fetched while the hold ` +
+      `stands. Access verdict from the last full probe: ${previous.accessStatus ?? 'none'}.`,
+  };
+}

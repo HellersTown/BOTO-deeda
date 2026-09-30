@@ -6,6 +6,7 @@ import {
   feedLinks,
   robotsPathOf,
   concludeProbe,
+  heldVerdict,
   type ProbeObservation,
 } from '../src/probe.ts';
 
@@ -250,4 +251,27 @@ test('unreachable: every page failed at the network level', () => {
   const c = concludeProbe('https://x.test/', 'WaystockBot', [obs('robots', 0), obs('home', 0)]);
   assert.equal(c.accessStatus, 'unreachable');
   assert.equal(c.robotsAllows, false);
+});
+
+test('a held source: the robots verdict is current, the access verdict is the last full probe\'s', () => {
+  const open = { accessStatus: 'open', robotsAllows: true };
+  const v = heldVerdict('disallowed', open, 'unknown');
+  assert.equal(v.accessStatus, 'open', 'robots.txt alone is no evidence about the pages');
+  assert.equal(v.robotsAllows, false);
+  assert.match(v.note, /^Held on its terms: robots\.txt only \(it disallows our crawler\)/);
+  assert.match(v.note, /last full probe: open\.$/);
+
+  assert.equal(heldVerdict('allowed', open, 'unknown').robotsAllows, true);
+  assert.equal(heldVerdict('absent', open, 'unknown').robotsAllows, true, 'no robots.txt permits crawling (RFC 9309)');
+  assert.equal(heldVerdict('unreachable', open, 'unknown').robotsAllows, false, 'unreachable means disallow');
+
+  // robots.txt skipped this run: nothing changes.
+  const skipped = heldVerdict(undefined, { accessStatus: 'blocked', robotsAllows: false }, 'unknown');
+  assert.deepEqual([skipped.accessStatus, skipped.robotsAllows], ['blocked', false]);
+  assert.match(skipped.note, /was not read this run/);
+
+  // Never fully probed: the conclusion from robots.txt alone stands in.
+  const fresh = heldVerdict('allowed', { accessStatus: null, robotsAllows: null }, 'unknown');
+  assert.equal(fresh.accessStatus, 'unknown');
+  assert.match(fresh.note, /last full probe: none\.$/);
 });

@@ -9,6 +9,11 @@
 //                            -> GET that host's root too: robots.txt governs its own host
 //   4. official APIs only    -> is the API answering? (skipped while a recent crawl
 //                               already proved it, so the probe never spends API quota)
+//
+// HELD SOURCES (ingest_allowed = false: terms that forbid automated access, docs/08
+// section 1a) get step 1 only. robots.txt is published for crawlers to read; the
+// site's own pages are not fetched while the hold stands, and the source keeps the
+// access verdict of its last full probe.
 // The analysis lives in lib/probe.ts (unit-tested); this file only does I/O.
 //
 // SAFE TO INVOKE REPEATEDLY. The URL is reachable with the public anon key, so
@@ -25,7 +30,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { politeFetch, CRAWLER_TOKEN, CRAWLER_UA, type PoliteFetchOptions } from './lib/http.ts';
-import { concludeProbe, type ProbeObservation } from './lib/probe.ts';
+import { concludeProbe, heldVerdict, type ProbeObservation } from './lib/probe.ts';
 import { awaitTurn, cachedRobotsObservation, crawlDelayOf, hostState, isCacheableRobots, turnGapSec } from './lib/politeness.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -58,6 +63,7 @@ interface SourceRow {
   last_ok_at: string | null;
   access_status: string | null;
   robots_allows: boolean | null;
+  ingest_allowed: boolean | null;
 }
 
 function robotsUrlFor(s: SourceRow): string {
@@ -128,8 +134,11 @@ async function probeOne(s: SourceRow): Promise<{ slug: string; access: string; n
   const isApi = s.ingest === 'official_api';
   const proven = isApi && !!s.last_ok_at && Date.now() - new Date(s.last_ok_at).getTime() < API_PROOF_MAX_AGE_MS;
 
+  // A source held on its terms is read no further than robots.txt.
+  const held = s.ingest_allowed === false;
+
   // Without robots.txt (its turn was skipped) nothing else is fetched this run.
-  if (observations.length > 0) {
+  if (observations.length > 0 && !held) {
     await onTurn('home', s.url, await crawlDelayFor(s.url), { timeoutMs: PER_REQUEST_TIMEOUT_MS, maxBytes: 600_000 });
 
     // A robots.txt on another host governs THAT host, so fetch its root too: the
@@ -182,6 +191,13 @@ async function probeOne(s: SourceRow): Promise<{ slug: string; access: string; n
     }
   }
 
+  // Held: the robots verdict is current; the access verdict is the last full probe's.
+  if (held) {
+    const rv = c.rows.find((r) => r.target === 'robots')?.robots_verdict as string | undefined;
+    ({ accessStatus: access, robotsAllows, note } = heldVerdict(
+      rv, { accessStatus: s.access_status, robotsAllows: s.robots_allows }, c.accessStatus));
+  }
+
   // A request skipped for Crawl-delay is no evidence about the site: keep the
   // previous verdict rather than let the gap read as "unknown".
   if (skipped.length) {
@@ -232,7 +248,7 @@ Deno.serve(async (req) => {
   const cutoff = new Date(Date.now() - MIN_REPROBE_MINUTES * 60_000).toISOString();
   let q = db()
     .from('sources')
-    .select('id, slug, name, url, api_base, ingest, platform, robots_url, access_checked_at, last_ok_at, access_status, robots_allows')
+    .select('id, slug, name, url, api_base, ingest, platform, robots_url, access_checked_at, last_ok_at, access_status, robots_allows, ingest_allowed')
     .neq('ingest', 'deeplink_only')
     // Wholesale is on hold by the owner's decision: registered, never contacted.
     .neq('tier', 'wholesale')
