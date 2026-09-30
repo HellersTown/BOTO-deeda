@@ -22,7 +22,7 @@ export const FUNCTION_LIBS = {
   'probe-sources': ['http.ts', 'robots.ts', 'probe.ts', 'block.ts', 'jsonld.ts', 'money.ts', 'types.ts', 'politeness.ts'],
   // Every crawl-* worker carries the engine (edge/worker.ts), the gate and its
   // helpers, plus its own adapters.
-  'crawl-worker': [...WORKER_CORE, 'adapters/gsa.ts'],
+  'crawl-worker': [...WORKER_CORE, 'usTime.ts', 'adapters/gsa.ts', 'adapters/irs-auctions.ts'],
   // Public-sector sellers: the state's surplus auctions, municipal and school
   // surplus, police property.
   'crawl-public': [

@@ -105,9 +105,9 @@ insert into sources (
  'https://www.treasury.gov/robots.txt', null),
 
 ('irs-auctions', 'IRS Auctions', 'https://www.irsauctions.gov',
- null, 'federal', 'html', null, null,
- false, false, false, false, true,
- 'Property seized for unpaid federal taxes. Sale pages at /ad/{slug}, listed in the sitemap. A 2026 sweep reported Akamai 403s; the hourly probe checks from Supabase, and a refusal means deep links only.',
+ null, 'federal', 'internal_json', 'irs-auctions', null,
+ false, false, false, true, true,
+ 'US government works (17 U.S.C. 105); robots.txt allows all. Read from the site''s own /index.json (one request an hour): current sales only, as lots with the minimum bid as the starting bid. The notice text names the taxpayer and the IRS officer and is never stored.',
  10, false, false, 60, 30,
  null, 'Property seized by the IRS for unpaid federal taxes.',
  'https://www.irsauctions.gov/robots.txt', null),
