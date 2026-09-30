@@ -2,7 +2,8 @@
 // record what each one actually does.
 //
 // For each source (deep-link-only sources are never contacted):
-//   1. GET /robots.txt       -> RFC 9309 verdict for our token
+//   1. GET /robots.txt       -> RFC 9309 verdict for our token (read from the per-host
+//                               cache shared with inspect-page while under 6 hours old)
 //   2. GET the source URL    -> did a bot manager intercept us? what does the page publish?
 //   3. robots on another host (lots on bids.example.com behind www.example.com)
 //                            -> GET that host's root too: robots.txt governs its own host
@@ -15,10 +16,17 @@
 // within the last 30 minutes is skipped, whoever asks. Hourly scheduling
 // satisfies the owner's "ping every monitored site at least once an hour" while
 // this floor caps the worst case at two probes per hour per site.
+//
+// CRAWL-DELAY ACROSS INVOCATIONS. Every request waits for its host's turn:
+// max(1 s, the host's Crawl-delay) since the last request ANY invocation sent
+// that host, inspect-page included (migration 0024). Up to 20 s is waited out.
+// A longer wait skips the request this run, says so in the note, and keeps the
+// source's previous verdict: a skipped page is not evidence about the site.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { politeFetch, CRAWLER_TOKEN, CRAWLER_UA } from './lib/http.ts';
+import { politeFetch, CRAWLER_TOKEN, CRAWLER_UA, type PoliteFetchOptions } from './lib/http.ts';
 import { concludeProbe, type ProbeObservation } from './lib/probe.ts';
+import { awaitTurn, cachedRobotsObservation, crawlDelayOf, hostState, isCacheableRobots, turnGapSec } from './lib/politeness.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY =
@@ -32,6 +40,10 @@ const PER_REQUEST_TIMEOUT_MS = 10_000;
 const WALL_BUDGET_MS = 100_000;
 // A successful crawl this recent already proves an official API answers.
 const API_PROOF_MAX_AGE_MS = 2 * 3600_000;
+// robots.txt is re-read at most every 6 hours (RFC 9309 allows up to 24).
+const ROBOTS_MAX_AGE_SEC = 6 * 3600;
+// Our floor between two requests to one host; a longer Crawl-delay wins.
+const MIN_GAP_SEC = 1;
 
 interface SourceRow {
   id: string;
@@ -44,9 +56,9 @@ interface SourceRow {
   robots_url: string | null;
   access_checked_at: string | null;
   last_ok_at: string | null;
+  access_status: string | null;
+  robots_allows: boolean | null;
 }
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function robotsUrlFor(s: SourceRow): string {
   if (s.robots_url) return s.robots_url;
@@ -69,38 +81,77 @@ function toObservation(target: ProbeObservation['target'], r: Awaited<ReturnType
 
 async function probeOne(s: SourceRow): Promise<{ slug: string; access: string; note: string; statuses: Record<string, number> }> {
   const observations: ProbeObservation[] = [];
+  const skipped: string[] = [];
   const robotsUrl = robotsUrlFor(s);
+  const robotsHost = new URL(robotsUrl).host;
 
-  observations.push(toObservation('robots', await politeFetch(robotsUrl, {
-    timeoutMs: PER_REQUEST_TIMEOUT_MS, maxBytes: 200_000, headers: { Accept: 'text/plain,*/*;q=0.5' },
-  })));
-  await sleep(400); // be gentle even within one site
-
-  observations.push(toObservation('home', await politeFetch(s.url, {
-    timeoutMs: PER_REQUEST_TIMEOUT_MS, maxBytes: 600_000,
-  })));
-
-  // A robots.txt on another host governs THAT host, so fetch its root too: the
-  // verdict (and any bot manager there) must be about the host we would crawl.
-  if (new URL(robotsUrl).host !== new URL(s.url).host) {
-    await sleep(400);
-    observations.push(toObservation('listing', await politeFetch(new URL('/', robotsUrl).toString(), {
-      timeoutMs: PER_REQUEST_TIMEOUT_MS, maxBytes: 600_000,
-    })));
+  // Fetch on the host's turn, or skip the request this run if that is over 20 s away.
+  async function onTurn(target: ProbeObservation['target'], url: string, crawlDelaySec: number | null, opts: PoliteFetchOptions) {
+    const host = new URL(url).host;
+    const t = await awaitTurn(hosts.turn, host, turnGapSec(MIN_GAP_SEC, crawlDelaySec));
+    if (!t.granted) {
+      skipped.push(`${target} skipped this run to honour Crawl-delay ${crawlDelaySec ?? MIN_GAP_SEC} s at ${host} (next turn in ${Math.ceil(t.retryAfterSec)} s)`);
+      return null;
+    }
+    const r = await politeFetch(url, opts);
+    observations.push(toObservation(target, r));
+    return r;
   }
+
+  // robots.txt: from the shared cache while under 6 hours old, else fetched and cached.
+  const cached = await hosts.robots(robotsHost);
+  // An expired entry's Crawl-delay still paces the refetch.
+  let crawlDelaySec = cached ? crawlDelayOf(cached.status, cached.body, CRAWLER_TOKEN) : null;
+  let robotsCacheMin: number | null = null;
+  if (cached && cached.ageSec < ROBOTS_MAX_AGE_SEC) {
+    observations.push(cachedRobotsObservation(robotsUrl, cached.status, cached.body));
+    robotsCacheMin = Math.floor(cached.ageSec / 60);
+  } else {
+    const r = await onTurn('robots', robotsUrl, crawlDelaySec, {
+      timeoutMs: PER_REQUEST_TIMEOUT_MS, maxBytes: 200_000, headers: { Accept: 'text/plain,*/*;q=0.5' },
+    });
+    if (r && isCacheableRobots(r.status, r.headers, r.body)) {
+      await hosts.storeRobots(robotsHost, r.status, r.body);
+      crawlDelaySec = crawlDelayOf(r.status, r.body, CRAWLER_TOKEN);
+    }
+  }
+
+  // A robots.txt governs its own host only: a page elsewhere is paced by that
+  // host's own Crawl-delay, known when another invocation cached its robots.txt.
+  const crawlDelayFor = async (url: string): Promise<number | null> => {
+    const host = new URL(url).host;
+    if (host === robotsHost) return crawlDelaySec;
+    const other = await hosts.robots(host);
+    return other ? crawlDelayOf(other.status, other.body, CRAWLER_TOKEN) : null;
+  };
 
   const isApi = s.ingest === 'official_api';
   const proven = isApi && !!s.last_ok_at && Date.now() - new Date(s.last_ok_at).getTime() < API_PROOF_MAX_AGE_MS;
-  if (isApi && !proven && s.platform === 'gsa' && s.api_base) {
-    await sleep(400);
-    const key = Deno.env.get('GSA_API_KEY') ?? 'DEMO_KEY';
-    observations.push(toObservation('api', await politeFetch(`${s.api_base.replace(/\/+$/, '')}/auctions?format=JSON`, {
-      timeoutMs: 30_000, maxBytes: 65_536, headers: { 'X-API-KEY': key, Accept: 'application/json' },
-    })));
+
+  // Without robots.txt (its turn was skipped) nothing else is fetched this run.
+  if (observations.length > 0) {
+    await onTurn('home', s.url, await crawlDelayFor(s.url), { timeoutMs: PER_REQUEST_TIMEOUT_MS, maxBytes: 600_000 });
+
+    // A robots.txt on another host governs THAT host, so fetch its root too: the
+    // verdict (and any bot manager there) must be about the host we would crawl.
+    if (robotsHost !== new URL(s.url).host) {
+      await onTurn('listing', new URL('/', robotsUrl).toString(), crawlDelaySec, {
+        timeoutMs: PER_REQUEST_TIMEOUT_MS, maxBytes: 600_000,
+      });
+    }
+
+    if (isApi && !proven && s.platform === 'gsa' && s.api_base) {
+      const key = Deno.env.get('GSA_API_KEY') ?? 'DEMO_KEY';
+      const apiUrl = `${s.api_base.replace(/\/+$/, '')}/auctions?format=JSON`;
+      await onTurn('api', apiUrl, await crawlDelayFor(apiUrl), {
+        timeoutMs: 30_000, maxBytes: 65_536, headers: { 'X-API-KEY': key, Accept: 'application/json' },
+      });
+    }
   }
 
   const c = concludeProbe(s.url, CRAWLER_TOKEN, observations);
   let access: string = c.accessStatus;
+  let robotsAllows = c.robotsAllows;
   let note = c.note;
 
   // An official API is governed by its API terms, not by robots.txt or by the bot
@@ -131,11 +182,28 @@ async function probeOne(s: SourceRow): Promise<{ slug: string; access: string; n
     }
   }
 
+  // A request skipped for Crawl-delay is no evidence about the site: keep the
+  // previous verdict rather than let the gap read as "unknown".
+  if (skipped.length) {
+    if (s.access_status) {
+      access = s.access_status;
+      robotsAllows = s.robots_allows;
+      note = `${skipped.join('; ')}. Access verdict kept from the previous probe (${s.access_status}).`;
+    } else {
+      note = `${skipped.join('; ')}. ${note}`;
+    }
+  }
+  if (robotsCacheMin !== null) {
+    note += ` robots.txt from a cache of ${robotsCacheMin} min.`;
+    const row = c.rows.find((r) => r.target === 'robots');
+    if (row) (row.detail as Record<string, unknown>).cached_min = robotsCacheMin;
+  }
+
   const { error } = await db().rpc('record_source_probe', {
     p_source_id: s.id,
     p_rows: c.rows,
     p_access_status: access,
-    p_robots_allows: c.robotsAllows,
+    p_robots_allows: robotsAllows,
     p_note: note,
   });
   if (error) throw new Error(`record_source_probe(${s.slug}): ${error.message}`);
@@ -150,6 +218,7 @@ function db() {
   _db ??= createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
   return _db;
 }
+const hosts = hostState((fn, args) => db().rpc(fn, args));
 
 Deno.serve(async (req) => {
   const started = Date.now();
@@ -163,7 +232,7 @@ Deno.serve(async (req) => {
   const cutoff = new Date(Date.now() - MIN_REPROBE_MINUTES * 60_000).toISOString();
   let q = db()
     .from('sources')
-    .select('id, slug, name, url, api_base, ingest, platform, robots_url, access_checked_at, last_ok_at')
+    .select('id, slug, name, url, api_base, ingest, platform, robots_url, access_checked_at, last_ok_at, access_status, robots_allows')
     .neq('ingest', 'deeplink_only')
     // Wholesale is on hold by the owner's decision: registered, never contacted.
     .neq('tier', 'wholesale')

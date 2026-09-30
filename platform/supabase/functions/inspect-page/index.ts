@@ -13,7 +13,11 @@
 //   - target a host belonging to a registered, contactable source (deep-link-only
 //     and wholesale sources are refused);
 //   - be permitted by that host's robots.txt for our token (checked per call);
-// and it is one request per call, with our honest User-Agent.
+//   - wait for the host's turn: max(5 s, its Crawl-delay) since the last request
+//     ANY invocation sent it, the probe included (migration 0024). Up to 20 s is
+//     waited out; a longer wait is refused with HTTP 429 and retryAfterSec;
+// and it is one request per call, with our honest User-Agent. robots.txt comes
+// from the per-host cache it shares with the probe while under an hour old.
 //
 //   POST { url, method?, postBody?, headers?, pattern?, maxLinks?, slice?: [from, len] }
 
@@ -22,12 +26,28 @@ import { politeFetch, CRAWLER_TOKEN } from './lib/http.ts';
 import { isAllowed, parseRobots, robotsVerdictFromStatus } from './lib/robots.ts';
 import { detectBlock, feedLinks, jsonLdTypes, pageTitle, robotsPathOf } from './lib/probe.ts';
 import { extractJsonLdBlocks, flattenNodes } from './lib/jsonld.ts';
+import { awaitTurn, crawlDelayOf, hostState, isCacheableRobots, turnGapSec, type TurnOutcome } from './lib/politeness.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY =
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ??
   (JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}') as Record<string, string>).default;
 const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+const hosts = hostState((fn, args) => db.rpc(fn, args));
+
+// Our floor between two requests to one host; a longer Crawl-delay wins.
+const MIN_GAP_SEC = 5;
+// robots.txt is read from the shared cache while younger than this.
+const ROBOTS_MAX_AGE_SEC = 3600;
+
+/** Politeness state is unreadable: fail closed, without contacting the site. */
+function unavailable(slug: string, e: unknown): Response {
+  return Response.json({ slug, error: `host politeness state unavailable: ${e instanceof Error ? e.message : String(e)}` }, { status: 503 });
+}
+
+function tooSoon(body: Record<string, unknown>, retryAfterSec: number): Response {
+  return Response.json({ ...body, retryAfterSec }, { status: 429, headers: { 'Retry-After': String(retryAfterSec) } });
+}
 
 /** "bids.beloitauction.com" -> "beloitauction.com"; good enough for .com/.org/.gov/.edu hosts. */
 function registrable(host: string): string {
@@ -101,10 +121,31 @@ Deno.serve(async (req) => {
   }
   if (!slug) return Response.json({ error: `host ${target.host} is not a registered contactable source` }, { status: 400 });
 
-  // robots.txt for this exact host, per RFC 9309.
-  const robots = await politeFetch(`${target.protocol}//${target.host}/robots.txt`, {
-    timeoutMs: 10_000, maxBytes: 300_000, headers: { Accept: 'text/plain,*/*;q=0.5' },
-  });
+  // robots.txt for this exact host, per RFC 9309: from the shared cache while
+  // under an hour old, otherwise fetched on the host's turn and cached.
+  const host = target.host;
+  let robots: { status: number; headers: Record<string, string>; body: string };
+  let robotsAgeSec: number | null = null;
+  try {
+    const cached = await hosts.robots(host);
+    if (cached && cached.ageSec < ROBOTS_MAX_AGE_SEC) {
+      robots = { status: cached.status, headers: {}, body: cached.body };
+      robotsAgeSec = cached.ageSec;
+    } else {
+      // An expired entry's Crawl-delay still paces the refetch.
+      const staleDelay = cached ? crawlDelayOf(cached.status, cached.body, CRAWLER_TOKEN) : null;
+      const wait = await hosts.turn(host, turnGapSec(MIN_GAP_SEC, staleDelay));
+      if (wait > 0) return tooSoon({ slug, refused: 'host busy' }, Math.ceil(wait));
+      robots = await politeFetch(`${target.protocol}//${host}/robots.txt`, {
+        timeoutMs: 10_000, maxBytes: 300_000, headers: { Accept: 'text/plain,*/*;q=0.5' },
+      });
+      if (isCacheableRobots(robots.status, robots.headers, robots.body)) {
+        await hosts.storeRobots(host, robots.status, robots.body);
+      }
+    }
+  } catch (e) {
+    return unavailable(slug, e);
+  }
   const robotsBlock = detectBlock(robots.status, robots.headers, robots.body);
   const verdict = robotsBlock.blockedBy ? 'unreachable' : robotsVerdictFromStatus(robots.status);
   if (verdict === 'unreachable') {
@@ -114,7 +155,18 @@ Deno.serve(async (req) => {
     return Response.json({ slug, refused: `robots.txt disallows ${CRAWLER_TOKEN} on ${robotsPathOf(target.toString())}` }, { status: 409 });
   }
 
-  await new Promise((r) => setTimeout(r, 800));
+  // The host's turn: max(5 s, its Crawl-delay) since the last request any
+  // invocation sent it. Up to 20 s is waited out; longer, the caller comes back.
+  const crawlDelaySec = crawlDelayOf(robots.status, robots.body, CRAWLER_TOKEN);
+  const gapSec = turnGapSec(MIN_GAP_SEC, crawlDelaySec);
+  let slot: TurnOutcome;
+  try {
+    slot = await awaitTurn(hosts.turn, host, gapSec);
+  } catch (e) {
+    return unavailable(slug, e);
+  }
+  if (!slot.granted) return tooSoon({ slug, refused: 'crawl-delay', crawlDelaySec }, Math.ceil(slot.retryAfterSec));
+
   const r = await politeFetch(target.toString(), {
     method: body.method ?? 'GET',
     headers: body.headers,
@@ -182,5 +234,11 @@ Deno.serve(async (req) => {
     jsonPreview,
     text: /html/i.test(ctype) ? visibleText(html).slice(0, 3000) : null,
     slice: len > 0 ? html.slice(from, from + Math.min(len, 20_000)) : null,
+    politeness: {
+      robots: robotsAgeSec === null ? 'fetched' : `cached ${Math.floor(robotsAgeSec / 60)} min ago`,
+      crawlDelaySec,
+      gapSec,
+      waitedMs: slot.waitedMs,
+    },
   });
 });

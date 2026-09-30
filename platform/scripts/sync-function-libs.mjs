@@ -19,7 +19,7 @@ const fns = join(root, 'supabase/functions');
 const WORKER_CORE = ['http.ts', 'types.ts', 'money.ts', 'robots.ts', 'block.ts', 'gate.ts', 'edge/worker.ts'];
 
 export const FUNCTION_LIBS = {
-  'probe-sources': ['http.ts', 'robots.ts', 'probe.ts', 'block.ts', 'jsonld.ts', 'money.ts', 'types.ts'],
+  'probe-sources': ['http.ts', 'robots.ts', 'probe.ts', 'block.ts', 'jsonld.ts', 'money.ts', 'types.ts', 'politeness.ts'],
   // Every crawl-* worker carries the engine (edge/worker.ts), the gate and its
   // helpers, plus its own adapters.
   'crawl-worker': [...WORKER_CORE, 'adapters/gsa.ts'],
@@ -33,10 +33,11 @@ export const FUNCTION_LIBS = {
     'adapters/propertyroom.ts',
     'adapters/municibid.ts',
   ],
-  // Private auction houses on their own bidding platforms.
-  'crawl-private': [...WORKER_CORE, 'adapters/bidwrangler.ts'],
+  // Private auction houses: BidWrangler tenants, and AuctionGuide's directory
+  // of private sales (sale-level rows).
+  'crawl-private': [...WORKER_CORE, 'adapters/bidwrangler.ts', 'adapters/auctionguide.ts'],
   'load-gazetteer': ['http.ts'],
-  'inspect-page': ['http.ts', 'robots.ts', 'probe.ts', 'block.ts', 'jsonld.ts', 'money.ts', 'types.ts'],
+  'inspect-page': ['http.ts', 'robots.ts', 'probe.ts', 'block.ts', 'jsonld.ts', 'money.ts', 'types.ts', 'politeness.ts'],
 };
 
 export const HEADER = (file) =>
