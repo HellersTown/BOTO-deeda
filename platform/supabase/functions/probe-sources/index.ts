@@ -40,7 +40,10 @@ const SERVICE_KEY =
 
 const MIN_REPROBE_MINUTES = 30;
 const CONCURRENCY = 6;
-const PER_REQUEST_TIMEOUT_MS = 10_000;
+// A slow site is not a down site. irsauctions.gov's home page answers in about
+// 8.5 s from Supabase; at 10 s, 7 of 24 hourly probes on 2026-09-30/10-01 timed
+// out, each marked it unreachable, and the crawler skipped it for that hour.
+const PER_REQUEST_TIMEOUT_MS = 20_000;
 // Stop starting new probes after this long; the rest are picked up next run.
 const WALL_BUDGET_MS = 100_000;
 // A successful crawl this recent already proves an official API answers.
