@@ -34,6 +34,15 @@ capability:
 3. **No continuity.** A browser tab only runs while somebody is looking at it.
    "Monitors 24/7" is definitionally impossible in a front-end.
 
+**2026-10-01: Skeuos shipped the same key until it was fixed.** These variables were
+still set on the Vercel project when Skeuos took over waystock.org, and the app
+read `import.meta.env` as a whole object, which Vite inlines with every `VITE_`
+variable on the build host. So `VITE_ANTHROPIC_KEY` and `VITE_EBAY_APP_ID` were in
+Skeuos's public bundle too. Commit 9d84101 reads each variable by name (a canary
+build proved the difference) and `web/src/env-exposure.test.ts` fails on any
+whole-object read. The key must still be revoked, and both variables deleted from
+the project.
+
 `BROWSERLESS_TOKEN` is the tell: reaching for a remote headless browser is what
 you do when you have concluded HTTP fetching is impossible. It is not impossible.
 It was blocked by running in the wrong place.
