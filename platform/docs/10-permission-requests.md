@@ -279,3 +279,25 @@ Every result would send the buyer to your sale page.
 Thank you,
 [Name], [Business name]
 [Phone] · [Email]
+
+---
+
+## 11. CTBids (Caring Transitions)
+
+**Why:** CTBids carries online estate auctions from Caring Transitions franchises, seven of them with Wisconsin location pages: Appleton, Eau Claire, Green Bay, Madison, Milwaukee, Sheboygan and Waukesha (its sitemap, 2026-10-01). Estate sales are the largest gap in the app. **Why a letter:** robots.txt allows every agent, but the terms are a PDF ("CTBIDS Terms & Conditions, Website User Agreement", 1.25.24), which our tools do not read. The part quoted in search results bars obtaining "any materials or information through any means not intentionally made available or provided for through the website". The source is held as a precaution (0033), as Proxibid was.
+
+**To:** Caring Transitions, CTBids team (or a Wisconsin franchise owner, who can forward it)
+**Subject:** Listing Wisconsin CTBids estate auctions in an auction search app, with links back
+
+Hello,
+
+I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that shows buyers the estate sales and auctions near them. Every result links to the sale's own page. Caring Transitions' Wisconsin franchises run some of the best estate auctions in the state, and I would like them to appear in it.
+
+Your website terms are a PDF that our software does not read, so rather than guess, I am asking:
+
+- May the app list your open Wisconsin auctions: each sale's title, dates, town and a link to it on ctbids.com? Bidding would stay entirely on CTBids.
+- Our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) would read those listings about once an hour, one request at a time, and obey robots.txt. If you offer a feed or partner access, we would use that instead.
+
+Thank you,
+[Name], [Business name]
+[Phone] · [Email]

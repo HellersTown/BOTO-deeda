@@ -199,6 +199,25 @@ publish for crawlers to read, and does not fetch its pages: several of these
 terms forbid automated access "for any purpose". The source keeps the access
 verdict of its last full probe.
 
+The fourth wave (2026-10-01) covers sources found while building out the rest
+of Wisconsin. Each was read through our own crawler (inspect-page), or by the
+hourly probe for sources already registered.
+
+| Source | What was read | Verdict | Evidence |
+|---|---|---|---|
+| Wisconsin Public Auction (Dale; BidWrangler) | robots.txt of its bidding host | **Off** (robots disallow) | "# Platform access suspended for this company", User-agent: *, Disallow: /. |
+| CTBids (Caring Transitions) | robots.txt; terms only as a PDF | Held as a precaution (0033) | robots.txt: User-agent: *, Disallow: (allows all). The terms are a PDF ("Website User Agreement", 1.25.24), which our tools do not read. Search results quote a bar on obtaining "any materials or information through any means not intentionally made available or provided for through the website". Seven Wisconsin location pages. Letter: `10` §11. |
+| MaxSold | hourly probe | **Blocked** | Cloudflare challenge (HTTP 403) on the home page at every probe; robots.txt readable. |
+| GoToAuction | hourly probe | **Blocked** | Cloudflare challenge (HTTP 403) on the home page. Directory only in any case. |
+| AuctionZip | hourly probe | **Blocked** | CloudFront HTTP 403 on the home page. Directory only in any case. |
+| UW-Madison SWAP (`swapauction.wisc.edu`) | hourly probe | **Blocked at the network** | Every connection from Supabase is reset ("Connection reset by peer", os error 104, within 0.3 s), robots.txt included. The host is 162.208.56.35, outside UW's own 128.104/16. Letter asking for a feed: `10` §7. |
+
+Inspector note (2026-10-01). Until inspect-page v7, `find` ran only over the
+visible text of HTML, so a JSON or XML body was never searched, and matches
+come back under the key `found`. A terms scan of the five BidWrangler houses'
+auction APIs that read the wrong key and ran on JSON proved nothing, and their
+switch-on (0032) was undone (0034) until the scan is redone.
+
 What this means for Wisconsin coverage: of the platforms carrying most
 Wisconsin public-sector inventory, every one read so far (HiBid, Public
 Surplus, Wisconsin Surplus, Municibid, and GovDeals behind Akamai) is closed to
