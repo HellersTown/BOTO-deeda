@@ -152,6 +152,14 @@ insert into sources (
  null, 'Tax-deeded property auctions run by the Dane County Treasurer.',
  'https://treasurer.danecounty.gov/robots.txt', null),
 
+('milwaukee-county-fleet', 'Milwaukee County Fleet Auction', 'https://county.milwaukee.gov/EN/Department-of-Transportation/Operations/Fleet/Fleet-Auction',
+ null, 'county', 'html', 'milwaukee-county-fleet', array['WI'],
+ false, false, false, false, false,
+ 'Registered 2026-10-01 (0042): the county page for its live fleet vehicle auctions with the City of Milwaukee. robots.txt could not be read from Supabase, which counts as disallow; held.',
+ 10, false, false, 60, 35,
+ null, 'Milwaukee County and City of Milwaukee fleet vehicles and equipment at live auction.',
+ 'https://county.milwaukee.gov/robots.txt', null),
+
 -- ======================================================== TIER 3: PLATFORMS
 
 ('hibid', 'HiBid', 'https://hibid.com',
