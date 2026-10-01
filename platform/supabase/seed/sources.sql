@@ -120,7 +120,7 @@ insert into sources (
  'THE most important Wisconsin source. A PRIVATE company (Mount Horeb) that is a contracted vendor for the State of Wisconsin: state vehicle auctions, DNR, Revenue (unclaimed and seized property), Corrections, Health Services, UW campuses and technical colleges; also the de facto county channel (22+ counties including every sheriff office found) and the cities of Milwaukee, Madison, Janesville and Kenosha. tier is state because that is what the inventory IS, not what the company is. Research 2026-09-27 (docs/07): the Department of Administration also names GovDeals for state online auctions, so the state uses more than one channel. '
  'CRITICAL: bidding host is bid.wisconsinsurplus.com and auction IDs are opaque URL-encoded tokens (e.g. AuctionId=wTEQql9u1r8eDoI02hWnbw%3D%3D). Lot URLs CANNOT be constructed - the listing index must be crawled and links followed. '
  'Before writing the adapter, determine whether those tokens are stable across sessions. If they are not, external_id must be derived from stable content (auction number such as #25-832 plus lot number), or every crawl will create duplicate rows instead of updating existing ones.',
- 12, true, false, 30, 1,
+ 12, true, false, 60, 1,
  null, 'State of Wisconsin plus county, municipal and school surplus.',
  'https://wisconsinsurplus.com/robots.txt', null),
 

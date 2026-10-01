@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WaystockBot</title>
+    <meta
+      name="description"
+      content="WaystockBot reads public auction listings for Skeuos, a Wisconsin-first auction search app. What it reads, how it behaves, and how to turn it away."
+    />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --pine: #24402e;
+        --canvas: #f3eee3;
+        --card: #fffdf8;
+        --line: #d6cbb5;
+        --ink: #1e1b16;
+        --ink-2: #3e3a31;
+        --kit: #e6ddcb;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font: 16px/1.6 "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 2.5rem 1rem 4rem;
+      }
+      h1 {
+        margin: 0 0 0.25rem;
+        color: var(--pine);
+        font-size: 2rem;
+        line-height: 1.2;
+      }
+      h2 {
+        margin: 2rem 0 0.5rem;
+        color: var(--pine);
+        font-size: 1.15rem;
+      }
+      p, li { color: var(--ink-2); }
+      .lede { margin-top: 0; font-size: 1.05rem; color: var(--ink); }
+      ul { padding-left: 1.25rem; }
+      li { margin: 0.35rem 0; }
+      code, pre { font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 0.92em; }
+      code { background: var(--kit); padding: 0.1em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+      pre {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.85rem 1rem;
+        overflow-x: auto;
+        color: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>WaystockBot</h1>
+      <p class="lede">
+        WaystockBot is the crawler behind Skeuos, an auction search app that started in Wisconsin. It reads public
+        auction listings so that buyers can find sales near them, and it sends every one of them to the auction's own
+        page to bid.
+      </p>
+
+      <h2>How it names itself</h2>
+      <p>Every request carries this User-Agent, and nothing else stands in for it:</p>
+      <pre>WaystockBot/0.1 (+https://waystock.org/bot)</pre>
+      <p>It never sends a browser's User-Agent and never retries a refused request in disguise.</p>
+
+      <h2>What it reads</h2>
+      <ul>
+        <li>Only sites whose terms allow it, or whose operator has given written permission. Sites that forbid automated collection are left alone and only linked to.</li>
+        <li>Public listing facts: a sale's or lot's title and description, its price and bid count where shown, its close time, its pickup town and its link.</li>
+        <li>Never anything behind a login. It has no accounts, never bids, and collects nothing about bidders.</li>
+        <li>Street addresses and phone numbers written into a listing's description are not kept.</li>
+      </ul>
+
+      <h2>How it behaves</h2>
+      <ul>
+        <li>It reads <code>robots.txt</code> before each run and obeys it, including <code>Crawl-delay</code>.</li>
+        <li>It makes one request at a time to a site, several seconds apart, and most sites are read about once an hour.</li>
+        <li>A block is an answer. It never works around a CAPTCHA, a bot challenge or a refusal. It stops and records it.</li>
+        <li>Where a site offers an API or a feed, it uses that instead of pages.</li>
+      </ul>
+
+      <h2>How to turn it away</h2>
+      <p>Add this to your site's <code>robots.txt</code>. WaystockBot stops at its next run, within the hour:</p>
+      <pre>User-agent: WaystockBot
+Disallow: /</pre>
+      <p>To slow it down instead, add <code>Crawl-delay: 30</code> (seconds between requests) to the same group.</p>
+    </main>
+  </body>
+</html>

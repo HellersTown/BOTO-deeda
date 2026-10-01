@@ -182,7 +182,7 @@ could write that tier. A database check is only as strong as its input. After
 
 ## Applying the database work
 
-Migrations `0001`–`0026` are all applied to project `sfolywzqtxcdorjwnmsz`.
+Migrations `0001`–`0030` are all applied to project `sfolywzqtxcdorjwnmsz`.
 
 ### The source registry
 
@@ -195,7 +195,8 @@ The seed was loaded once, after the 23 rows from the original Waystock build
 were reconciled in place (slugs assigned by name, a snapshot kept in `archive`,
 Facebook Marketplace and Craigslist made `deeplink_only`). Since then the live
 registry is kept by migrations: terms holds with their verbatim clauses (0020,
-0022), platforms, states and pacing (0019, 0025), and new sources (0026).
+0022, 0028), platforms, states and pacing (0019, 0025, 0027, 0030), and new
+sources (0026, 0029).
 
 - **Re-running the seed** only adds rows the database lacks (`on conflict do
   nothing`). It never changes an existing row, so it cannot undo a hold.

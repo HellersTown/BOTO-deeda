@@ -805,6 +805,26 @@ Confirm on the first live run.
   - Reasoning: public and unblocked, with an anonymous session only. Get
     written permission; the Maxanet adapter then also serves other Maxanet
     tenants.
+- **j) Verified, built and held (2026-09-30 to 2026-10-01).** This supersedes
+  the NOT RETRIEVED and UNVERIFIED items above.
+  - Maxanet confirmed. `bid.wisconsinsurplus.com/robots.txt` answers 404, so
+    RFC 9309 places no rules.
+  - `GetAuctions` (Current, then Future) answered our crawler with the full
+    list and no cookie: 91 current and 5 upcoming auctions. The numeric
+    auction id is stable: it is also the S3 image folder.
+  - `GetAuctionItems` answers an anonymous client with an empty fragment.
+    Items need the session cookie, which was not used.
+  - Terms: User Agreement, Legal 21, forbids any "robot, spider, other
+    automatic device, or manual process to monitor or copy the Site" without
+    prior, express written permission. **Held** (0020).
+  - Built, `crawl-public`, `adapters/wisconsin-surplus.ts`: every auction is a
+    sale card (sale-level row, 0023). The title gives the sale's name and what
+    it holds, hunts search the description, and street addresses and phone
+    numbers are removed. It reads two requests an hour (0030). Single items
+    are not built.
+  - The owner made this source the first priority (2026-10-01) and sends the
+    permission request personally (`docs/10` section 1). The request also asks
+    about photos and single-item lists, under a cap of 30 requests an hour.
 
 ### 3.15 BidProwl (bidprowl.com), licensed aggregator
 
