@@ -5,6 +5,12 @@
 -- crawl-public v4 carries the adapter (platform 'wi-dor'): one request an hour
 -- to /Pages/PublicAuction/home.aspx, one sale-level row per listed sale, the
 -- notice of sale (PDF) linked and never fetched.
+--
+-- APPLIED BY HAND, like 0037: run with execute_sql after crawl-public v4 was
+-- verified, with the note shortened to ' 2026-10-01 (0038): on.', because a
+-- request filter in front of the database stalls some note texts. The flags
+-- are exactly the ones below. Recorded in supabase_migrations.schema_migrations
+-- with created_by 'execute_sql'.
 
 update sources
    set active         = true,
