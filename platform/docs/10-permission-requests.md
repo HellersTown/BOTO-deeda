@@ -1,11 +1,11 @@
 # Permission requests
 
-Four operators hold most of Wisconsin's online auction inventory, and each one's terms forbid automated collection without written permission (see `08-platform-access.md` §1a and §3.1). These are drafts for the owner to send. Nothing is sent automatically.
+Most of Wisconsin's online auction inventory sits with operators whose terms forbid automated collection without written permission, or whose bot protection refuses our crawler (see `08-platform-access.md` §1a and §3.1). Sections 1 to 4 cover the four largest; sections 5 to 10 (added 2026-10-01) cover the rest that hold real Wisconsin inventory. These are drafts for the owner to send. Nothing is sent automatically.
 
 Each ask is shaped the same way, because it is the version an operator can say yes to:
 
 - **What we collect.** Public listing facts only: title, current price, bid count, close time, pickup city and state, and the link. No bidder data, no accounts, no bidding.
-- **How we collect it.** One honest, identified crawler (`WaystockBot/0.1 (+https://waystock.org/bot)`, to become SkeuosBot once the domain exists). It obeys robots.txt and paces its requests; the hourly load is stated in each letter.
+- **How we collect it.** One honest, identified crawler (`WaystockBot/0.1 (+https://waystock.org/bot)`; the page at that link says what it reads, how it behaves and how to turn it away). It obeys robots.txt and paces its requests; the hourly load is stated in each letter.
 - **What they get.** Every result links to the operator's own lot page, where the bidding happens. Skeuos sends them buyers.
 - **The better option.** A feed or an API key replaces the crawler entirely, and we will take either.
 
@@ -140,3 +140,142 @@ Is there a partner or syndication program we could join?
 Thank you,
 [Name], Skeuos
 [Contact email / phone]
+
+---
+
+## 5. GovDeals and AllSurplus (Liquidity Services)
+
+**Why:** GovDeals holds the State of Wisconsin's online auction contract. The DOA Surplus Property Program says so, and DNR sells there as `widnr`. Counties, cities and schools sell there too. An aggregator snapshot showed 93 active Wisconsin listings, and 116 of 189 open Wisconsin government lots (`07-wisconsin-sources.md` §3). **Why a letter:** Akamai answers our crawler, and any non-browser client, with "Access Denied" (HTTP 403) on both the site and its JSON API (`08` §1). A block is an answer, so we never work around it.
+
+**To:** Liquidity Services, business development (GovDeals and AllSurplus)
+**Subject:** Feed or partner access for Wisconsin GovDeals listings in a Wisconsin auction search app
+
+Hello,
+
+I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that finds public and private auctions near a buyer and links each result to the auction's own page. Wisconsin's state agencies, counties, cities and schools sell on GovDeals, so a Wisconsin auction search without GovDeals is missing its largest government seller.
+
+Your site refuses automated clients, and we respect that. We don't work around it, so I am asking for a sanctioned route instead:
+
+- A feed or API access for open Wisconsin listings, with each lot's title, current bid, bid count, close time, pickup city and state, and its GovDeals URL. A daily file plus hourly changes would be ample.
+- Or, if you prefer, written permission for our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) to read your Wisconsin listings, at no more than 60 requests an hour.
+
+Every result would link to the lot on GovDeals or AllSurplus, where all bidding happens. If there is a partner or affiliate program, I would gladly join it.
+
+Thank you,
+[Name], [Business name]
+[Phone] · [Email]
+
+---
+
+## 6. K-BID
+
+**Why:** K-BID carries northwest Wisconsin and St. Croix valley inventory (household, estate, equipment) and Twin Cities border sales (`07` §3, rank 5). **Why a letter:** its robots.txt and home page answer HTTP 403 to our crawler (`08` §1a). So far we have no terms to read and no way in.
+
+**To:** K-BID Online Auctions (contact page on k-bid.com)
+**Subject:** Permission or a feed for listing Wisconsin K-BID auctions, with links back
+
+Hello,
+
+I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that shows buyers the auctions near them and links each one to its own page. Several K-BID affiliates sell in northwest Wisconsin, and I would like to include their auctions with your permission.
+
+Our crawler (`WaystockBot/0.1`, described at waystock.org/bot) is refused by your site with HTTP 403. I take that as a no, so I am asking directly:
+
+- May we read your public Wisconsin auction listings? We would make about 20 requests an hour, one at a time and several seconds apart, and obey robots.txt.
+- Or is there an affiliate feed or export we could use instead? We would prefer that.
+
+Each result would show the auction's title, close time and pickup town, and link to it on k-bid.com, where all bidding happens.
+
+Thank you,
+[Name], [Business name]
+[Phone] · [Email]
+
+---
+
+## 7. UW-Madison SWAP (Surplus With A Purpose)
+
+**Why:** UW-Madison's surplus program runs its own auction site, `swapauction.wisc.edu`, with 25 or more new listings each weekday: computers, furniture, lab and shop equipment, vehicles. **Why a letter:** its server resets every connection from our crawler's cloud host (Supabase, on AWS), so the probe has never read even its robots.txt (`08` §1a, 2026-10-01). We do not route around network blocks. A public university program may well publish a feed if asked.
+
+**To:** UW-Madison SWAP (contact on swap.wisc.edu)
+**Subject:** Is there a feed of current SWAP auction listings?
+
+Hello,
+
+I run [business name], a resale business in [town], Wisconsin, and I buy at SWAP. I am building Skeuos, an app that finds public auctions near a buyer and links each result to the auction's own page.
+
+I'd like SWAP's auctions to appear there. Your auction site refuses connections from the cloud servers our app runs on, so I am asking rather than trying another way:
+
+- Do you publish a feed of current listings (RSS, CSV, an export, or an email list)? With a feed, the app would never need to visit the site.
+- If not, would you allow our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) to read the current listings about once an hour?
+
+Each result would show the item's title, current bid, close time and Verona pickup, and link to its page on swapauction.wisc.edu, where all bidding happens.
+
+Thank you,
+[Name], [Business name]
+[Phone] · [Email]
+
+---
+
+## 8. Proxibid (ATG)
+
+**Why:** Milwaukee County's live fleet auctions are catalogued on Proxibid through Auction Associates Inc., and equipment-heavy Wisconsin houses list there (`07` §3, rank 6). **Why a letter:** Proxibid is behind Cloudflare, and plain clients get 403. Its user agreements are PDFs. The same company's BidSpotter terms forbid "any data mining, robots or similar data gathering or extraction methods" (`08` §1a). It is held (0028).
+
+**To:** Auction Technology Group, partnerships (Proxibid)
+**Subject:** Partner access to Wisconsin Proxibid catalogues for an auction search app
+
+Hello,
+
+I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that finds auctions near a buyer and links each result to the auction's own page. Wisconsin government fleets and equipment auctioneers sell through Proxibid.
+
+Your terms don't allow automated collection, so I am asking whether there is a sanctioned route: a partner or affiliate feed of open Wisconsin catalogues (lot title, current bid, close time, pickup city and state, lot URL). Every result would link to the lot on Proxibid, where all bidding happens.
+
+Thank you,
+[Name], [Business name]
+[Phone] · [Email]
+
+---
+
+## 9. Purple Wave
+
+**Why:** no-reserve agricultural, construction and government equipment auctions, including 11 of 189 open Wisconsin government lots in an aggregator snapshot (`07` §3, rank 7). **Why a letter:** its Terms of Website Use (2025-05-15) forbid using "any robot, spider or other automatic device, process or means to access the Website for any purpose, including monitoring or copying any of the material". It is held (0022).
+
+**To:** Purple Wave (contact page on purplewave.com)
+**Subject:** Permission or syndication for listing Purple Wave's Wisconsin items, with links back
+
+Hello,
+
+I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that finds auctions near a buyer and links each result to the item's own page. Your Wisconsin items, equipment and government fleet especially, are exactly what my customers look for.
+
+Your Terms of Website Use forbid automated access, so I am asking before the app reads anything:
+
+- Is there a syndication feed or API for open items by state? We would much prefer that.
+- If not, may we have written permission for our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) to read open Wisconsin items? It would make at most 30 requests an hour, obey robots.txt, and never touch results or bid pages.
+
+Each result would show the item's title, current bid, close time and location, and link to it on purplewave.com, where all bidding happens.
+
+Thank you,
+[Name], [Business name]
+[Phone] · [Email]
+
+---
+
+## 10. EstateSales.NET
+
+**Why:** the category leader for estate sales. Its Wisconsin directory is the largest estate-sale gap in the app (`07` §3: "EstateSales.net will probably jump to rank 3 or 4"). **Why a letter:** its terms (§16.6) bar harvesting without written permission. It is held (0028). EstateSales.org is not asked: its terms (§4.1) set liquidated damages for scraping and offer an authorized API only, so that route is theirs to offer.
+
+**To:** EstateSales.NET (partner or contact page)
+**Subject:** Written permission request: Wisconsin estate sales in an auction search app, with links back
+
+Hello,
+
+I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that shows buyers the estate sales and auctions near them, with every result linking to the sale's own page.
+
+Your terms (§16.6) require written permission before any harvesting, so I am asking first:
+
+- May we list Wisconsin sales from EstateSales.NET: each sale's title, dates, city and a link to its page on your site? We would never copy photos or descriptions beyond a short excerpt.
+- Our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) would read your Wisconsin listing pages a few times a day and obey robots.txt. A feed would be better still, if you offer one.
+
+Every result would send the buyer to your sale page.
+
+Thank you,
+[Name], [Business name]
+[Phone] · [Email]

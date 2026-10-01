@@ -264,6 +264,57 @@ insert into sources (
  null, 'Wisconsin equipment, farm and real estate auctions.',
  'https://www.hansenauctiongroup.com/robots.txt', null),
 
+-- Wisconsin houses on BidWrangler (0031, 0032): five switched on after their
+-- robots.txt and terms were read; Wisconsin Public Auction's tenancy reads
+-- "Platform access suspended" with Disallow: /, so it stays off.
+('hansen-and-young', 'Hansen & Young, Inc.', 'https://www.hansenandyoung.com',
+ 'https://bid.hansenandyoung.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
+ false, false, false, true, true,
+ 'BidWrangler house selling in Eleva, Mondovi, Prairie Farm, St. Croix Falls and Chetek, WI, at its own bidding domain. Terms read 2026-10-01: no site-wide terms, no clause on automated access in its auctions'' text.',
+ 20, false, false, 60, 20,
+ null, 'Western Wisconsin consignment, equipment, auto and seasonal auctions.',
+ 'https://bid.hansenandyoung.com/robots.txt', null),
+
+('hueckman-auction', 'Hueckman Auction', 'https://hueckmanauction.bidwrangler.com/ui',
+ 'https://hueckmanauction.bidwrangler.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
+ false, false, false, true, true,
+ 'BidWrangler house selling in Medford, Rib Lake and Tomahawk, WI. Terms read 2026-10-01: none forbid automated access.',
+ 20, false, false, 60, 20,
+ null, 'North-central Wisconsin estate, farm and personal property auctions.',
+ 'https://hueckmanauction.bidwrangler.com/robots.txt', null),
+
+('bennett-auction-service', 'Bennett Auction Service', 'https://bennettauctionservice.bidwrangler.com/ui',
+ 'https://bennettauctionservice.bidwrangler.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
+ false, false, false, true, true,
+ 'BidWrangler house in Prentice, WI. Terms read 2026-10-01: none forbid automated access.',
+ 20, false, false, 60, 20,
+ null, 'Northern Wisconsin shop, tool, equipment and estate auctions.',
+ 'https://bennettauctionservice.bidwrangler.com/robots.txt', null),
+
+('north-central-sales-auction', 'North Central Sales Auction', 'https://northcentralsalesauction.bidwrangler.com/ui',
+ 'https://northcentralsalesauction.bidwrangler.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
+ false, false, false, true, true,
+ 'BidWrangler house selling around Wausau, Weston and Wisconsin Rapids, WI. Terms read 2026-10-01: none forbid automated access.',
+ 20, false, false, 60, 20,
+ null, 'Central Wisconsin personal property and real estate auctions.',
+ 'https://northcentralsalesauction.bidwrangler.com/robots.txt', null),
+
+('peoples-company', 'Peoples Company', 'https://peoplescompany.bidwrangler.com/ui',
+ 'https://peoplescompany.bidwrangler.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
+ false, false, false, true, true,
+ 'Land auction firm based outside Wisconsin, scoped to its Wisconsin tracts. Terms read 2026-10-01: none forbid automated access.',
+ 20, false, false, 60, 30,
+ null, 'Farmland and recreational land auctions; Wisconsin tracts only.',
+ 'https://peoplescompany.bidwrangler.com/robots.txt', null),
+
+('wisconsin-public-auction', 'Wisconsin Public Auction', 'https://wisconsinpublicauction.com',
+ 'https://wisconsinpublicauction.bidwrangler.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
+ false, false, false, false, false,
+ 'Dale, WI (vehicles and equipment). Its BidWrangler host''s robots.txt reads "Platform access suspended for this company" with Disallow: /. Not crawled.',
+ 20, false, false, 60, 20,
+ null, 'Vehicle, recreational and equipment auctions in Dale, WI.',
+ 'https://wisconsinpublicauction.bidwrangler.com/robots.txt', null),
+
 ('schrager', 'Schrager Auction Galleries', 'https://www.schragerauction.com',
  null, 'private', 'internal_json', 'invaluable', array['WI'],
  false, false, false, false, false,

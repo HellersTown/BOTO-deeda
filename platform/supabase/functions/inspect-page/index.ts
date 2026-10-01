@@ -148,6 +148,14 @@ Deno.serve(async (req) => {
   if (target.protocol !== 'https:' && target.protocol !== 'http:') {
     return Response.json({ error: 'http(s) only' }, { status: 400 });
   }
+  // Slices are [from, len] pairs, checked before anything is fetched.
+  const isSlice = (v: unknown) =>
+    Array.isArray(v) && v.length === 2 && v.every((n) => Number.isInteger(n) && (n as number) >= 0);
+  for (const key of ['slice', 'textSlice'] as const) {
+    if (body[key] !== undefined && !isSlice(body[key])) {
+      return Response.json({ error: `invalid ${key}: [from, len], two non-negative integers` }, { status: 400 });
+    }
+  }
   // The link filter is compiled before anything is fetched: a pattern that
   // does not compile must not cost the site a request.
   let linkRe: RegExp | null = null;
