@@ -22,9 +22,11 @@
 //   POST { url, method?, postBody?, headers?, pattern?, maxLinks?, slice?: [from, len],
 //          find?, context?, textSlice?: [from, len] }
 //
-// `find` is a regular expression searched in the page's visible text: every
-// match comes back with `context` characters either side, so one request can
-// quote each clause of a terms page that mentions robots or scraping.
+// `find` is a regular expression searched in the page's visible text (HTML), or
+// in the raw body of any other text response (JSON, XML, plain text): every
+// match comes back under `found` with `context` characters either side, so one
+// request can quote each clause of a terms page that mentions robots or
+// scraping. A response that is not text is not searched: `found` is null.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { politeFetch, CRAWLER_TOKEN } from './lib/http.ts';
@@ -284,7 +286,10 @@ Deno.serve(async (req) => {
   }
 
   const [from, len] = body.slice ?? [0, 0];
-  const text = /html/i.test(ctype) ? visibleText(html) : null;
+  // HTML is searched as a reader sees it; JSON, XML and plain text as sent. Before
+  // 2026-10-01 a JSON body was not searched at all, so a terms scan of an API
+  // reported nothing whether or not anything matched.
+  const text = /html/i.test(ctype) ? visibleText(html) : /json|xml|text\//i.test(ctype) ? html : null;
   const [tFrom, tLen] = body.textSlice ?? [0, 0];
   const context = Math.min(Math.max(Math.trunc(body.context ?? 400), 50), 1500);
   return Response.json({

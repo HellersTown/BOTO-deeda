@@ -1,5 +1,10 @@
 -- 0032: five Wisconsin BidWrangler houses switched on; one stays off.
 --
+-- CORRECTION (0034): the terms search described under "terms" below never
+-- ran. inspect-page did not search JSON bodies, and the check read a result
+-- key that does not exist. 0034 holds the five houses again until the scan is
+-- redone. The robots.txt readings stand.
+--
 -- Read through our own crawler (inspect_url) on 2026-10-01:
 --
 --   robots.txt   every house's bidding host reads "# Allow crawlers",
