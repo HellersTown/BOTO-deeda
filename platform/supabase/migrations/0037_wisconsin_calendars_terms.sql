@@ -1,6 +1,14 @@
 -- 0037: the terms of the sources registered by 0035, read through our own
 -- crawler (inspect_url) on 2026-10-01; Dane County's tax-deed sale switched on.
 --
+-- APPLIED BY HAND. In production apply_migration timed out four times on this
+-- file. A request filter between the SQL tool and the database stalled some
+-- of the longer notes, while the database itself showed no locks. So the
+-- updates were run one by one with execute_sql, with shorter notes, and the
+-- migration was recorded in supabase_migrations.schema_migrations with
+-- created_by 'execute_sql'. The flags it sets are exactly the ones below;
+-- only the ingest_note wording differs.
+--
 --   Farmers Hot Line     HELD. farmershotline.com/terms-use: no material "may be
 --                        copied, distributed, republished, reproduced,
 --                        downloaded, displayed or transmitted in any form for

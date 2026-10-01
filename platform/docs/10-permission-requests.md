@@ -1,6 +1,6 @@
 # Permission requests
 
-Most of Wisconsin's online auction inventory sits with operators whose terms forbid automated collection without written permission, or whose bot protection refuses our crawler (see `08-platform-access.md` §1a and §3.1). Sections 1 to 4 cover the four largest; sections 5 to 13 (added 2026-10-01) cover the rest that hold real Wisconsin inventory. These are drafts for the owner to send. Nothing is sent automatically.
+Most of Wisconsin's online auction inventory sits with operators whose terms forbid automated collection without written permission, or whose bot protection refuses our crawler (see `08-platform-access.md` §1a and §3.1). Sections 1 to 4 cover the four largest; sections 5 to 15 (added 2026-10-01) cover the rest that hold real Wisconsin inventory. These are drafts for the owner to send. Nothing is sent automatically.
 
 Each ask is shaped the same way, because it is the version an operator can say yes to:
 
@@ -352,6 +352,56 @@ Farmers Hot Line lists Wisconsin farm and equipment auctions I would like buyers
 
 - May the app list your Wisconsin auctions: each sale's title, auctioneer, date, town and a link to its page on farmershotline.com?
 - Is there a feed or export for partners? We would use it instead of reading the site. If not, our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) would read the Wisconsin list about once an hour and obey robots.txt.
+
+Thank you,
+[Name], [Business name]
+[Phone] · [Email]
+
+---
+
+## 14. BigIron Auctions
+
+**Why:** weekly unreserved online auctions of farm, construction and transport equipment, with Wisconsin pages ("Equipment for sale in Wisconsin", "Northern Wisconsin farm equipment"). This is the equipment market a resale buyer watches, and it does not run on HiBid.
+
+**Why a letter:** robots.txt allows the sale pages, with a 5-second Crawl-delay. But the Terms of Use (bigiron.com/TermsOfUse, read 2026-10-01) bar "any robot, spider, or other automatic device, process, or means to access the Services for any purpose, including monitoring or copying any of the material", and limit use to "personal, non-commercial use only". Held (0040).
+
+**To:** BigIron Auctions (contact page on bigiron.com)
+**Subject:** Permission request: Wisconsin equipment listings in an auction search app, with links back
+
+Hello,
+
+I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that shows buyers the auctions near them. Every result links to the item's own page, where the bidding happens.
+
+BigIron's Wisconsin equipment is exactly what my buyers look for. Your Terms of Use rule out automated access without permission, so I am asking first:
+
+- May the app list your Wisconsin items: title, current bid, close time, town and a link to the item on bigiron.com? Photos and descriptions would stay on your site.
+- Do you offer a feed or partner API? We would use it instead of reading pages. If not, our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) would read your Wisconsin sale pages a few times an hour at most, honour your 5-second Crawl-delay and obey robots.txt.
+
+Every result would send the buyer to BigIron to bid.
+
+Thank you,
+[Name], [Business name]
+[Phone] · [Email]
+
+---
+
+## 15. Steffes Group
+
+**Why:** Steffes Group runs timed online equipment auctions across the upper Midwest. Among them are "Wisconsin Area Equipment Auctions", multi-location sales with items at Wisconsin sites.
+
+**Why a letter:** robots.txt allows the auction pages (only `/api/` and account paths are disallowed). But the terms (steffesgroup.com/legal/terms, RESTRICTIONS (c), read 2026-10-01) bar using "any robot, spider, scraper, data mining tool, data gathering or extraction tool, or any other automated means, to access, collect, copy or record the Services". Held (0040).
+
+**To:** Steffes Group, Inc. (Contact Us on steffesgroup.com)
+**Subject:** Permission request: Wisconsin auction listings in an auction search app, with links back
+
+Hello,
+
+I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that shows buyers the auctions near them, with every result linking to the lot's own page.
+
+Your Wisconsin area equipment auctions belong in it. Your terms restrict automated access, so I am asking first:
+
+- May the app list your Wisconsin lots: title, current bid, close time, location and a link to the lot on steffesgroup.com? Bidding stays entirely with you.
+- Is there a feed or partner access we could use? If not, our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) would read your Wisconsin auction pages about once an hour, one request at a time, and obey robots.txt, including your `/api/` rule.
 
 Thank you,
 [Name], [Business name]

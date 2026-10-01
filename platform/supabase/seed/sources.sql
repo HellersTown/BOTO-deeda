@@ -24,7 +24,7 @@
 -- be here too. The clauses behind each hold are quoted in docs/08 section 1a.
 -- Sources registered for review are seeded held until their terms are read;
 -- those read and held stay held: CTBids (0033), Farmers Hot Line, Farm
--- Auction Guide and AuctionGuy (0037).
+-- Auction Guide and AuctionGuy (0037), BigIron and Steffes Group (0040).
 --
 -- Idempotent: safe to re-run. Rows that already exist are left untouched.
 
@@ -222,6 +222,24 @@ insert into sources (
  10, false, false, 60, 45,
  null, 'Directory of upcoming Wisconsin auctions.',
  'https://www.auctionguy.com/robots.txt', null),
+
+-- Midwest equipment auctioneers with Wisconsin sales (0039), held on their
+-- terms (0040).
+('bigiron', 'BigIron Auctions', 'https://www.bigiron.com/sale/equipment-in-wisconsin',
+ null, 'private', 'html', 'bigiron', array['WI'],
+ false, false, false, false, false,
+ 'Held (0040): its Terms of Use forbid any robot or automatic means of access, including monitoring or copying. Letter: docs/10 section 14.',
+ 10, false, false, 60, 35,
+ null, 'Farm, construction and transport equipment sold in weekly online auctions.',
+ 'https://www.bigiron.com/robots.txt', null),
+
+('steffes-group', 'Steffes Group', 'https://steffesgroup.com/Auction/EquipmentAuctions',
+ null, 'private', 'html', 'steffes', array['WI'],
+ false, false, false, false, false,
+ 'Held (0040): its terms forbid robots, scrapers and any automated means to access or copy the site. Letter: docs/10 section 15.',
+ 10, false, false, 60, 40,
+ null, 'Farm and construction equipment auctions, timed online.',
+ 'https://steffesgroup.com/robots.txt', null),
 
 ('invaluable', 'Invaluable', 'https://www.invaluable.com',
  null, 'private', 'internal_json', 'invaluable', null,
