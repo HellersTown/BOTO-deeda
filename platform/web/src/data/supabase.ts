@@ -17,7 +17,21 @@ export interface SupabaseConfig {
   readonly anonKey: string;
 }
 
-export function readConfig(env: ImportMetaEnv = import.meta.env): SupabaseConfig | null {
+type SupabaseEnv = Pick<ImportMetaEnv, 'VITE_SUPABASE_URL' | 'VITE_SUPABASE_ANON_KEY'>;
+
+/**
+ * Each variable is read by name. Vite replaces `import.meta.env.VITE_X` with its
+ * value at build time, but the env object used whole becomes an object holding
+ * every VITE_ variable in the build environment, so a key set on the host for
+ * another app ships in the public bundle. Until 2026-10-01 that put the old
+ * app's VITE_ANTHROPIC_KEY in this one. src/env-exposure.test.ts guards it.
+ */
+const BUILD_ENV: SupabaseEnv = {
+  VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+  VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
+};
+
+export function readConfig(env: SupabaseEnv = BUILD_ENV): SupabaseConfig | null {
   const url = env.VITE_SUPABASE_URL?.trim() ?? '';
   const anonKey = env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
   if (!/^https?:\/\//.test(url) || anonKey === '') return null;
