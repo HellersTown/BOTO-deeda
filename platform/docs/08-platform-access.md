@@ -211,12 +211,19 @@ hourly probe for sources already registered.
 | GoToAuction | hourly probe | **Blocked** | Cloudflare challenge (HTTP 403) on the home page. Directory only in any case. |
 | AuctionZip | hourly probe | **Blocked** | CloudFront HTTP 403 on the home page. Directory only in any case. |
 | UW-Madison SWAP (`swapauction.wisc.edu`) | hourly probe | **Blocked at the network** | Every connection from Supabase is reset ("Connection reset by peer", os error 104, within 0.3 s), robots.txt included. The host is 162.208.56.35, outside UW's own 128.104/16. Letter asking for a feed: `10` §7. |
+| Five BidWrangler houses: Hansen & Young, Hueckman, Bennett, North Central Sales, Peoples Company | robots.txt; page 1 of each `/api/auctions` (676 KB to 1.4 MB of raw JSON) searched on inspect-page v7; bidwrangler.com's links | **On** (0036) | robots.txt allows /api and /ui. The search covered robot, spider, scrap, crawl, automat, harvest, data mining, reproduc, copyright, "unauthorized use" and systematic. Every match was merchandise ("Scrap Metal", "Lagoon Crawler", "International Harvester", "Spiderman") or the font name "Roboto"; Hueckman matched nothing. BidWrangler publishes no terms of use (only /bidder-data and /privacy-policy). Hansen & Young and Peoples state each sale's place only in its summary, which crawl-private v7 reads. |
+| Dane County Treasurer, tax-deed sale (`treasurer.danecounty.gov`) | robots.txt; the listing, FAQ and Tax Deed Details pages | **On** (0037) | robots.txt disallows only /Account. No terms of use; the only terms linked are Google's, for reCAPTCHA on forms. Sealed bids, due 2026-10-06 1:00 PM; 20 parcels listed. Adapter: crawl-public v3. Parcels are named by municipality and parcel number, never by street. |
+| Wisconsin Department of Revenue public auctions (`revenue.wi.gov`) | robots.txt; the auctions page; the privacy page | **Clear**, on with its adapter (0038) | "Unless a copyright is indicated, the information posted here is in the public domain and may be copied and distributed without permission." Two current sales (Brown, Milwaukee), both run at Hansen Auction Group. Sale-level rows. |
+| Farmers Hot Line (Catalyst Communications Network) | robots.txt; /terms-use | **Held** (0037) | Terms: no material "may be copied, distributed, republished, reproduced, downloaded, displayed or transmitted in any form for commercial use without prior written permission"; personal, non-commercial use only. Its auction list loads by script anyway. Letter: `10` §13. |
+| Farm Auction Guide (Global Auction Guide Media Group) | robots.txt; the Wisconsin page; /disclaimer | **Held** (0037) | "No portion of the information on this Web site may be reproduced in any form or by any means without the prior written permission from globalauctionguide.com"; personal, informational, non-commercial use only. 125 upcoming Wisconsin auctions. Letter: `10` §12. |
+| AuctionGuy (`auctionguy.com`) | robots.txt; home, Wisconsin and one sale page | **Held** (0037) | No terms of its own, but part of the same network. Its sale page links the same sale on globalauctionguide.com, its photos come from aucteeno.com, and its bid link is tagged `utm_source=aucteeno&utm_medium=syndication`. So Global Auction Guide's terms are taken to govern it. 129 Wisconsin auctions. Letter: `10` §12. AuctionGuide (auctionguide.com, "© Auction Guide 1997 - 2026") is a different company and stays on. |
 
 Inspector note (2026-10-01). Until inspect-page v7, `find` ran only over the
 visible text of HTML, so a JSON or XML body was never searched, and matches
 come back under the key `found`. A terms scan of the five BidWrangler houses'
 auction APIs that read the wrong key and ran on JSON proved nothing, and their
-switch-on (0032) was undone (0034) until the scan is redone.
+switch-on (0032) was undone (0034). The scan was redone on v7 the same day
+(row above) and the houses switched on again (0036).
 
 What this means for Wisconsin coverage: of the platforms carrying most
 Wisconsin public-sector inventory, every one read so far (HiBid, Public

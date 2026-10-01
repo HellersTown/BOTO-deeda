@@ -1,6 +1,6 @@
 # Permission requests
 
-Most of Wisconsin's online auction inventory sits with operators whose terms forbid automated collection without written permission, or whose bot protection refuses our crawler (see `08-platform-access.md` §1a and §3.1). Sections 1 to 4 cover the four largest; sections 5 to 10 (added 2026-10-01) cover the rest that hold real Wisconsin inventory. These are drafts for the owner to send. Nothing is sent automatically.
+Most of Wisconsin's online auction inventory sits with operators whose terms forbid automated collection without written permission, or whose bot protection refuses our crawler (see `08-platform-access.md` §1a and §3.1). Sections 1 to 4 cover the four largest; sections 5 to 13 (added 2026-10-01) cover the rest that hold real Wisconsin inventory. These are drafts for the owner to send. Nothing is sent automatically.
 
 Each ask is shaped the same way, because it is the version an operator can say yes to:
 
@@ -297,6 +297,61 @@ Your website terms are a PDF that our software does not read, so rather than gue
 
 - May the app list your open Wisconsin auctions: each sale's title, dates, town and a link to it on ctbids.com? Bidding would stay entirely on CTBids.
 - Our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) would read those listings about once an hour, one request at a time, and obey robots.txt. If you offer a feed or partner access, we would use that instead.
+
+Thank you,
+[Name], [Business name]
+[Phone] · [Email]
+
+---
+
+## 12. Aucteeno and the Global Auction Guide sites (Farm Auction Guide, AuctionGuy)
+
+**Why:** one syndication network carries a large Wisconsin calendar:
+- Farm Auction Guide: "125 Upcoming Auctions in Wisconsin".
+- AuctionGuy: "Wisconsin 129 auctions".
+- Global Auction Guide.
+
+Read through our crawler on 2026-10-01, AuctionGuy's sale pages link the same sale on globalauctionguide.com, load their photos from aucteeno.com, and tag the bid link `utm_source=aucteeno&utm_medium=syndication`. Farm Auction Guide's footer reads "Part of the Global Auction Guide Media Group". So one owner can say yes for all of them.
+
+**Why a letter:** the terms forbid reproduction without written permission. Global Auction Guide's terms (farmauctionguide.com/disclaimer) say: "no portion of the information on this Web site may be reproduced in any form or by any means without the prior written permission from globalauctionguide.com". Copies are allowed "solely for personal, informational, non-commercial purposes". AuctionGuy publishes no terms of its own and is held with the network (0037). AuctionGuide (auctionguide.com) is a different company ("© Auction Guide 1997–2026") and is not part of this ask.
+
+**To:** Aucteeno / Global Auction Guide Media Group (contact page on globalauctionguide.com or farmauctionguide.com/contact-us/)
+**Subject:** Syndication request: Wisconsin auction listings in an auction search app, with links back
+
+Hello,
+
+I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that shows buyers the auctions near them. Every result links to the sale's own page.
+
+Your sites carry the most complete calendar of Wisconsin farm, equipment and estate auctions I have found, and your terms ask for written permission before any reproduction, so I am asking first:
+
+- Do you offer a syndication feed to partners? Your links are already tagged for syndication (utm_medium=syndication). A Wisconsin feed of upcoming sales would be ideal: title, auctioneer, dates, town and the link.
+- If not, may our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) read your Wisconsin listing page about once an hour? It obeys robots.txt and makes one request at a time. The app would show each sale's title, dates, town and auctioneer, and link to the sale. Photos and descriptions would not be copied.
+
+Every result would send the buyer to the sale, with whatever tracking parameters you ask for.
+
+Thank you,
+[Name], [Business name]
+[Phone] · [Email]
+
+---
+
+## 13. Farmers Hot Line (Catalyst Communications Network)
+
+**Why:** a farm auction calendar by state, with Wisconsin houses such as Dairyland of Elroy, Wilkinson of Muscoda, Northern Auction of River Falls, and B and M. Its auction list loads by script, so a feed is the practical route in any case.
+
+**Why a letter:** the terms (farmershotline.com/terms-use, read 2026-10-01) say no material on the site "may be copied, distributed, republished, reproduced, downloaded, displayed or transmitted in any form for commercial use without prior written permission of Catalyst Communications Network". Only "personal, non-commercial use" is permitted. The source is held (0037).
+
+**To:** Catalyst Communications Network, Farmers Hot Line (info@farmershotline.com, 1-800-247-2000)
+**Subject:** Permission request: Wisconsin auction listings in an auction search app, with links back
+
+Hello,
+
+I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that shows buyers the auctions near them. Every result links to the sale's own page.
+
+Farmers Hot Line lists Wisconsin farm and equipment auctions I would like buyers to find. Your terms require written permission for any commercial use, so I am asking:
+
+- May the app list your Wisconsin auctions: each sale's title, auctioneer, date, town and a link to its page on farmershotline.com?
+- Is there a feed or export for partners? We would use it instead of reading the site. If not, our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) would read the Wisconsin list about once an hour and obey robots.txt.
 
 Thank you,
 [Name], [Business name]
