@@ -32,7 +32,7 @@ Fill in the bracketed fields before sending.
 1. Fill in the bracketed fields with the contact details you want them to have. Nothing is filled in for you.
 2. If you have a Wisconsin Surplus bidder account, give your bidder name or number. It shows them you are a customer.
 3. Send it through the Contact page on wisconsinsurplus.com, or call the Mount Horeb office and ask who should receive it. No address is guessed here.
-4. **The crawler's information link is not ready.** Every request carries `WaystockBot/0.1 (+https://waystock.org/bot)`. waystock.org is still the older Waystock app (Vercel project `waystock`, last deployed June 2026), so that link lands on an unrelated page. The page itself is written (`web/public/bot/index.html`, served at `/bot` by the Skeuos app). Before sending, either put the Skeuos app live on waystock.org, or choose another domain and the crawler's User-Agent will be changed to match. Their IT staff may well check that link.
+4. **The crawler's information link is live.** Every request carries `WaystockBot/0.1 (+https://waystock.org/bot)`. Since 2026-10-01 waystock.org serves the Skeuos app, and `/bot` is the crawler's page: what it reads, how it behaves, and how to turn it away (`web/public/bot/index.html`). Their IT staff may well check that link.
 
 ### The letter
 
