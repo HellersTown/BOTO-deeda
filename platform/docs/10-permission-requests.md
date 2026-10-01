@@ -11,13 +11,17 @@ Each ask is shaped the same way, because it is the version an operator can say y
 
 Fill in the bracketed fields before sending.
 
+Where our crawler read an operator's pages before we had read its terms, the letter says what it read and when (checked against the probe log, the crawl runs and the page inspector's record on 2026-10-01). Their server logs will show it, and the request is stronger for saying so first.
+
 ---
 
 ## 1. Wisconsin Surplus Online Auction
 
 **First priority.** The owner buys at Wisconsin Surplus for a resale business, and this is the source the app is for. The owner sends this letter personally; nothing is sent from here.
 
-**Why it is held.** The User Agreement, Legal 21: "You agree that you will not use any robot, spider, other automatic device, or manual process to monitor or copy the Site or the content contained herein without Wisconsin Surplus' prior, express written permission." So the source is held (`ingest_allowed = false`, migration 0020) and nothing of theirs is read until that permission is in hand.
+**Why it is held.** The User Agreement, Legal 21: "You agree that you will not use any robot, spider, other automatic device, or manual process to monitor or copy the Site or the content contained herein without Wisconsin Surplus' prior, express written permission." So the source is held (`ingest_allowed = false`, migration 0020), and until that permission is in hand the hourly probe reads only its robots.txt.
+
+**What our crawler read before the hold.** Their logs will show it, so the letter says so: robots.txt on 2026-09-27, from the first egress check, whose user agent was `AuctionAggregatorBot/0.1` with the owner's contact address (egress-check v2, deployed 2026-09-29, dropped it); the home page and robots.txt hourly on 09-29 and 09-30; 17 pages through the page inspector on 09-30 (13 while the adapter was built, 4 while the terms were read); and one crawl run at 18:56 UTC that day, while the terms were being read (3 requests, 94 auctions, deleted at the owner's request on 10-01). The hold went on at 18:59 UTC; the probe read robots.txt only from 21:07 UTC.
 
 **What is built and waiting** (`crawl-public`, `adapters/wisconsin-surplus.ts`):
 
@@ -43,7 +47,9 @@ Hello,
 
 My name is [Name]. I run [a small resale business / business name] in [town], Wisconsin, and I buy at your auctions[, bidder name or number].
 
-I am building a tool, Skeuos, that watches Wisconsin auctions for the kinds of items I buy and tells me when a sale near me lists them. Your sales are the ones I care about most. Your User Agreement (Legal 21) asks for prior, express written permission before any automated monitoring of your site, so I am asking before the tool reads anything of yours.
+I am building a tool, Skeuos, that watches Wisconsin auctions for the kinds of items I buy and tells me when a sale near me lists them. Your sales are the ones I care about most. Your User Agreement (Legal 21) asks for prior, express written permission before any automated monitoring of your site, so I am asking for it.
+
+I would rather you heard from me what the tool has already done, because it visited your site before we had read Legal 21. It read your robots.txt on 27 September, then checked your home page and robots.txt about once an hour on 29 and 30 September. On 30 September, while it was being built, it read your auction lists and a few auction pages, and then ran once, reading the 94 auctions listed that day. When we read Legal 21 that afternoon, we stopped it, and the next day we deleted the 94 auctions it had kept. Since 1 October it has read only your robots.txt, about once an hour.
 
 What it would read:
 
@@ -78,6 +84,8 @@ Thank you,
 
 ## 2. Public Surplus
 
+**Before you send.** The one run on 2026-09-30 kept 105 Public Surplus lots. They are hidden from search, hunts and alerts (0021) but still stored, and anyone holding the public API key could read them. Deleting them, as you did for Wisconsin Surplus, is your call; if you do, add "and deleted what it had kept" after "we stopped it".
+
 **To:** Public Surplus support (publicsurplus.com)
 **Subject:** Written permission request: listing Wisconsin Public Surplus auctions with links back
 
@@ -85,7 +93,7 @@ Hello,
 
 I'm building Skeuos, an auction search app for Wisconsin buyers. Many Wisconsin school districts, counties, cities and technical colleges sell through Public Surplus, and I'd like to include their current Wisconsin auctions, with your permission.
 
-Your Buyer Agreement (§1.5(v)) asks for prior written permission before any automated monitoring, so I'm asking first.
+Your Buyer Agreement (§1.5(v)) asks for prior written permission before any automated monitoring, so I'm asking for it. I should also tell you what our crawler has already done, because it visited your site before we had read §1.5(v): on 29 and 30 September it checked your home page about once an hour, and on 30 September it read about two dozen of your pages, then ran once, reading 105 Wisconsin auctions in 100 requests over about three minutes. When we read the agreement that afternoon, we stopped it, and nothing from that run appears in the app's search or alerts. Since 1 October it has read only your robots.txt, about once an hour.
 
 What we would show:
 - For each current Wisconsin auction: title, agency, pickup city, current price, bid count and close time.
@@ -129,7 +137,7 @@ Thank you,
 
 Hello,
 
-I'm building Skeuos, a Wisconsin-first auction search app. HiBid carries most of Wisconsin's private auction houses: 82 open auctions and about 24,500 open lots on 30 September 2026. Your terms forbid automated collection and aggregation, so we don't crawl HiBid; today we only link to HiBid searches.
+I'm building Skeuos, a Wisconsin-first auction search app. HiBid carries most of Wisconsin's private auction houses: 82 open auctions and about 24,500 open lots on 30 September 2026. Your terms forbid automated collection and aggregation, so since reading them we don't crawl HiBid; today we only link to HiBid searches. Before we had read them, our crawler read your robots.txt on 27 September, checked your home page about once an hour on 29 and 30 September and, on the 30th, read your public Wisconsin pages and lot data while we built the app (about 30 requests), which is where the figures above come from. Since 1 October it has read only your robots.txt.
 
 I'd like to discuss a feed:
 - **Scope:** open Wisconsin lots (title, current bid, bid count, close time, auction pickup location, lot URL). A delta feed of changes would keep the load minimal.
@@ -245,7 +253,7 @@ Hello,
 
 I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that finds auctions near a buyer and links each result to the item's own page. Your Wisconsin items, equipment and government fleet especially, are exactly what my customers look for.
 
-Your Terms of Website Use forbid automated access, so I am asking before the app reads anything:
+Your Terms of Website Use forbid automated access, so I am asking before the app reads any of your listings. So far our crawler has read your home page (about once an hour on 29 and 30 September), your sitemaps and the terms themselves, and since 1 October only your robots.txt. It has never read a listing. What I am asking:
 
 - Is there a syndication feed or API for open items by state? We would much prefer that.
 - If not, may we have written permission for our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) to read open Wisconsin items? It would make at most 30 requests an hour, obey robots.txt, and never touch results or bid pages.
@@ -372,7 +380,7 @@ Hello,
 
 I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that shows buyers the auctions near them. Every result links to the item's own page, where the bidding happens.
 
-BigIron's Wisconsin equipment is exactly what my buyers look for. Your Terms of Use rule out automated access without permission, so I am asking first:
+BigIron's Wisconsin equipment is exactly what my buyers look for. Your Terms of Use rule out automated access without permission, so I am asking before the app reads any of your listings. So far our crawler has read only your robots.txt and your terms pages. What I am asking:
 
 - May the app list your Wisconsin items: title, current bid, close time, town and a link to the item on bigiron.com? Photos and descriptions would stay on your site.
 - Do you offer a feed or partner API? We would use it instead of reading pages. If not, our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) would read your Wisconsin sale pages a few times an hour at most, honour your 5-second Crawl-delay and obey robots.txt.
@@ -398,7 +406,7 @@ Hello,
 
 I run [business name], a resale business in [town], Wisconsin, and I am building Skeuos, an app that shows buyers the auctions near them, with every result linking to the lot's own page.
 
-Your Wisconsin area equipment auctions belong in it. Your terms restrict automated access, so I am asking first:
+Your Wisconsin area equipment auctions belong in it. Your terms restrict automated access, so I am asking before the app reads any of your listings. So far our crawler has read only your robots.txt, your home page and your terms. What I am asking:
 
 - May the app list your Wisconsin lots: title, current bid, close time, location and a link to the lot on steffesgroup.com? Bidding stays entirely with you.
 - Is there a feed or partner access we could use? If not, our identified crawler (`WaystockBot/0.1`, described at waystock.org/bot) would read your Wisconsin auction pages about once an hour, one request at a time, and obey robots.txt, including your `/api/` rule.
