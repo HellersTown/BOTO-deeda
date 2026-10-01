@@ -22,6 +22,10 @@
  *     cards, including two FixedPrice listings marked Free Shipping. /c/all is not
  *     crawled (it is mostly ShopKeeper resellers); it is here because it holds the
  *     FixedPrice and tab-entity cases the police excerpts lack.
+ *
+ * The fixtures were read with ?sort=closingsoon. Since PropertyRoom's robots.txt
+ * of 2026-10-01 disallows sort=, the adapter asks for ?page=N, which serves the
+ * same soonest-closing order with the same card markup.
  */
 
 import { test } from 'node:test';
@@ -334,8 +338,8 @@ test('run(): a sweep ends only on the page the site marks last: complete snapsho
   const res = await runPropertyRoom(ctx, { budgetMs: 300_000, sleep: async (ms) => { sleeps.push(ms); } });
 
   assert.equal(calls.length, 33);
-  assert.equal(calls[0], 'https://www.propertyroom.com/police-auctions?sort=closingsoon&page=1');
-  assert.equal(calls[32], 'https://www.propertyroom.com/police-auctions?sort=closingsoon&page=33');
+  assert.equal(calls[0], 'https://www.propertyroom.com/police-auctions?page=1');
+  assert.equal(calls[32], 'https://www.propertyroom.com/police-auctions?page=33');
   assert.ok(sleeps.every((ms) => ms === 6000), '10 requests/minute');
   assert.equal(sleeps.length, 32);
   assert.equal(res.completeSnapshot, true);
@@ -499,8 +503,8 @@ test('run() behind the real crawl gate: robots allows the list, fixtures pass bl
   const res = await runPropertyRoom(ctx, { sleep: async () => {} });
   assert.deepEqual(served, [
     'https://www.propertyroom.com/robots.txt',
-    'https://www.propertyroom.com/police-auctions?sort=closingsoon&page=1',
-    'https://www.propertyroom.com/police-auctions?sort=closingsoon&page=2',
+    'https://www.propertyroom.com/police-auctions?page=1',
+    'https://www.propertyroom.com/police-auctions?page=2',
   ]);
   assert.deepEqual(gated.stats().refusals, []);
   assert.equal(res.lots.length, 5);
@@ -510,6 +514,8 @@ test('run() behind the real crawl gate: robots allows the list, fixtures pass bl
 test('adapter identity, URL shape and scope defaults', () => {
   assert.equal(propertyroomAdapter.key, 'propertyroom');
   assert.equal(propertyroomAdapter.method, 'html');
-  assert.equal(prListUrl(PR_BASE, 7), 'https://www.propertyroom.com/police-auctions?sort=closingsoon&page=7');
+  assert.equal(prListUrl(PR_BASE, 7), 'https://www.propertyroom.com/police-auctions?page=7');
+  // robots.txt as of 2026-10-01 disallows "/*?*sort=": the list URL must never carry it.
+  assert.ok(!/[?&]sort=/.test(prListUrl(PR_BASE, 1)));
   assert.deepEqual(scopeStates({ states: null }), ['WI']);
 });

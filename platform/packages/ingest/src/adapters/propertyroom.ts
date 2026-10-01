@@ -7,12 +7,20 @@
  *
  * VERIFIED 2026-09-30 through inspect_url (our crawler, Supabase egress):
  *
- *   robots.txt (www.propertyroom.com), in full:
+ *   robots.txt (www.propertyroom.com) on 2026-09-30, in full:
  *       User-agent: *
  *       Disallow: /account/
  *       Disallow: /watchlist/
  *       Disallow: /activity/
- *     Everything this adapter reads is allowed. No Sitemap line is declared.
+ *   REWRITTEN 2026-10-01 ("# Global robots.txt as of 2026-10-01"). It adds
+ *   /api/ and /hubs/, and disallows any URL whose query carries sort=,
+ *   formats=, seller=, perPage=, location=, deals= or pickup=
+ *   (e.g. "Disallow: /*?*sort="). The crawl gate refused this adapter's
+ *   ?sort=closingsoon&page=N at 15:36 that day, as it should. The plain
+ *   ?page=N, which the site's own pagination links use, is allowed, and it
+ *   serves the same soonest-closing order (read that day: page 1 closes in
+ *   about 4 hours, page 31 of 31 six days later). So the adapter now asks
+ *   for ?page=N only.
  *
  *   No JSON-LD, no embedded app state, no feed. The listing pages are
  *   server-rendered HTML with a clean, data-attribute card per listing:
@@ -26,8 +34,9 @@
  * SCOPE: /police-auctions, not /c/all. /c/all is 265 pages of 40 and mostly
  * ShopKeeper resellers (pawn shops, coin dealers), which are not government
  * surplus. /police-auctions is the police and agency channel: 33 pages of 40
- * (about 1,300 listings) on 2026-09-30. Sorted soonest-closing
- * (?sort=closingsoon&page=N, verified: page 33 ends Oct 5-7, page 1 in 6 hours).
+ * (about 1,300 listings) on 2026-09-30. Soonest-closing first, which is the
+ * listing's default order (?page=N; see robots.txt above for why there is no
+ * sort parameter).
  *
  * LOCATION AND STATE. Listing cards publish no agency and no agency state, so
  * items cannot be scoped by the selling agency's state. Two kinds of listing:
@@ -70,7 +79,6 @@ import { parseMoneyToCents } from '../money.ts';
 
 export const PR_BASE = 'https://www.propertyroom.com';
 export const PR_LIST_PATH = '/police-auctions';
-export const PR_SORT = 'closingsoon';
 /** Listings per page, observed on every full page. */
 export const PR_PAGE_SIZE = 40;
 /** The site shows closing times in Eastern ("Ended Sep 30, 2026 at 12:02 PM (Eastern)"). */
@@ -425,8 +433,9 @@ export function normalizePrCard(card: PrCard, now: Date): { auction: NormalizedA
 
 // ------------------------------------------------------------------ planning
 
+/** The listing's own pagination link. No sort parameter: robots.txt disallows it (2026-10-01). */
 export function prListUrl(base: string, page: number): string {
-  return `${base.replace(/\/+$/, '')}${PR_LIST_PATH}?sort=${PR_SORT}&page=${page}`;
+  return `${base.replace(/\/+$/, '')}${PR_LIST_PATH}?page=${page}`;
 }
 
 /** How many pages fit one run's wall-clock budget at this spacing. */
