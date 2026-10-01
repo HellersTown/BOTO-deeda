@@ -8,6 +8,7 @@ import type { ComponentType } from 'react';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { BidsPage } from './pages/BidsPage';
+import { FindsPage } from './pages/FindsPage';
 import { HuntDetailPage } from './pages/HuntDetailPage';
 import { HuntsPage } from './pages/HuntsPage';
 import { LotPage } from './pages/LotPage';
@@ -32,6 +33,7 @@ export const APP_ROUTES: readonly AppRoute[] = [
   { path: '/welcome', Page: OnboardingPage, access: 'account', shell: false },
   { path: '/', Page: SearchPage, access: 'public', shell: true },
   { path: '/lot/:id', Page: LotPage, access: 'public', shell: true },
+  { path: '/finds', Page: FindsPage, access: 'account', shell: true },
   { path: '/hunts', Page: HuntsPage, access: 'account', shell: true },
   { path: '/hunts/new', Page: NewHuntPage, access: 'account', shell: true },
   { path: '/hunts/:id', Page: HuntDetailPage, access: 'account', shell: true },

@@ -276,6 +276,33 @@ export interface CalculatorResult {
   readonly errors: readonly string[];
 }
 
+// ---------------------------------------------------------------- projection output
+
+/**
+ * What winning at one hammer price makes, or for a personal-use buyer saves, on
+ * the walk-away number's own terms. projectAtHammer at the max bid gives
+ * exactly profitAtMaxBidCents.
+ */
+export interface Projection {
+  /** ok: a value was given. insufficient_data: no value, so the cost only. invalid_input: see errors. */
+  readonly status: 'ok' | 'insufficient_data' | 'invalid_input';
+  readonly userGoal: UserGoal;
+  readonly hammerCents: number;
+  readonly invoice: InvoiceBreakdown | null;
+  /** Invoice plus transport: what winning at this hammer costs out the door. */
+  readonly allInCents: number | null;
+  /** N: resale after selling fees and outbound shipping; for 'use', the fixed-price alternative. */
+  readonly netProceedsCents: number | null;
+  /** X: the uncertainty and repair reserve, counted as a cost as in profitAtMaxBidCents. */
+  readonly riskReserveCents: number | null;
+  readonly transportCents: number;
+  /** N - hammer x k - T - X. The profit, or for 'use' the saving against the alternative. null without a value. */
+  readonly profitCents: number | null;
+  /** profitCents / allInCents, a fraction. null when either is missing or the all-in cost is 0. */
+  readonly returnOnCost: number | null;
+  readonly errors: readonly string[];
+}
+
 // ---------------------------------------------------------------- rules output
 
 export type RuleKind = 'action' | 'warning' | 'info';

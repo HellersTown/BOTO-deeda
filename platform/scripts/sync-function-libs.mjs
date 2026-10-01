@@ -42,6 +42,8 @@ export const FUNCTION_LIBS = {
   // of private sales (sale-level rows).
   'crawl-private': [...WORKER_CORE, 'listingText.ts', 'adapters/bidwrangler.ts', 'adapters/auctionguide.ts'],
   'load-gazetteer': ['http.ts'],
+  // Finds: values open lots with Claude (0044). No crawling, so no gate.
+  'appraise-lots': ['appraisal.ts'],
   'inspect-page': ['http.ts', 'robots.ts', 'probe.ts', 'block.ts', 'jsonld.ts', 'money.ts', 'types.ts', 'politeness.ts'],
 };
 

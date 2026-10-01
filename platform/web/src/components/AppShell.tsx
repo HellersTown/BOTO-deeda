@@ -2,12 +2,13 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useOnline } from '../hooks/useOnline';
 import { useAlerts } from '../providers/AlertsProvider';
-import { BellIcon, CompassIcon, PaddleIcon, PersonIcon, SearchIcon } from './Icons';
+import { BellIcon, CompassIcon, PaddleIcon, PersonIcon, PriceIcon, SearchIcon } from './Icons';
 import { LocationButton } from './LocationDialog';
 import { Wordmark } from './Logo';
 
 const TABS = [
   { to: '/', label: 'Search', Icon: SearchIcon, end: true },
+  { to: '/finds', label: 'Finds', Icon: PriceIcon, end: false },
   { to: '/hunts', label: 'Hunts', Icon: CompassIcon, end: false },
   { to: '/bids', label: 'Bids', Icon: PaddleIcon, end: false },
   { to: '/alerts', label: 'Alerts', Icon: BellIcon, end: false },

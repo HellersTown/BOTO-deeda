@@ -326,6 +326,58 @@ export type HuntMatchRow = {
 
 export type WatchOutcome = 'won' | 'lost' | 'passed';
 
+/** 0044: what a user is shopping for, for Finds. */
+export type FinderGoalRow = {
+  id: string;
+  user_id: string;
+  name: string;
+  mode: 'resale' | 'personal' | 'project';
+  focus: string | null;
+  budget_cents: number | null;
+  min_profit_cents: number | null;
+  min_return_pct: number | null;
+  postal_code: string | null;
+  radius_miles: number | null;
+  closing_within_hours: number | null;
+  include_shippable: boolean;
+  sales_tax_pct: number | null;
+  conservative: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+/** user_id defaults to auth.uid() and RLS pins it there. */
+export type FinderGoalInsert = Omit<Partial<FinderGoalRow>, 'id' | 'user_id' | 'created_at' | 'updated_at'> & {
+  name: string;
+};
+
+export type FinderGoalUpdate = Omit<Partial<FinderGoalRow>, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+
+/**
+ * 0044: one appraisal per lot, written by the appraise-lots function. Users
+ * may read these columns only: who asked for it (requested_by) and the batch
+ * are not granted.
+ */
+export type LotAppraisalRow = {
+  lot_id: string;
+  model: string;
+  item: string;
+  resale_low_cents: number | null;
+  resale_likely_cents: number | null;
+  resale_high_cents: number | null;
+  new_price_cents: number | null;
+  confidence: 'low' | 'medium' | 'high';
+  channel: string | null;
+  days_to_sell: number | null;
+  project_tags: string[];
+  flags: string[];
+  comps_query: string | null;
+  rationale: string | null;
+  lot_title: string;
+  bid_cents_at: number | null;
+  created_at: string;
+};
+
 export type WatchlistRow = {
   id: number;
   user_id: string;
@@ -516,6 +568,14 @@ export type Database = {
       tier_limits: { Row: TierLimitsRow; Insert: never; Update: never; Relationships: [] };
       profiles: { Row: ProfileRow; Insert: never; Update: ProfileUpdate; Relationships: [] };
       hunts: { Row: HuntRow; Insert: HuntInsert; Update: HuntUpdate; Relationships: [] };
+      finder_goals: { Row: FinderGoalRow; Insert: FinderGoalInsert; Update: FinderGoalUpdate; Relationships: [] };
+      lot_appraisals: {
+        Row: LotAppraisalRow;
+        /** Written by the appraise-lots function only (0044). */
+        Insert: never;
+        Update: never;
+        Relationships: [Rel<'lot_appraisals_lot_id_fkey', 'lot_id', 'lots'>];
+      };
       hunt_matches: {
         Row: HuntMatchRow;
         Insert: never;

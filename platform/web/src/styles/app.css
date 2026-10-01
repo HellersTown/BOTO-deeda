@@ -3602,3 +3602,147 @@ select.input {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* ---------------------------------------------------------------- Finds (0044) */
+
+.goal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+
+.goal-form__title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.goal-form__focus {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.goal-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.goal-form__delete {
+  margin-left: auto;
+  color: var(--danger);
+}
+
+.goal-chips {
+  align-items: center;
+}
+
+.goal-chips__edit {
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+
+.finds__summary {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.finds__appraise {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.finds__note {
+  margin-top: -4px;
+}
+
+.finds__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finds__short {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.find {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 12px;
+  border-top: 1px dashed var(--line-field);
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.find__headline {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--pine);
+}
+
+.find--short .find__headline {
+  color: var(--ink-2);
+}
+
+.find__return {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.find__walk {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.find__conf {
+  font-weight: 600;
+}
+
+.find__conf--high {
+  color: var(--pine);
+}
+
+.find__conf--low {
+  color: var(--deadline-ink);
+}
+
+.find__why {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.find__short {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--deadline-ink);
+}
+
+.find__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.find__links {
+  font-size: 14px;
+  font-weight: 600;
+}

@@ -57,6 +57,7 @@ import type {
   LadderRung,
   LotContext,
   ParamUse,
+  Projection,
 } from './types.ts';
 
 // ---------------------------------------------------------------- increment ladders
@@ -387,6 +388,56 @@ function invalidResult(lot: ResolvedLot): CalculatorResult {
 /** Computes the walk-away number for one lot. Pure: same input, same answer. */
 export function computeMaxBid(context: LotContext, options: EngineOptions = {}): CalculatorResult {
   return calculate(resolveLot(context, options), options);
+}
+
+/**
+ * The profit, or for a personal-use buyer the saving, if the lot is won at one
+ * hammer price. It uses the walk-away number's own terms and formula, so at the
+ * max bid it equals profitAtMaxBidCents. Ranking lots needs it at today's
+ * price, not only at the ceiling.
+ */
+export function projectAtHammer(context: LotContext, hammerCents: number, options: EngineOptions = {}): Projection {
+  const lot = resolveLot(context, options);
+  const empty = {
+    userGoal: lot.userGoal,
+    hammerCents,
+    invoice: null,
+    allInCents: null,
+    netProceedsCents: null,
+    riskReserveCents: null,
+    transportCents: 0,
+    profitCents: null,
+    returnOnCost: null,
+  };
+  if (!Number.isSafeInteger(hammerCents) || hammerCents < 0) {
+    const why = `hammerCents must be whole, non-negative cents; got ${String(hammerCents)}.`;
+    return { ...empty, status: 'invalid_input', errors: [...lot.errors, why] };
+  }
+  if (lot.errors.length > 0) return { ...empty, status: 'invalid_input', errors: lot.errors };
+
+  const overflow = { hit: false };
+  const core = solveCeiling(lot);
+  const hammer = BigInt(hammerCents);
+  const invoice = invoiceAt(hammer, lot);
+  const transportCents = cents(core.transport, overflow) ?? 0;
+  const allInCents = invoice.totalCents + transportCents;
+  const profitCents =
+    core.netProceeds === null || core.riskReserve === null
+      ? null
+      : cents(sub(core.netProceeds, add(add(mul(fromInt(hammer), lot.k), core.transport), core.riskReserve)), overflow);
+  return {
+    status: core.hasValue ? 'ok' : 'insufficient_data',
+    userGoal: lot.userGoal,
+    hammerCents,
+    invoice,
+    allInCents,
+    netProceedsCents: cents(core.netProceeds, overflow),
+    riskReserveCents: cents(core.riskReserve, overflow),
+    transportCents,
+    profitCents,
+    returnOnCost: profitCents === null || allInCents <= 0 ? null : profitCents / allInCents,
+    errors: overflow.hit ? ['An amount is too large to represent exactly and is shown as null.'] : [],
+  };
 }
 
 /** computeMaxBid for a lot that has already been read (recommend() reuses the reading). */
