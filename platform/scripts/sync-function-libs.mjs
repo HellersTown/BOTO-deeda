@@ -24,7 +24,8 @@ export const FUNCTION_LIBS = {
   // helpers, plus its own adapters.
   'crawl-worker': [...WORKER_CORE, 'usTime.ts', 'adapters/gsa.ts', 'adapters/irs-auctions.ts'],
   // Public-sector sellers: the state's surplus auctions, municipal and school
-  // surplus, police property, Dane County's tax-deed land.
+  // surplus, police property, Dane County's tax-deed land, the Department of
+  // Revenue's sales.
   'crawl-public': [
     ...WORKER_CORE,
     'jsonld.ts',
@@ -35,6 +36,7 @@ export const FUNCTION_LIBS = {
     'adapters/propertyroom.ts',
     'adapters/municibid.ts',
     'adapters/dane-county-tax-deed.ts',
+    'adapters/wi-dor.ts',
   ],
   // Private auction houses: BidWrangler tenants, and AuctionGuide's directory
   // of private sales (sale-level rows).
