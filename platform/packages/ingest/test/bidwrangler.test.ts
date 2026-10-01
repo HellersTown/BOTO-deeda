@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
+  auctionLocation,
   auctionPageUrl,
   auctionWalkDone,
   bidwranglerAdapter,
@@ -26,6 +27,7 @@ import {
   runBidwrangler,
   scopeStates,
   tenantApiBase,
+  textDeclaredLocation,
   toIso,
   validTimeZone,
 } from '../src/adapters/bidwrangler.ts';
@@ -42,6 +44,12 @@ const ITEMS_P2 = load('bidwrangler-items-p2-2026-09-30.json'); // #1D-#1F inform
 const AUCTIONS_P1 = load('bidwrangler-auctions-2026-09-30.json'); // Belgium WI + Mosinee WI (pending)
 const AUCTION_TJOFLAT = load('bidwrangler-auctions-p2-2026-09-30.json'); // Ettrick WI (accepting_bids)
 const ITEM_PAGE = load('bidwrangler-item-page-2026-09-30.html');
+// Captured 2026-10-01 from bid.hansenandyoung.com and peoplescompany.bidwrangler.com,
+// one auction record each, trimmed the same way plus the staff contact fields
+// and image URLs blanked and Hansen & Young's long description removed. Both
+// carry location: null and state their place only in the summary.
+const HY_ELEVA = JSON.parse(load('bidwrangler-auction-hansen-young-2026-10-01.json')); // "ADDRESS: ELEVA, WI"
+const PC_DANE = JSON.parse(load('bidwrangler-auction-peoples-wi-2026-10-01.json')); // "Dane County, Wisconsin"
 const AUCTION_PAGE = load('bidwrangler-auction-page-2026-09-30.html');
 
 const BASE = 'https://bid.hansenauctiongroup.com';
@@ -177,6 +185,68 @@ test('DATA TRAP: Beloit is in Wisconsin AND Kansas, so a bare city stays statele
   assert.equal(declaredState('Wisconsin'), 'WI'); // a declared full name is still a declaration
   assert.equal(declaredState('ks'), 'KS');
   assert.equal(declaredState('-'), null);
+});
+
+test('a sale with no location object is placed by the state its own summary declares', () => {
+  assert.deepEqual(textDeclaredLocation(HY_ELEVA), {
+    line1: null,
+    city: 'Eleva',
+    state: 'WI',
+    postalCode: null,
+    lat: null,
+    lon: null,
+    ambiguous: false,
+  });
+  // A county names no city.
+  assert.deepEqual([textDeclaredLocation(PC_DANE)!.state, textDeclaredLocation(PC_DANE)!.city], ['WI', null]);
+  const plan = planAuctions([HY_ELEVA, PC_DANE], ['WI'], NOW);
+  assert.deepEqual(plan.inScope.map((a) => a.id), [169908, 168790]);
+  assert.equal(plan.undeclaredState.length, 0);
+  const a = normalizeBwAuction(HY_ELEVA, 'https://bid.hansenandyoung.com')!;
+  assert.deepEqual([a.pickup!.city, a.pickup!.state, a.pickup!.line1], ['Eleva', 'WI', null]);
+  assert.equal(a.auctioneer, 'Hansen & Young, Inc.');
+  assert.equal(a.lotCount, 268);
+  // Its lots inherit the sale's place.
+  const lot = normalizeBwItem(tractor(), { base: BASE, now: NOW, auction: HY_ELEVA })!;
+  assert.equal(lot.pickup!.state, 'WI');
+});
+
+test('the summary forms are strict: no street, other states out of scope, two states none', () => {
+  const withSummary = (s: string) => ({ ...HY_ELEVA, simple_description: s, formatted_simple_description: null });
+  assert.equal(textDeclaredLocation(withSummary('ADDRESS: 1264 5th Ave - Prairie Farm, WI'))!.city, 'Prairie Farm');
+  assert.equal(textDeclaredLocation(withSummary('ADDRESS: 1264 5th Ave - Prairie Farm, WI'))!.line1, null);
+  assert.equal(textDeclaredLocation(withSummary('10% BUYERS PREMIUM  ADDRESS: St. Croix Falls, WI'))!.city, 'St. Croix Falls');
+  assert.equal(textDeclaredLocation(withSummary('Location: Medford, Wisconsin 54451'))!.city, 'Medford');
+  assert.equal(textDeclaredLocation(withSummary('DANE COUNTY, WISCONSIN'))!.state, 'WI');
+  // Peoples Company's other sales: declared, and out of a Wisconsin scope.
+  const iowa = withSummary('Fayette County, Iowa Online Only Farmland Auction - Mark your calendars!');
+  assert.equal(textDeclaredLocation(iowa)!.state, 'IA');
+  assert.equal(planAuctions([iowa], ['WI'], NOW).outOfScope, 1);
+  assert.equal(textDeclaredLocation(withSummary('Brown County, South Dakota Online Only Farmland Auction'))!.state, 'SD');
+  // Two states named: neither is believed.
+  assert.equal(textDeclaredLocation(withSummary('Allamakee County, Iowa, five miles from Crawford County, Wisconsin')), null);
+  // Neither a bare place nor the sale's name is a declaration.
+  assert.equal(textDeclaredLocation(withSummary('Eleva, WI seasonal sale')), null);
+  assert.equal(textDeclaredLocation({ ...withSummary(''), name: 'Outdoor Seasonal Auction - Eleva, WI' }), null);
+  // Lower-case "in" is a word, not Indiana; an unknown code is not a state.
+  assert.equal(textDeclaredLocation(withSummary('Address: the farm in town, in the hills')), null);
+  assert.equal(textDeclaredLocation(withSummary('ADDRESS: Somewhere, XX')), null);
+  // A street-only place keeps the state and drops the city.
+  assert.deepEqual(
+    [textDeclaredLocation(withSummary('ADDRESS: N1234 County Road X, WI'))!.city, textDeclaredLocation(withSummary('ADDRESS: N1234 County Road X, WI'))!.state],
+    [null, 'WI'],
+  );
+});
+
+test('a declared location object always wins over the summary', () => {
+  const conflicting = { ...tjoflat(), simple_description: 'ADDRESS: Marenisco, MI' };
+  assert.equal(auctionLocation(conflicting)!.state, 'WI');
+  assert.equal(auctionLocation(conflicting)!.line1, 'N24454 Washington Coulee Road');
+  // A city without a state keeps its city and takes the summary's state.
+  const cityOnly = { ...HY_ELEVA, location: { city: 'Eleva', state: null } };
+  assert.deepEqual([auctionLocation(cityOnly)!.city, auctionLocation(cityOnly)!.state, auctionLocation(cityOnly)!.ambiguous], ['Eleva', 'WI', false]);
+  // Nothing anywhere: still set aside.
+  assert.equal(auctionLocation({ ...HY_ELEVA, simple_description: null, formatted_simple_description: null }), null);
 });
 
 test('scope defaults to Wisconsin when sources.states is null or empty', () => {

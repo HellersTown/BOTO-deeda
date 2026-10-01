@@ -44,9 +44,14 @@
  * WHAT THE DATA SAYS, AND THE TRAPS IN IT
  *
  * 1. Location is DECLARED per auction: location {street, city, state:"WI",
- *    zip, lat, lng}. Scope uses that field and nothing else. Auction names end
- *    in "- Ettrick, WI", and a Marenisco, MI consignment sale sits in the same
- *    list; the name is never parsed for a state.
+ *    zip, lat, lng}. Scope uses that field first. Auction names end in
+ *    "- Ettrick, WI", and a Marenisco, MI consignment sale sits in the same
+ *    list; the name is never parsed for a state. Some houses leave location
+ *    null on every sale and state the place in the sale's own summary instead
+ *    (verified 2026-10-01): Hansen & Young writes "ADDRESS: ELEVA, WI" and
+ *    Peoples Company "Town of Pleasant Springs, Dane County, Wisconsin". Those
+ *    two labelled forms are read from the summary only (textDeclaredLocation);
+ *    a summary naming two states declares none.
  * 2. Items close on a stagger (1 minute per lot: 23:01Z, 23:02Z, 23:04Z...) and
  *    extend 10 minutes on a late bid, so closesAt is per ITEM (actual_end_time,
  *    which moves with extensions), never the auction's end.
@@ -91,6 +96,7 @@ import type {
 } from '../types.ts';
 import { parseMoneyToCents } from '../money.ts';
 import { isBudgetRefusal } from '../gate.ts';
+import { tidyCity } from '../listingText.ts';
 
 export type BwRecord = Record<string, unknown>;
 
@@ -364,6 +370,93 @@ export function bwLocation(v: unknown): NormalizedLocation | null {
   };
 }
 
+const STATE_CODES = new Set(Object.values(US_STATE_NAMES));
+// Full state names as a house writes them: Title Case or capitals, longest
+// first so "West Virginia" is tried before "Virginia".
+const STATE_NAME_ALT = Object.keys(US_STATE_NAMES)
+  .sort((a, b) => b.length - a.length)
+  .flatMap((n) => [n.replace(/\b[a-z]/g, (c) => c.toUpperCase()).replace(/\bOf\b/, 'of'), n.toUpperCase()])
+  .map((n) => n.replace(/ /g, String.raw`\s+`))
+  .join('|');
+// "ADDRESS: ELEVA, WI", "ADDRESS: 1264 5th Ave - Prairie Farm, WI": a label,
+// then the place, a comma and the state. Case-sensitive, so "in" is never Indiana.
+const LABELLED_PLACE = new RegExp(
+  String.raw`\b(?:ADDRESS|Address|LOCATION|Location)\s*:\s*([^:\n]{1,120}?),\s*(?:([A-Z]{2})|(${STATE_NAME_ALT}))(?![A-Za-z])`,
+  'g',
+);
+// "Dane County, Wisconsin", "Dane and Green Counties, WI".
+const COUNTY_STATE = new RegExp(
+  String.raw`\b(?:County|COUNTY|Counties|COUNTIES),\s*(?:([A-Z]{2})|(${STATE_NAME_ALT}))(?![A-Za-z])`,
+  'g',
+);
+
+function stateFrom(code: string | undefined, name: string | undefined): string | null {
+  if (code) return STATE_CODES.has(code) ? code : null;
+  return name ? declaredState(name.replace(/\s+/g, ' ')) : null;
+}
+
+/** "1264 5th Ave - Prairie Farm" -> "Prairie Farm"; anything with a digit is not a city. */
+function cityFrom(place: string): string | null {
+  const last = place.split(/\s+-\s+|,\s*/).pop()?.trim() ?? '';
+  if (!last || last.length > 40 || !/^[A-Za-z][A-Za-z .'-]*$/.test(last)) return null;
+  return tidyCity(last);
+}
+
+/**
+ * Where a sale says it is in its own summary, for houses that leave the
+ * location object empty (point 1 above). Two forms count, both the house
+ * stating the state, never a city implying one: a labelled place ("ADDRESS:
+ * Eleva, WI") and a county with its state ("Dane County, Wisconsin"). Only
+ * the summary is read (simple_description and formatted_simple_description),
+ * never the name or the long description, where directions and neighbouring
+ * counties are mentioned in passing. A summary that names two different
+ * states declares none. The street is not kept, only the city and state.
+ */
+export function textDeclaredLocation(a: BwRecord): NormalizedLocation | null {
+  const texts = [textFromHtml(a.formatted_simple_description), str(a.simple_description)]
+    .filter((t): t is string => !!t)
+    .map(decodeEntities);
+  const states = new Set<string>();
+  const cities = new Set<string>();
+  for (const t of texts) {
+    for (const m of t.matchAll(LABELLED_PLACE)) {
+      const state = stateFrom(m[2], m[3]);
+      if (!state) continue;
+      states.add(state);
+      const city = cityFrom(m[1]);
+      if (city) cities.add(city);
+    }
+    for (const m of t.matchAll(COUNTY_STATE)) {
+      const state = stateFrom(m[1], m[2]);
+      if (state) states.add(state);
+    }
+  }
+  if (states.size !== 1) return null;
+  return {
+    line1: null,
+    city: cities.size === 1 ? [...cities][0] : null,
+    state: [...states][0],
+    postalCode: null,
+    lat: null,
+    lon: null,
+    ambiguous: false,
+  };
+}
+
+/**
+ * The sale's location: its location object when that names a state, else the
+ * state its summary declares (textDeclaredLocation). A location object with a
+ * city but no state keeps its details and takes the summary's state.
+ */
+export function auctionLocation(a: BwRecord): NormalizedLocation | null {
+  const declared = bwLocation(a.location);
+  if (declared?.state) return declared;
+  const fromText = textDeclaredLocation(a);
+  if (!fromText) return declared;
+  if (!declared) return fromText;
+  return { ...declared, city: declared.city ?? fromText.city, state: fromText.state, ambiguous: false };
+}
+
 export interface BuyerPremium {
   pct: number;
   note: string;
@@ -451,7 +544,7 @@ export function normalizeBwAuction(a: BwRecord, base: string): NormalizedAuction
     startsAt: toIso(a.starts_at) ?? toIso(a.starts_at_unix),
     endsAt: toIso(a.scheduled_end_time) ?? toIso(a.scheduled_end_time_unix),
     timezone: validTimeZone(a.timezone),
-    pickup: bwLocation(a.location),
+    pickup: auctionLocation(a),
     pickupRequired: /\bpick\s*-?\s*up\b|\bpickup\b/i.test(terms) ? true : undefined,
     sellerName: null,
     sellerState: null,
@@ -594,7 +687,7 @@ export function normalizeBwItem(item: BwRecord, ctx: NormalizeItemContext): Norm
     closed,
     url: itemPageUrl(ctx.base, id),
     // An item may declare its own location; otherwise the auction's applies.
-    pickup: bwLocation(item.location) ?? bwLocation(ctx.auction?.location),
+    pickup: bwLocation(item.location) ?? (ctx.auction ? auctionLocation(ctx.auction) : null),
     ships: item.shippable === true,
     images: bwImages(item.images),
     raw: slimItemRaw(item),
@@ -668,7 +761,7 @@ export function planAuctions(
       notOpen++;
       continue;
     }
-    const state = declaredState(obj(a.location)?.state);
+    const state = auctionLocation(a)?.state ?? null;
     if (!state) {
       undeclaredState.push(a);
       continue;
@@ -801,7 +894,7 @@ export async function runBidwrangler(
   const plan = planAuctions(listed, scope, now);
   if (plan.undeclaredState.length) {
     warnings.push(
-      `Skipped ${plan.undeclaredState.length} open auction(s) with no declared state ` +
+      `Skipped ${plan.undeclaredState.length} open auction(s) declaring no state in their location or summary ` +
         `(ids ${plan.undeclaredState.slice(0, 5).map((a) => a.id).join(', ')}); state is never guessed from a name.`,
     );
   }
