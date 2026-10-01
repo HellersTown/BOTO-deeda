@@ -102,6 +102,7 @@ import type {
   SourceConfig,
 } from '../types.ts';
 import { isBudgetRefusal } from '../gate.ts';
+import { redactContacts, tidyCity } from '../listingText.ts';
 
 export const AG_BASE = 'https://www.auctionguide.com';
 /** Longest description stored: the robots.txt content signals allow short excerpts. */
@@ -294,64 +295,6 @@ export function shortExcerpt(text: string | null | undefined, max = AG_EXCERPT_M
 
 const sameText = (a: string | null, b: string | null) =>
   !!a && !!b && a.replace(/\W+/g, '').toLowerCase() === b.replace(/\W+/g, '').toLowerCase();
-
-// ------------------------------------------------------------------ privacy
-
-/** Stands in for a street address the site's summary gave. */
-export const AG_ADDRESS_MARK = '(address on the sale page)';
-/** Stands in for a phone number the site's summary gave. */
-export const AG_PHONE_MARK = '(phone on the sale page)';
-
-const withUpper = (words: string[]) => words.flatMap((w) => [w, w.toUpperCase()]).join('|');
-const STREET_SUFFIX = withUpper(['Avenue', 'Ave', 'Street', 'St', 'Drive', 'Dr', 'Lane', 'Ln', 'Boulevard', 'Blvd',
-  'Court', 'Ct', 'Circle', 'Cir', 'Way', 'Place', 'Pl', 'Parkway', 'Pkwy', 'Trail', 'Trl', 'Terrace', 'Ter', 'Pike']);
-const ROAD_SUFFIX = withUpper(['Road', 'Rd', 'Highway', 'Hwy', 'Route', 'Rte']);
-// A house number: "33243", "12B", or a Wisconsin rural grid number, "N5678".
-// Never the tail of a time, date, price or range ("2:00", "1-200", "$5").
-const HOUSE = String.raw`(?<![\w:.,$#/-])(?:[NSEW]\d{1,6}|\d{1,6}[A-Za-z]?)`;
-const WORD = String.raw`[A-Za-z][A-Za-z.'-]*`;
-// "County Road E", "Hwy 33": a road's letter or number designator.
-const DESIGNATOR = String.raw`(?:[A-Z]{1,2}|\d{1,4})\b`;
-const STREET_ADDRESS = new RegExp(
-  `${HOUSE}\\s+(?:(?:${WORD}\\s+){1,4}?(?:(?:${STREET_SUFFIX})\\b\\.?|(?:${ROAD_SUFFIX})\\b\\.?(?:\\s+${DESIGNATOR})?)` +
-  `|(?:${ROAD_SUFFIX})\\b\\.?\\s+${DESIGNATOR})`,
-  'g',
-);
-// A summary the site cut short inside an address: "... at 33243 Oxbow Av...".
-const CUT_ADDRESS = new RegExp(String.raw`((?:^|[\s(])(?:at|AT|@|[Ll]ocation:?|LOCATION:?|[Aa]ddress:?|ADDRESS:?)\s+)${HOUSE}\s+(?:${WORD}\s*){0,4}(?:\.{3}|…)\s*$`);
-const PHONE = /(?<![\d-])(?:\+?1[\s.-]?)?\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}(?![\d-])/g;
-
-/**
- * The site's summary with street addresses and phone numbers replaced by a
- * pointer to the sale page. Rows keep a sale's city, state and ZIP only: a
- * summary often names the preview address, which for an estate sale is a
- * family's home. Errs toward redacting.
- */
-export function redactContacts(text: string | null | undefined): string | null {
-  if (!text) return text ?? null;
-  return text
-    .replace(PHONE, AG_PHONE_MARK)
-    .replace(STREET_ADDRESS, AG_ADDRESS_MARK)
-    .replace(CUT_ADDRESS, `$1${AG_ADDRESS_MARK}…`);
-}
-
-const SMALL_CITY_WORDS = new Set(['de', 'du', 'la', 'le', 'of', 'the', 'on', 'in']);
-
-/**
- * "nekoosa" -> "Nekoosa", "FOND DU LAC" -> "Fond du Lac", "MCFARLAND" ->
- * "McFarland". Only a city typed all in one case is changed: mixed case is
- * the source's own and is kept.
- */
-export function tidyCity(city: string | null | undefined): string | null {
-  if (!city) return city ?? null;
-  const letters = city.replace(/[^A-Za-z]/g, '');
-  if (!letters || (letters !== letters.toLowerCase() && letters !== letters.toUpperCase())) return city;
-  return city.toLowerCase().replace(/[a-z][a-z']*/g, (w, at: number) => {
-    if (at > 0 && SMALL_CITY_WORDS.has(w)) return w;
-    if (w.length > 2 && w.startsWith('mc')) return `Mc${w[2].toUpperCase()}${w.slice(3)}`;
-    return w[0].toUpperCase() + w.slice(1);
-  });
-}
 
 // ------------------------------------------------------------------ dates
 

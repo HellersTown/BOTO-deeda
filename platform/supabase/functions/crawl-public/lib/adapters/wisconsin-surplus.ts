@@ -28,17 +28,41 @@
  * start and end as America/Chicago wall-clock time, the item count, one image,
  * and links to the auction's details and items pages.
  *
- * WHAT THIS ADAPTER DOES NOT DO: LOTS. /Public/Auction/GetAuctionItems answers an
- * anonymous client with an empty "All Caught Up! No Data Found" fragment (tried
- * aucId=128265, AuctionId=128274 and an encrypted pageSize token: the same
- * 30,828-byte empty fragment each time). Public scrapers of other Maxanet tenants
- * first open each auction's AuctionItems page to obtain an ASP.NET session cookie
- * and replay it. That is an anonymously issued session token, which
- * docs/03-legal-and-tos.md rates a "small step up" needing a human decision, and
- * it costs a request per auction. It was not done. So this adapter ingests SALE
- * EVENTS: every current and upcoming auction, with its seller, pickup town,
- * dates and item count, and no lots. completeSnapshot is therefore always false:
- * a run that carries no lots must never be allowed to close any.
+ * WHAT THIS ADAPTER DOES NOT DO: ITEM LOTS. /Public/Auction/GetAuctionItems
+ * answers an anonymous client with an empty "All Caught Up! No Data Found"
+ * fragment (tried aucId=128265, AuctionId=128274 and an encrypted pageSize token:
+ * the same 30,828-byte empty fragment each time). Public scrapers of other
+ * Maxanet tenants first open each auction's AuctionItems page to obtain an
+ * ASP.NET session cookie and replay it. That is an anonymously issued session
+ * token, which docs/03-legal-and-tos.md rates a "small step up" needing a human
+ * decision, and it costs a request per auction. It was not done.
+ *
+ * SO EACH AUCTION IS A SALE ROW. Every current and upcoming auction becomes one
+ * NormalizedAuction and one sale-level NormalizedLot (saleLevel: true, types.ts
+ * and migration 0023), as AuctionGuide's sales do:
+ *   title        the sale's name and what it holds, "Village of French Island:
+ *                2003 Ford F450 Super Duty Diesel Reg Cab 4WD Baby Dump Truck
+ *                w/ Plow" (wsSaleTitle). Wisconsin Surplus titles name the
+ *                seller, not the goods, and a reseller scans for the goods.
+ *   description  the card's own, street addresses and phone numbers replaced
+ *                (listingText.ts). Search and hunts match it, so a hunt for
+ *                "welder" finds the sale whose description lists welders.
+ *   closesAt     the sale's end time, when its lots START closing one by one.
+ *                The row closes WS_CLOSE_GRACE_MS after it, as
+ *                close_expired_lots (0013) does, so the two never disagree.
+ *   url          the sale's page, where every lot is listed.
+ * No price, no bid count, no photo: the card publishes no price, and the photos
+ * are Wisconsin Surplus's own, shown only once its permission covers them.
+ *
+ * A run that read both lists to their end, with every card parsed, is a
+ * complete snapshot of these rows: a sale that has left both lists is over, and
+ * crawl_run_finish may close its row behind its drift guard.
+ *
+ * PERMISSION. The site's terms (Legal 21) forbid any "robot, spider, other
+ * automatic device, or manual process to monitor or copy the Site" without
+ * Wisconsin Surplus' prior, express written permission, so the source is held
+ * (ingest_allowed = false, migration 0020) and nothing here runs until that
+ * permission arrives. The request is docs/10-permission-requests.md section 1.
  *
  * TITLES ARE THE ONLY STRUCTURE. Maxanet has no seller or location field. Titles
  * follow "#<sale no> - <seller or sale name> - <City>, <ST> - <STATUS NOTES>":
@@ -56,8 +80,10 @@ import type {
   IngestResult,
   NormalizedAuction,
   NormalizedLocation,
+  NormalizedLot,
   SourceConfig,
 } from '../types.ts';
+import { redactContacts, tidyCity } from '../listingText.ts';
 
 export const WS_BASE = 'https://bid.wisconsinsurplus.com';
 export const WS_LIST_PATH = '/Public/Auction/GetAuctions';
@@ -69,6 +95,15 @@ export const WS_FILTERS = ['Current', 'Future'] as const;
 /** Maxanet prints times on the tenant's wall clock; titles say "CDT". */
 export const WS_TIMEZONE = 'America/Chicago';
 export const WS_AUCTIONEER = 'Wisconsin Surplus Online Auction';
+/**
+ * How long after a sale's end time its row stays open. Lots close one by one
+ * after it, and bids extend them. Three hours is close_expired_lots' own buffer
+ * (0013): a row the adapter kept open longer would be closed by that sweep and
+ * reopened by the next run, every hour.
+ */
+export const WS_CLOSE_GRACE_MS = 3 * 3_600_000;
+/** Longest sale-row title. It is also an alert's headline; the app shows two lines. */
+export const WS_SALE_TITLE_MAX = 160;
 
 /** The headers the site's own jQuery sends. The endpoint returns the fragment for them. */
 const XHR_HEADERS: Record<string, string> = {
@@ -246,6 +281,8 @@ export interface WsTitleParts {
   location: { city: string; state: string } | null;
   /** First segment that is neither a note nor the location. */
   lead: string | null;
+  /** Every segment but the notes and the location: the sale's own name. */
+  saleName: string | null;
   /** State spelled out or abbreviated at the end of the lead segment. */
   leadState: string | null;
   /** Title without status notes, so it does not churn as a sale closes. */
@@ -274,12 +311,14 @@ export function parseWsTitle(title: string): WsTitleParts {
 
   let location: WsTitleParts['location'] = null;
   let lead: string | null = null;
+  const named: string[] = [];
   for (const seg of segments) {
     const m = seg.match(LOCATION_SEGMENT);
     if (!location && m && isUsStateCode(m[2])) {
       location = { city: m[1].trim(), state: m[2] };
       continue;
     }
+    named.push(seg);
     if (lead === null) lead = seg;
   }
 
@@ -295,7 +334,8 @@ export function parseWsTitle(title: string): WsTitleParts {
 
   const body = segments.join(' - ');
   const displayTitle = auctionNumber ? (body ? `#${auctionNumber} - ${body}` : `#${auctionNumber}`) : body || clean;
-  return { auctionNumber, segments, notes, location, lead, leadState, displayTitle };
+  const saleName = named.length ? named.join(' - ') : null;
+  return { auctionNumber, segments, notes, location, lead, saleName, leadState, displayTitle };
 }
 
 // ------------------------------------------------------------------ cards
@@ -410,14 +450,16 @@ function isAgencySale(categories: string[]): boolean {
 export function normalizeWsCard(card: WsAuctionCard, tense: string | null = null): NormalizedAuction {
   const t = parseWsTitle(card.title);
   const pickup: NormalizedLocation | null = t.location
-    ? { line1: null, city: t.location.city, state: t.location.state, postalCode: null, ambiguous: false }
+    ? { line1: null, city: tidyCity(t.location.city), state: t.location.state, postalCode: null, ambiguous: false }
     : null;
   const sellerName = isAgencySale(card.categories) ? t.lead : null;
+  // Street addresses and phone numbers reach no row, raw included.
+  const description = redactContacts(card.description);
 
   return {
     externalId: card.auctionId,
     title: t.displayTitle,
-    description: card.description,
+    description,
     auctioneer: WS_AUCTIONEER,
     url: card.detailsUrl ?? card.itemsUrl,
     format: 'online',
@@ -441,6 +483,7 @@ export function normalizeWsCard(card: WsAuctionCard, tense: string | null = null
     termsUrl: null,
     raw: {
       ...card,
+      description,
       _meta: {
         source: 'wisconsin-surplus',
         tense,
@@ -456,8 +499,111 @@ export function normalizeWsCard(card: WsAuctionCard, tense: string | null = null
   };
 }
 
+const sameText = (a: string | null, b: string | null) =>
+  !!a && !!b && a.replace(/\W+/g, '').toLowerCase() === b.replace(/\W+/g, '').toLowerCase();
+
+/**
+ * What a sale holds, from its description's first line, less the lot count the
+ * card shows anyway: "126 Lots (2 Pages of Inventory) Including: Trailers,
+ * Mowers, ..." -> "Trailers, Mowers, ...".
+ */
+export function saleContents(description: string | null | undefined): string | null {
+  const first = (description ?? '').split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).find(Boolean) ?? '';
+  return first.replace(/^\d[\d,]*\s+(?:lots?|items?)\b[^:]{0,60}:\s*/i, '').trim() || null;
+}
+
+/** Cut at a word boundary, with an ellipsis, when longer than max. */
+function clip(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:.\-]+$/, '')}…`;
+}
+
+/**
+ * A sale row's title: the sale's name (its title without the sale number, the
+ * status notes and the declared "City, ST", which the app shows beside it),
+ * then what it holds. "Village of French Island: 2003 Ford F450 Super Duty
+ * Diesel Reg Cab 4WD Baby Dump Truck w/ Plow".
+ */
+export function wsSaleTitle(title: string, description: string | null | undefined): string {
+  const t = parseWsTitle(title);
+  const contents = saleContents(description);
+  const text = t.saleName && contents && !sameText(t.saleName, contents)
+    ? `${t.saleName}: ${contents}`
+    : t.saleName ?? contents ?? t.displayTitle;
+  return clip(text, WS_SALE_TITLE_MAX);
+}
+
+/**
+ * One auction as its sale-level row (0023): the sale's title, description,
+ * close, pickup town and link. It has no price and no bid count; the app draws
+ * it as a sale card, "Sale · 126 lots".
+ */
+export function wsSaleLot(
+  card: WsAuctionCard,
+  auction: NormalizedAuction,
+  now: Date,
+  tense: string | null = null,
+): NormalizedLot {
+  const closesAt = auction.endsAt ?? null;
+  const closed = closesAt !== null && Date.parse(closesAt) + WS_CLOSE_GRACE_MS <= now.getTime();
+  const description = auction.description ?? null;
+  return {
+    externalId: `sale:${card.auctionId}`,
+    auctionExternalId: auction.externalId,
+    lotNumber: null,
+    title: wsSaleTitle(card.title, description),
+    description,
+    brand: null,
+    model: null,
+    condition: null,
+    quantity: null,
+    startingBidCents: null,
+    currentBidCents: null,
+    nextBidCents: null,
+    estimateLowCents: null,
+    estimateHighCents: null,
+    soldPriceCents: null,
+    bidCount: null,
+    reserveMet: null,
+    closesAt,
+    closed,
+    url: auction.url ?? null,
+    pickup: auction.pickup ?? null,
+    ships: false,
+    // The photos are Wisconsin Surplus's own: none is shown until its permission
+    // covers them. The card's photo links stay in raw, for provenance only.
+    images: [],
+    raw: {
+      auctionId: card.auctionId,
+      title: card.title,
+      categories: card.categories,
+      itemCount: card.itemCount,
+      startsRaw: card.startsRaw,
+      endsRaw: card.endsRaw,
+      halted: card.halted,
+      imageUrl: card.imageUrl,
+      thumbnailUrl: card.thumbnailUrl,
+      _meta: {
+        source: 'wisconsin-surplus',
+        saleLevel: true,
+        tense,
+        auctionNumber: parseWsTitle(card.title).auctionNumber,
+        closeTimePrecise: true,
+        closeTimeNote:
+          'closesAt is when the sale starts closing. Lots close one by one after it, and a bid near a ' +
+          `lot’s close extends that lot. The row closes ${WS_CLOSE_GRACE_MS / 3_600_000} hours after closesAt.`,
+      },
+    },
+    saleLevel: true,
+  };
+}
+
 export interface WsListResult {
   auctions: NormalizedAuction[];
+  /** The parsed card behind each auction, index for index. */
+  cards: WsAuctionCard[];
   /** Cards found in the fragment, parsed or not. */
   cardCount: number;
   warnings: string[];
@@ -468,11 +614,12 @@ export interface WsListResult {
 export function parseWsAuctionList(html: string, base: string = WS_BASE): WsListResult {
   const warnings: string[] = [];
   if (typeof html !== 'string') {
-    return { auctions: [], cardCount: 0, warnings: ['Response body was not text.'], meta: { tense: null, serverNow: null, lastPage: null } };
+    return { auctions: [], cards: [], cardCount: 0, warnings: ['Response body was not text.'], meta: { tense: null, serverNow: null, lastPage: null } };
   }
   const meta = parseWsFragmentMeta(html);
   const chunks = splitWsCards(html);
   const auctions: NormalizedAuction[] = [];
+  const cards: WsAuctionCard[] = [];
   let skipped = 0;
   let undated = 0;
   for (const chunk of chunks) {
@@ -484,10 +631,11 @@ export function parseWsAuctionList(html: string, base: string = WS_BASE): WsList
     const auction = normalizeWsCard(card, meta.tense);
     if (!auction.endsAt) undated++;
     auctions.push(auction);
+    cards.push(card);
   }
   if (skipped) warnings.push(`Skipped ${skipped} of ${chunks.length} auction cards with no auction id or title.`);
   if (undated) warnings.push(`${undated} auction(s) had no parseable end time.`);
-  return { auctions, cardCount: chunks.length, warnings, meta };
+  return { auctions, cards, cardCount: chunks.length, warnings, meta };
 }
 
 // ------------------------------------------------------------------ run
@@ -547,7 +695,11 @@ export async function runWisconsinSurplus(ctx: AdapterContext, opts: WsRunOption
   const spacing = spacingMs(ctx.source.rateLimitRpm);
 
   const warnings: string[] = [];
-  const byId = new Map<string, NormalizedAuction>();
+  const byId = new Map<string, { card: WsAuctionCard; auction: NormalizedAuction; tense: string | null }>();
+  // A list counts as read only when paging reached its end: never after a
+  // failed page, a budget refusal or the page cap.
+  const listRead = new Map<string, boolean>();
+  let unparsed = 0;
   let httpRequests = 0;
   let bytesIn = 0;
   let outOfScope = 0;
@@ -558,6 +710,7 @@ export async function runWisconsinSurplus(ctx: AdapterContext, opts: WsRunOption
 
   for (const filter of WS_FILTERS) {
     if (outOfBudget) break;
+    listRead.set(filter, false);
     for (let page = 1; page <= WS_MAX_PAGES; page++) {
       // Space request STARTS by the rate limit. Behind the crawl gate, which paces
       // the same way, this waits for nothing; without it, it keeps us polite.
@@ -594,6 +747,7 @@ export async function runWisconsinSurplus(ctx: AdapterContext, opts: WsRunOption
       }
 
       const parsed = parseWsAuctionList(res.text, base);
+      unparsed += parsed.cardCount - parsed.auctions.length;
       for (const w of parsed.warnings) warnings.push(`${filter} page ${page}: ${w}`);
       if (!clockChecked && parsed.meta.serverNow) {
         const w = checkServerClock(parsed.meta.serverNow, ctx.now());
@@ -604,7 +758,8 @@ export async function runWisconsinSurplus(ctx: AdapterContext, opts: WsRunOption
         warnings.push('The current-auction list held no auction cards; the fragment markup may have changed.');
       }
 
-      for (const a of parsed.auctions) {
+      for (let i = 0; i < parsed.auctions.length; i++) {
+        const a = parsed.auctions[i];
         const state = a.pickup?.state ?? null;
         // Scope on the state the title DECLARES. A sale with no declared location
         // stays in: this is a Wisconsin-based regional source, and dropping it
@@ -615,21 +770,38 @@ export async function runWisconsinSurplus(ctx: AdapterContext, opts: WsRunOption
         }
         if (!state) undeclared++;
         // An auction can move from Future to Current between the two requests.
-        if (!byId.has(a.externalId)) byId.set(a.externalId, a);
+        if (!byId.has(a.externalId)) byId.set(a.externalId, { card: parsed.cards[i], auction: a, tense: parsed.meta.tense });
       }
 
-      if (parsed.cardCount === 0) break;
-      if (parsed.meta.lastPage === true) break;
-      if (parsed.meta.lastPage === null && parsed.cardCount < WS_PAGE_SIZE) break;
+      const atEnd =
+        parsed.cardCount === 0 ||
+        parsed.meta.lastPage === true ||
+        (parsed.meta.lastPage === null && parsed.cardCount < WS_PAGE_SIZE);
+      if (atEnd) {
+        // An empty current list is not believed: the site always has current
+        // sales, and a markup change must not read as every sale having ended.
+        listRead.set(filter, !(filter === 'Current' && page === 1 && parsed.cardCount === 0));
+        break;
+      }
       if (page === WS_MAX_PAGES) {
         warnings.push(`${filter} list still had pages after the ${WS_MAX_PAGES}-page cap.`);
       }
     }
   }
 
-  const auctions = [...byId.values()];
+  const sales = [...byId.values()];
+  const auctions = sales.map((s) => s.auction);
+  // Item lots need an anonymous ASP.NET session (see the header): each sale is
+  // one sale-level row instead.
+  const now = ctx.now();
+  const lots = sales.map((s) => wsSaleLot(s.card, s.auction, now, s.tense));
+  // Both lists read to their end, every card parsed: a sale missing from them is
+  // over, and its row may be closed.
+  const completeSnapshot = WS_FILTERS.every((f) => listRead.get(f) === true) && unparsed === 0;
   ctx.log('info', 'Wisconsin Surplus ingest complete', {
     auctions: auctions.length,
+    saleRows: lots.length,
+    completeSnapshot,
     outOfScope,
     noDeclaredLocation: undeclared,
     states,
@@ -639,14 +811,11 @@ export async function runWisconsinSurplus(ctx: AdapterContext, opts: WsRunOption
 
   return {
     auctions,
-    // Lot lists need an anonymous ASP.NET session; see the header comment.
-    lots: [],
+    lots,
     bids: [],
     stats: { httpRequests, bytesIn },
     warnings,
-    // Complete at the auction level, but it carries no lots, so it must never be
-    // allowed to close any.
-    completeSnapshot: false,
+    completeSnapshot,
   };
 }
 

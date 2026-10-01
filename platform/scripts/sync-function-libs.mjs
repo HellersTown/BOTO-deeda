@@ -28,6 +28,7 @@ export const FUNCTION_LIBS = {
   'crawl-public': [
     ...WORKER_CORE,
     'jsonld.ts',
+    'listingText.ts',
     'adapters/public-surplus.ts',
     'adapters/wisconsin-surplus.ts',
     'adapters/propertyroom.ts',
@@ -35,7 +36,7 @@ export const FUNCTION_LIBS = {
   ],
   // Private auction houses: BidWrangler tenants, and AuctionGuide's directory
   // of private sales (sale-level rows).
-  'crawl-private': [...WORKER_CORE, 'adapters/bidwrangler.ts', 'adapters/auctionguide.ts'],
+  'crawl-private': [...WORKER_CORE, 'listingText.ts', 'adapters/bidwrangler.ts', 'adapters/auctionguide.ts'],
   'load-gazetteer': ['http.ts'],
   'inspect-page': ['http.ts', 'robots.ts', 'probe.ts', 'block.ts', 'jsonld.ts', 'money.ts', 'types.ts', 'politeness.ts'],
 };

@@ -19,8 +19,9 @@
  *     ...GetAuctions?filter=Future&pageSize=1000&pageNumber=1 (60,297 bytes, 5 cards).
  *     Excerpt: the wrapper and the first card (#26-1403 Village of French Island).
  *
- * No lot-level fixture exists: the item endpoint returns an empty fragment to an
- * anonymous client, and this adapter does not fetch lots (see the adapter header).
+ * No item-level fixture exists: the item endpoint returns an empty fragment to an
+ * anonymous client, and this adapter fetches no items. Each auction becomes one
+ * sale-level row instead (see the adapter header).
  */
 
 import { test } from 'node:test';
@@ -44,9 +45,15 @@ import {
   wsListUrl,
   runWisconsinSurplus,
   wisconsinSurplusAdapter,
+  wsSaleLot,
+  wsSaleTitle,
+  saleContents,
   WS_BASE,
+  WS_CLOSE_GRACE_MS,
+  WS_SALE_TITLE_MAX,
 } from '../src/adapters/wisconsin-surplus.ts';
 import { gateFetcher } from '../src/gate.ts';
+import { ADDRESS_MARK } from '../src/listingText.ts';
 import type { AdapterContext, Fetcher, SourceConfig } from '../src/types.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -237,6 +244,107 @@ test('prices: the auction list publishes none, so no money field is invented', (
   }
 });
 
+// ------------------------------------------------------------------ sale rows
+
+/** Every card of a fixture with its sale row, read at the capture instant. */
+function saleRows(html: string, now: Date = CAPTURED_AT) {
+  const r = parseWsAuctionList(html);
+  return r.auctions.map((auction, i) => ({ auction, lot: wsSaleLot(r.cards[i], auction, now, r.meta.tense) }));
+}
+
+test('sale rows: sale:{id} under its auction, titled with the sale\'s name and what it holds', () => {
+  const [general, waushara] = saleRows(HEAD);
+  const [platteville] = saleRows(TAIL);
+  const [frenchIsland] = saleRows(FUTURE);
+  assert.deepEqual(
+    [general, waushara, platteville, frenchIsland].map((s) => [s.lot.externalId, s.lot.auctionExternalId]),
+    [['sale:128265', '128265'], ['sale:128274', '128274'], ['sale:128409', '128409'], ['sale:128387', '128387']],
+  );
+  // Wisconsin Surplus titles name the seller; the description names the goods.
+  assert.equal(waushara.lot.title, "Waushara County Emergency Management: 2020 Hawk 36' Triple Axle Enclosed Mobile Command Trailer");
+  assert.equal(frenchIsland.lot.title, 'Village of French Island: 2003 Ford F450 Super Duty Diesel Reg Cab 4WD Baby Dump Truck w/ Plow');
+  // No sale number, no status notes, no "Mount Horeb, WI" (the card shows the town
+  // beside the title) and no "126 Lots (2 Pages of Inventory) Including:" (the card
+  // shows "Sale · 126 lots").
+  assert.equal(
+    general.lot.title,
+    'September General Public Equipment Auction: Trailers, Mowers, Shipping Containers, Attachments, Welders, Generators, Household Goods, Fitness Equipment…',
+  );
+  assert.ok(general.lot.title.length <= WS_SALE_TITLE_MAX);
+  // The whole description stays for search and hunts: a hunt for "knives" finds this sale.
+  assert.equal(general.lot.description, general.auction.description);
+  assert.match(general.lot.description ?? '', /Knives and More!$/);
+  for (const { lot } of [general, waushara, platteville, frenchIsland]) {
+    assert.equal(lot.saleLevel, true);
+    assert.equal(lot.lotNumber, null);
+  }
+});
+
+test('sale rows: the sale\'s close, town and link; no price, no bid count, no photo', () => {
+  for (const { auction, lot } of [...saleRows(HEAD), ...saleRows(TAIL), ...saleRows(FUTURE)]) {
+    assert.equal(lot.closesAt, auction.endsAt);
+    assert.deepEqual(lot.pickup, auction.pickup);
+    assert.equal(lot.url, auction.url);
+    assert.match(lot.url ?? '', /^https:\/\/bid\.wisconsinsurplus\.com\/Public\/Auction\/AuctionDetails\?AuctionId=/);
+    for (const k of ['startingBidCents', 'currentBidCents', 'nextBidCents', 'estimateLowCents', 'estimateHighCents', 'soldPriceCents', 'bidCount'] as const) {
+      assert.equal(lot[k], null, k);
+    }
+    assert.equal(lot.ships, false);
+    // The photos are Wisconsin Surplus's own: kept for provenance, shown only with its permission.
+    assert.deepEqual(lot.images, []);
+    assert.match((lot.raw as any).imageUrl, /^https:\/\/s3\.amazonaws\.com\/prod\.maxanet\.auction\//);
+    assert.equal((lot.raw as any)._meta.closeTimePrecise, true);
+  }
+  // A town written in capitals arrives title-cased.
+  const shouted = parseWsAuctionList(HEAD.replace('Mount Horeb, WI', 'MOUNT HOREB, WI')).auctions[0];
+  assert.equal(shouted.pickup?.city, 'Mount Horeb');
+});
+
+test('sale rows: a street address in a description reaches no row, raw included', () => {
+  const [{ auction, lot }] = saleRows(TAIL);
+  assert.equal(lot.description, `0.14 +/- Acre Lot w/Up-Down Duplex at ${ADDRESS_MARK}, Platteville, WI`);
+  assert.equal(auction.description, lot.description);
+  assert.equal(
+    lot.title,
+    `City of Platteville, Wisconsin - Surplus Real Estate: 0.14 +/- Acre Lot w/Up-Down Duplex at ${ADDRESS_MARK}, Platteville, WI`,
+  );
+  assert.doesNotMatch(JSON.stringify([auction, lot]), /Ellen/);
+});
+
+test('sale rows: open while the lots close, closed three hours after the end time, as close_expired_lots does', () => {
+  const r = parseWsAuctionList(HEAD);
+  // #26-1355 ends 2026-09-30 10:00 CDT, 15:00Z.
+  const closedAt = (iso: string) => wsSaleLot(r.cards[0], r.auctions[0], new Date(iso)).closed;
+  assert.equal(WS_CLOSE_GRACE_MS, 3 * 3_600_000);
+  assert.equal(closedAt('2026-09-30T14:59:59Z'), false, 'before the end time');
+  assert.equal(closedAt('2026-09-30T16:08:38Z'), false, 'the capture: still listed an hour after its end time');
+  assert.equal(closedAt('2026-09-30T17:59:59Z'), false);
+  assert.equal(closedAt('2026-09-30T18:00:00Z'), true, 'three hours on');
+  // No end time: open, and no close is invented.
+  const undated = parseWsAuctionList(HEAD.replace('data-auc-date="09/30/2026 10:00:00"', 'data-auc-date="soon"'));
+  const lot = wsSaleLot(undated.cards[0], undated.auctions[0], new Date('2030-01-01T00:00:00Z'));
+  assert.equal(lot.closesAt, null);
+  assert.equal(lot.closed, false);
+});
+
+test('sale titles: the lot-count preamble goes, the name comes first, a long one is cut at a word', () => {
+  assert.equal(saleContents('126 Lots (2 Pages of Inventory) Including: Trailers, Mowers'), 'Trailers, Mowers');
+  assert.equal(saleContents('1,204 Items Including: Tools'), 'Tools');
+  assert.equal(saleContents('2 lots: a mower and a trailer'), 'a mower and a trailer');
+  assert.equal(saleContents('Trailers\nMowers'), 'Trailers', 'the first line only');
+  assert.equal(saleContents('126 Lots (2 Pages of Inventory) Including: '), null);
+  assert.equal(saleContents(null), null);
+  // A description that only repeats the name adds nothing.
+  assert.equal(wsSaleTitle('#26-1 - Surplus Vehicles - Madison, WI', 'Surplus vehicles'), 'Surplus Vehicles');
+  // No description: the name. No name: what it holds. Neither: the title as published.
+  assert.equal(wsSaleTitle('#26-1 - Village of Oregon - Oregon, WI', null), 'Village of Oregon');
+  assert.equal(wsSaleTitle('#26-2 - Oregon, WI', 'Two plow trucks'), 'Two plow trucks');
+  assert.equal(wsSaleTitle('#26-3', null), '#26-3');
+  const long = wsSaleTitle('#26-4 - Dane County Highway', 'Tools, '.repeat(60));
+  assert.ok(long.length <= WS_SALE_TITLE_MAX, `${long.length}`);
+  assert.ok(long.startsWith('Dane County Highway: Tools, Tools') && long.endsWith('Tools…'), long);
+});
+
 // ------------------------------------------------------------------ pagination
 
 test('pagination: the last page is recognised from the disabled "next" button', () => {
@@ -341,7 +449,7 @@ function ctxWith(
 const CURRENT_URL = wsListUrl(WS_BASE, 'Current', 1);
 const FUTURE_URL = wsListUrl(WS_BASE, 'Future', 1);
 
-test('run(): two XHR requests, auctions only, never a complete snapshot', async () => {
+test('run(): two XHR requests, one sale row per auction, a complete snapshot when both lists end', async () => {
   const sleeps: number[] = [];
   const { ctx, calls } = ctxWith({
     [CURRENT_URL]: { status: 200, text: TAIL },
@@ -353,11 +461,53 @@ test('run(): two XHR requests, auctions only, never a complete snapshot', async 
   assert.equal(calls[0].headers?.['X-Requested-With'], 'XMLHttpRequest');
   assert.deepEqual(sleeps, [5000], '12 requests/minute: 5 s between the two requests');
   assert.deepEqual(res.auctions.map((a) => a.externalId), ['128409', '128387']);
-  assert.deepEqual(res.lots, []);
+  assert.deepEqual(res.lots.map((l) => l.externalId), ['sale:128409', 'sale:128387']);
+  assert.ok(res.lots.every((l) => l.saleLevel === true));
+  assert.equal((res.lots[1].raw as any)._meta.tense, 'future');
   assert.equal(res.stats.httpRequests, 2);
   assert.equal(res.stats.bytesIn, TAIL.length + FUTURE.length);
-  assert.equal(res.completeSnapshot, false);
+  // The current list ended at its disabled "next" button, the upcoming one on a
+  // short page, and every card was read: a sale missing from both is over.
+  assert.equal(res.completeSnapshot, true);
   assert.deepEqual(res.warnings, []);
+});
+
+test('run(): no complete snapshot unless both lists reached their end and every card was read', async () => {
+  const run = (responses: Record<string, { status: number; text: string }>) =>
+    runWisconsinSurplus(ctxWith(responses).ctx, { sleep: async () => {} });
+
+  // Short pages end both lists.
+  assert.equal((await run({ [CURRENT_URL]: { status: 200, text: HEAD }, [FUTURE_URL]: { status: 200, text: FUTURE } })).completeSnapshot, true);
+
+  // The upcoming list failed: its sales are unknown, not over.
+  const futureDown = await run({ [CURRENT_URL]: { status: 200, text: TAIL }, [FUTURE_URL]: { status: 500, text: 'Server Error' } });
+  assert.equal(futureDown.completeSnapshot, false);
+  assert.deepEqual(futureDown.lots.map((l) => l.externalId), ['sale:128409'], 'the rows it did read still count');
+
+  // A card that could not be read might be a live sale.
+  const unreadable = '<div class="row border auction-item-cardcolor mb-4"><p>no id, no title</p></div>';
+  const skipped = await run({ [CURRENT_URL]: { status: 200, text: unreadable + TAIL }, [FUTURE_URL]: { status: 200, text: FUTURE } });
+  assert.match(skipped.warnings.join(' '), /Skipped 1 of 2/);
+  assert.equal(skipped.completeSnapshot, false);
+
+  // An empty current list reads as a markup change, not as every sale over.
+  const empty = await run({
+    [CURRENT_URL]: { status: 200, text: '<div class="border-top-0"><input type="hidden" id="hdn_Tense" value="current" /></div>' },
+    [FUTURE_URL]: { status: 200, text: FUTURE },
+  });
+  assert.equal(empty.completeSnapshot, false);
+
+  // Still paging at the page cap: the rest of the list is unknown.
+  const pager = HEAD + '<script>$(".public-pagination").show();</script>';
+  const capped = await run({
+    [CURRENT_URL]: { status: 200, text: pager },
+    [wsListUrl(WS_BASE, 'Current', 2)]: { status: 200, text: pager },
+    [wsListUrl(WS_BASE, 'Current', 3)]: { status: 200, text: pager },
+    [FUTURE_URL]: { status: 200, text: FUTURE },
+  });
+  assert.match(capped.warnings.join(' '), /3-page cap/);
+  assert.equal(capped.completeSnapshot, false);
+  assert.deepEqual(capped.lots.map((l) => l.externalId), ['sale:128265', 'sale:128274', 'sale:128387'], 'a sale seen on two pages is one row');
 });
 
 test('run(): a page without a pager stops once it is shorter than the page size', async () => {
@@ -422,6 +572,7 @@ test('run(): the gate running out of budget before the future list keeps the cur
   const res = await runWisconsinSurplus(ctx, { sleep: async () => {} });
   assert.deepEqual(res.auctions.map((a) => a.externalId), ['128409']);
   assert.match(res.warnings.join(' '), /budget ran out before the Future list/);
+  assert.equal(res.completeSnapshot, false);
 });
 
 test('run(): a gate refusal for bot protection or robots fails the run', async () => {
