@@ -22,6 +22,8 @@
 -- IronPlanet, Ritchie Bros, GovPlanet, Proxibid): a fresh database runs its
 -- migrations before this file, so the holds of 0019, 0020, 0022 and 0028 must
 -- be here too. The clauses behind each hold are quoted in docs/08 section 1a.
+-- Sources registered for review (0031, 0033, 0035) and the BidWrangler houses
+-- held again by 0034 are seeded held as well, until their terms are read.
 --
 -- Idempotent: safe to re-run. Rows that already exist are left untouched.
 
@@ -132,6 +134,23 @@ insert into sources (
  null, 'University of Wisconsin surplus property.',
  'https://swapauction.wisc.edu/robots.txt', null),
 
+-- Registered for review (0035): public bodies that publish their own sales.
+('wi-dor-auctions', 'Wisconsin Department of Revenue Public Auctions', 'https://www.revenue.wi.gov/Pages/PublicAuction/home.aspx',
+ null, 'state', 'html', 'wi-dor', array['WI'],
+ false, false, false, false, false,
+ 'Registered 2026-10-01 for review: the Department of Revenue''s own public auction page. Terms not yet read.',
+ 10, false, false, 60, 30,
+ null, 'State of Wisconsin Department of Revenue public auctions.',
+ 'https://www.revenue.wi.gov/robots.txt', null),
+
+('dane-county-tax-deed', 'Dane County Tax Deed Auction', 'https://treasurer.danecounty.gov/taxdeedauction',
+ null, 'county', 'html', 'dane-county-tax-deed', array['WI'],
+ false, false, false, false, false,
+ 'Registered 2026-10-01 for review: the Dane County Treasurer''s own tax-deed auction (next sale 2026-10-06). Terms not yet read.',
+ 10, false, false, 60, 30,
+ null, 'Tax-deeded property auctions run by the Dane County Treasurer.',
+ 'https://treasurer.danecounty.gov/robots.txt', null),
+
 -- ======================================================== TIER 3: PLATFORMS
 
 ('hibid', 'HiBid', 'https://hibid.com',
@@ -177,6 +196,31 @@ insert into sources (
  10, false, false, 60, 74,
  null, 'Directory of upcoming auctions by location.',
  'https://www.auctionguide.com/robots.txt', null),
+
+-- Registered for review (0035): sale calendars with a Wisconsin page.
+('farmers-hotline', 'Farmers Hot Line', 'https://www.farmershotline.com/auctions',
+ null, 'private', 'html', 'farmers-hotline', array['WI'],
+ false, false, false, false, false,
+ 'Registered 2026-10-01 for review: farm auction calendar by state, with Wisconsin houses (Dairyland, Wilkinson, Northern Auction, B and M). Terms not yet read.',
+ 10, false, false, 60, 40,
+ null, 'Farm, equipment and consignment auction calendar.',
+ 'https://www.farmershotline.com/robots.txt', null),
+
+('farm-auction-guide', 'Farm Auction Guide', 'https://www.farmauctionguide.com/auction-location/wisconsin/',
+ null, 'private', 'html', 'farm-auction-guide', array['WI'],
+ false, false, false, false, false,
+ 'Registered 2026-10-01 for review: farm auction calendar with a Wisconsin page. Terms not yet read.',
+ 10, false, false, 60, 40,
+ null, 'Farm auction calendar, Wisconsin page.',
+ 'https://www.farmauctionguide.com/robots.txt', null),
+
+('auctionguy', 'AuctionGuy', 'https://www.auctionguy.com/WI-auctions.html',
+ null, 'private', 'html', 'auctionguy', array['WI'],
+ false, false, false, false, false,
+ 'Registered 2026-10-01 for review: directory of upcoming auctions by state. Terms not yet read.',
+ 10, false, false, 60, 45,
+ null, 'Directory of upcoming Wisconsin auctions.',
+ 'https://www.auctionguy.com/robots.txt', null),
 
 ('invaluable', 'Invaluable', 'https://www.invaluable.com',
  null, 'private', 'internal_json', 'invaluable', null,
@@ -264,45 +308,46 @@ insert into sources (
  null, 'Wisconsin equipment, farm and real estate auctions.',
  'https://www.hansenauctiongroup.com/robots.txt', null),
 
--- Wisconsin houses on BidWrangler (0031, 0032): five switched on after their
--- robots.txt and terms were read; Wisconsin Public Auction's tenancy reads
+-- Wisconsin houses on BidWrangler (0031, 0032, 0034): robots.txt allows /api
+-- and /ui on all five, but the terms scan 0032 relied on never ran, so 0034
+-- holds them until it is redone. Wisconsin Public Auction's tenancy reads
 -- "Platform access suspended" with Disallow: /, so it stays off.
 ('hansen-and-young', 'Hansen & Young, Inc.', 'https://www.hansenandyoung.com',
  'https://bid.hansenandyoung.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
- false, false, false, true, true,
- 'BidWrangler house selling in Eleva, Mondovi, Prairie Farm, St. Croix Falls and Chetek, WI, at its own bidding domain. Terms read 2026-10-01: no site-wide terms, no clause on automated access in its auctions'' text.',
+ false, false, false, false, false,
+ 'BidWrangler house selling in Eleva, Mondovi, Prairie Farm, St. Croix Falls and Chetek, WI, at its own bidding domain. Held (0034) until the terms scan is redone.',
  20, false, false, 60, 20,
  null, 'Western Wisconsin consignment, equipment, auto and seasonal auctions.',
  'https://bid.hansenandyoung.com/robots.txt', null),
 
 ('hueckman-auction', 'Hueckman Auction', 'https://hueckmanauction.bidwrangler.com/ui',
  'https://hueckmanauction.bidwrangler.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
- false, false, false, true, true,
- 'BidWrangler house selling in Medford, Rib Lake and Tomahawk, WI. Terms read 2026-10-01: none forbid automated access.',
+ false, false, false, false, false,
+ 'BidWrangler house selling in Medford, Rib Lake and Tomahawk, WI. Held (0034) until the terms scan is redone.',
  20, false, false, 60, 20,
  null, 'North-central Wisconsin estate, farm and personal property auctions.',
  'https://hueckmanauction.bidwrangler.com/robots.txt', null),
 
 ('bennett-auction-service', 'Bennett Auction Service', 'https://bennettauctionservice.bidwrangler.com/ui',
  'https://bennettauctionservice.bidwrangler.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
- false, false, false, true, true,
- 'BidWrangler house in Prentice, WI. Terms read 2026-10-01: none forbid automated access.',
+ false, false, false, false, false,
+ 'BidWrangler house in Prentice, WI. Held (0034) until the terms scan is redone.',
  20, false, false, 60, 20,
  null, 'Northern Wisconsin shop, tool, equipment and estate auctions.',
  'https://bennettauctionservice.bidwrangler.com/robots.txt', null),
 
 ('north-central-sales-auction', 'North Central Sales Auction', 'https://northcentralsalesauction.bidwrangler.com/ui',
  'https://northcentralsalesauction.bidwrangler.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
- false, false, false, true, true,
- 'BidWrangler house selling around Wausau, Weston and Wisconsin Rapids, WI. Terms read 2026-10-01: none forbid automated access.',
+ false, false, false, false, false,
+ 'BidWrangler house selling around Wausau, Weston and Wisconsin Rapids, WI. Held (0034) until the terms scan is redone.',
  20, false, false, 60, 20,
  null, 'Central Wisconsin personal property and real estate auctions.',
  'https://northcentralsalesauction.bidwrangler.com/robots.txt', null),
 
 ('peoples-company', 'Peoples Company', 'https://peoplescompany.bidwrangler.com/ui',
  'https://peoplescompany.bidwrangler.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
- false, false, false, true, true,
- 'Land auction firm based outside Wisconsin, scoped to its Wisconsin tracts. Terms read 2026-10-01: none forbid automated access.',
+ false, false, false, false, false,
+ 'Land auction firm based outside Wisconsin, scoped to its Wisconsin tracts. Held (0034) until the terms scan is redone.',
  20, false, false, 60, 30,
  null, 'Farmland and recreational land auctions; Wisconsin tracts only.',
  'https://peoplescompany.bidwrangler.com/robots.txt', null),
@@ -358,6 +403,15 @@ insert into sources (
  15, true, false, 60, 62,
  null, 'Estate contents sold by online auction.',
  'https://www.maxsold.com/robots.txt', null),
+
+-- Registered for review (0033).
+('ctbids', 'CTBids (Caring Transitions)', 'https://www.ctbids.com',
+ null, 'estate', 'html', 'ctbids', array['WI'],
+ false, false, false, false, false,
+ 'Registered 2026-10-01 for review: online estate auctions run by Caring Transitions franchises, four of them in Wisconsin. Terms not yet read.',
+ 12, true, false, 60, 40,
+ null, 'Online estate auctions from Caring Transitions franchises.',
+ 'https://www.ctbids.com/robots.txt', null),
 
 -- ====================================================== TIER 6: MARKETPLACES
 
