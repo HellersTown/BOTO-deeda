@@ -1,0 +1,66 @@
+/*
+ * Design tokens: "Provisioned", from platform/docs/design/Brand.dc.html and
+ * Kit.dc.html. Palette names first, then the roles the components use.
+ * Every text pair the app draws with these was checked at 4.5:1 or better
+ * (see README, "Contrast").
+ */
+:root {
+  color-scheme: light;
+
+  /* Palette */
+  --pine: #24402e; /* brand, active navigation, public-seller tags */
+  --pine-light: #e4ece5; /* info panels */
+  --pine-soft-ink: #dce6dd; /* body text on pine */
+  --ember: #b3431b; /* primary actions, with white text */
+  --brass: #e0b457; /* "Worth the trip", with ink text */
+  --canvas: #f3eee3; /* ground */
+  --card: #fffdf8; /* cards and surfaces */
+  --kit: #e6ddcb; /* photo placeholders, wells, the tab track */
+  --line: #d6cbb5; /* borders */
+  --line-field: #bfb199; /* inputs, dashed separators */
+  --ink: #1e1b16; /* text, price tags */
+  --ink-2: #3e3a31; /* secondary text */
+  --muted: #5a5346; /* muted text, private-seller tags */
+  --deadline-bg: #f6e3b4; /* close-date chips and panels */
+  --deadline-ink: #7a4210;
+  --deadline-ink-strong: #6a3a0e;
+  --link: #8c3514;
+  --link-hover: #6e2a10;
+  --danger: #b42318;
+  --trail: #9c8f78; /* the dashed line between pickup stops (decorative) */
+
+  /* Roles */
+  --ground: var(--canvas);
+  --surface: var(--card);
+  --sunken: var(--kit);
+  --accent: var(--ember);
+  --accent-hover: var(--link);
+  --accent-ink: #ffffff;
+  --muted-strong: var(--ink-2);
+  --line-strong: var(--line);
+  --placeholder-ink: #6e6656;
+  --notice-bg: var(--deadline-bg);
+  --notice-ink: var(--deadline-ink);
+  --notice-ink-strong: var(--deadline-ink-strong);
+  --gov: var(--pine);
+  --gov-soft: var(--pine-light);
+
+  /* Type */
+  --font-display: 'Zilla Slab', Rockwell, Georgia, serif;
+  --font-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  /* Shape */
+  --radius-xs: 4px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Touch targets and chrome */
+  --tap: 44px;
+  --gutter: 20px;
+  --tabbar-height: 62px;
+  --focus-ring: 3px solid var(--pine);
+}

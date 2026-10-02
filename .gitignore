@@ -6,3 +6,9 @@ dist
 .DS_Store
 *.log
 *.tsbuildinfo
+
+# Deep-research working directories (skill scratch space at repo root).
+# Raw per-thread notes are intermediate; the synthesized report is committed
+# into platform/docs/ instead.
+research_notes/
+reports/

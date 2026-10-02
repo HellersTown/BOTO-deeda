@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Zilla+Slab:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:"Public Sans",system-ui,sans-serif;background:#F3EEE3;color:#1E1B16;font-variant-numeric:tabular-nums}
+a{color:#8C3514}a:hover{color:#6E2A10}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F3EEE3">
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 10px 20px">
+    <div style="display: flex; align-items: center; gap: 8px">
+      <svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 12V9.5a6 6 0 0 1 12 0V12" fill="none" stroke="#24402E" stroke-width="3.2" stroke-linecap="round"></path><rect x="7" y="12" width="34" height="31" rx="10" fill="#24402E"></rect><path d="M7.5 20.5c6 4.2 27 4.2 33 0" fill="none" stroke="#F3EEE3" stroke-width="2.4" stroke-linecap="round"></path><path d="M28 29.2C26.5 27.6 20.2 27.8 20.2 31C20.2 34.4 27.8 33.3 27.8 36.8C27.8 40 21.6 40.2 20 38.6" fill="none" stroke="#F3EEE3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span style="font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 24px; font-weight: 700; color: #24402E">Skeuos</span>
+    </div>
+    <button type="button" aria-label="Change where you set out from: ZIP 53202, 60 miles" style="display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid #D6CBB5; border-radius: 22px; background: #FFFDF8; font: inherit; color: #1E1B16">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 21c0-5 12-4 12-9s-8-4-8-9" stroke-dasharray="2.5 3.5"></path><circle cx="10" cy="3.5" r="1.6" fill="currentColor" stroke="none"></circle></svg>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 600">53202 · 60 MI</span>
+    </button>
+  </header>
+
+  <form role="search" style="padding: 0 20px; display: flex; flex-direction: column; gap: 8px">
+    <label for="q" style="font-size: 13px; font-weight: 700; color: #3E3A31">What do you need?</label>
+    <div style="display: flex; gap: 8px">
+      <input id="q" type="search" value="generator under $800 within 60 miles" style="flex-grow: 1; min-width: 0; min-height: 48px; box-sizing: border-box; padding: 0 14px; border: 1.5px solid #1E1B16; border-radius: 12px; background: #FFFDF8; font: inherit; font-size: 16px; color: #1E1B16">
+      <button type="submit" aria-label="Search" style="width: 48px; height: 48px; flex-shrink: 0; border: 0; border-radius: 12px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      </button>
+    </div>
+    <p style="margin: 0; font-size: 13px; color: #5A5346">Read as <strong style="color: #1E1B16">generator</strong> · up to $800 · within 60 mi of 53202</p>
+  </form>
+
+  <div role="group" aria-label="Sort" style="display: flex; gap: 8px; padding: 12px 20px 4px 20px; overflow: hidden">
+    <button type="button" aria-pressed="true" style="flex-shrink: 0; min-height: 36px; padding: 0 12px; border: 1px solid #1E1B16; border-radius: 18px; background: #1E1B16; color: #FFFDF8; font: inherit; font-size: 13px; font-weight: 600">Best match</button>
+    <button type="button" aria-pressed="false" style="flex-shrink: 0; min-height: 36px; padding: 0 12px; border: 1px solid #D6CBB5; border-radius: 18px; background: #FFFDF8; font: inherit; font-size: 13px; font-weight: 500; color: #1E1B16">Closing soon</button>
+    <button type="button" aria-pressed="false" style="flex-shrink: 0; min-height: 36px; padding: 0 12px; border: 1px solid #D6CBB5; border-radius: 18px; background: #FFFDF8; font: inherit; font-size: 13px; font-weight: 500; color: #1E1B16">Nearest</button>
+    <button type="button" aria-pressed="false" style="flex-shrink: 0; min-height: 36px; padding: 0 12px; border: 1px solid #D6CBB5; border-radius: 18px; background: #FFFDF8; font: inherit; font-size: 13px; font-weight: 500; color: #1E1B16">Price</button>
+  </div>
+
+  <main style="flex-grow: 1; overflow: hidden; padding: 8px 20px 0 20px; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <h1 style="margin: 0; font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 21px; font-weight: 700">3 within 60 mi</h1>
+      <button type="button" style="min-height: 36px; padding: 0 4px; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 700; color: #8C3514">12 farther away</button>
+    </div>
+
+    <a href="Lot.dc.html" style="display: flex; gap: 12px; padding: 10px; background: #FFFDF8; border: 1px solid #D6CBB5; border-radius: 14px; text-decoration: none; color: #1E1B16">
+      <div style="width: 84px; height: 84px; flex-shrink: 0; border-radius: 10px; background: #E6DDCB; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5A5346">Photo</div>
+      <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex-grow: 1">
+        <div style="display: flex; gap: 6px; align-items: center">
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #FFFDF8; background: #24402E; padding: 2px 6px; border-radius: 3px">Federal</span>
+          <span style="font-size: 12px; color: #5A5346">GSA Auctions</span>
+          <span style="margin-left: auto; font-size: 11px; font-weight: 700; color: #1E1B16; background: #E0B457; padding: 2px 7px; border-radius: 10px">Worth the trip</span>
+        </div>
+        <span style="font-size: 15px; font-weight: 700; line-height: 1.25">Generac 7,500 W portable generator</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: #5A5346"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 21c0-5 12-4 12-9s-8-4-8-9" stroke-dasharray="2.5 3.5"></path><circle cx="10" cy="3.5" r="1.6" fill="currentColor" stroke="none"></circle></svg><span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600">1.4 MI</span> · Milwaukee, WI · pickup</span>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+          <span style="display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px 3px 7px; border-radius: 11px 4px 4px 11px; background: #1E1B16; color: #FFFDF8; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-weight: 600"><span style="width: 6px; height: 6px; border-radius: 3px; background: #F3EEE3"></span>$310</span>
+          <span style="font-size: 12px; font-weight: 600; color: #7A4210; background: #F6E3B4; padding: 2px 7px; border-radius: 4px">Closes Fri Oct 2</span>
+        </div>
+      </div>
+    </a>
+
+    <a href="Lot.dc.html" style="display: flex; gap: 12px; padding: 10px; background: #FFFDF8; border: 1px solid #D6CBB5; border-radius: 14px; text-decoration: none; color: #1E1B16">
+      <div style="width: 84px; height: 84px; flex-shrink: 0; border-radius: 10px; background: #E6DDCB; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5A5346">Photo</div>
+      <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex-grow: 1">
+        <div style="display: flex; gap: 6px; align-items: center">
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #FFFDF8; background: #24402E; padding: 2px 6px; border-radius: 3px">County</span>
+          <span style="font-size: 12px; color: #5A5346">Municibid</span>
+        </div>
+        <span style="font-size: 15px; font-weight: 700; line-height: 1.25">Honda EU2200i inverter generator</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: #5A5346"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 21c0-5 12-4 12-9s-8-4-8-9" stroke-dasharray="2.5 3.5"></path><circle cx="10" cy="3.5" r="1.6" fill="currentColor" stroke="none"></circle></svg><span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600">18 MI</span> · Waukesha, WI · pickup</span>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+          <span style="display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px 3px 7px; border-radius: 11px 4px 4px 11px; background: #1E1B16; color: #FFFDF8; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-weight: 600"><span style="width: 6px; height: 6px; border-radius: 3px; background: #F3EEE3"></span>$405</span>
+          <span style="font-size: 12px; font-weight: 600; color: #7A4210; background: #F6E3B4; padding: 2px 7px; border-radius: 4px">Closes tomorrow 7:40 PM</span>
+        </div>
+      </div>
+    </a>
+
+    <a href="Lot.dc.html" style="display: flex; gap: 12px; padding: 10px; background: #FFFDF8; border: 1px solid #D6CBB5; border-radius: 14px; text-decoration: none; color: #1E1B16">
+      <div style="width: 84px; height: 84px; flex-shrink: 0; border-radius: 10px; background: #E6DDCB; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5A5346">Photo</div>
+      <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex-grow: 1">
+        <div style="display: flex; gap: 6px; align-items: center">
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #FFFDF8; background: #5A5346; padding: 2px 6px; border-radius: 3px">Private</span>
+          <span style="font-size: 12px; color: #5A5346">HiBid</span>
+        </div>
+        <span style="font-size: 15px; font-weight: 700; line-height: 1.25">Champion 3,500 W dual-fuel generator</span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: #5A5346"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 21c0-5 12-4 12-9s-8-4-8-9" stroke-dasharray="2.5 3.5"></path><circle cx="10" cy="3.5" r="1.6" fill="currentColor" stroke="none"></circle></svg><span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-weight: 600">27 MI</span> · Racine, WI · pickup</span>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+          <span style="display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px 3px 7px; border-radius: 11px 4px 4px 11px; background: #1E1B16; color: #FFFDF8; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-weight: 600"><span style="width: 6px; height: 6px; border-radius: 3px; background: #F3EEE3"></span>$180</span>
+          <span style="font-size: 12px; font-weight: 600; color: #7A4210; background: #F6E3B4; padding: 2px 7px; border-radius: 4px">Closes Sat 6:00 PM</span>
+        </div>
+      </div>
+    </a>
+
+    <a href="NewHunt.dc.html" style="display: flex; flex-direction: column; gap: 3px; padding: 14px 16px; border-radius: 14px; background: #24402E; color: #FFFDF8; text-decoration: none">
+      <span style="font-family: 'Zilla Slab', Rockwell, Georgia, serif; font-size: 19px; font-weight: 700">Keep watch for this</span>
+      <span style="font-size: 13px; line-height: 1.45; color: #DCE6DD">Skeuos checks every source each hour and tells you when a new one is listed.</span>
+    </a>
+  </main>
+
+  <nav aria-label="Primary" style="display: flex; border-top: 1px solid #D6CBB5; background: #FFFDF8; padding: 4px 6px 10px 6px">
+    <a href="Main.dc.html" aria-current="page" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #24402E; font-size: 11px; font-weight: 700">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <span>Search</span>
+    </a>
+    <a href="Hunts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z"></path></svg>
+      <span>Hunts</span>
+    </a>
+    <a href="Bids.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5.5"></circle><path d="M12 13.5V22"></path></svg>
+      <span>Bids</span>
+    </a>
+    <a href="Alerts.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+      <span>Alerts</span>
+    </a>
+    <a href="Profile.dc.html" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 48px; justify-content: center; text-decoration: none; color: #5A5346; font-size: 11px; font-weight: 600">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
+      <span>Profile</span>
+    </a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#B3431B","options":["#B3431B","#24402E","#1F4E79"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#B3431B' };
+  }
+}
+</script>
+</body>
+</html>

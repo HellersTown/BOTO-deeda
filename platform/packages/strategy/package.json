@@ -1,0 +1,13 @@
+{
+  "name": "@platform/strategy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Bidding strategy engine: walk-away calculator, the docs/06 section 9 rules spec, and strategy selection. Zero runtime dependencies by design.",
+  "scripts": {
+    "test": "node --test 'test/*.test.ts'"
+  },
+  "engines": {
+    "node": ">=22.6"
+  }
+}
