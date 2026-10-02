@@ -17,7 +17,7 @@
 import { readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ATTRIBUTE_TERMS, BRAND_PHRASES, PRODUCT_LINE_WORDS, TAXONOMY } from '../packages/query/src/taxonomy.ts';
+import { ATTRIBUTE_TERMS, BRAND_PHRASES, CONCEPT_NAMES, TAXONOMY } from '../packages/query/src/taxonomy.ts';
 import { BRANDS } from '../packages/query/src/lexicon.ts';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -70,54 +70,26 @@ export function brandTerms() {
   return [...out].sort();
 }
 
-/**
- * Words that make a term a specific product rather than a kind of thing: brand
- * names (ambiguous ones included) and product lines. A query naming one
- * ("iphone", "rolex", "dell latitude") must find that word in a listing; a
- * generic term ("phone", "watch") need not.
- */
-export function specificWords() {
-  // Whole brand names and product lines, as word sequences. "GearWrench" and
-  // "Liberty Safe" are brands; "wrench" and "safe" are not.
-  const firm = new Set();
-  const loose = new Set();
-  for (const b of BRANDS) {
-    const ambiguous = new Set((b.ambiguous ?? []).map((a) => words(a).join(' ')));
-    for (const form of [b.name, ...(b.aliases ?? [])]) {
-      const w = words(form).join(' ');
-      if (w) (ambiguous.has(w) ? loose : firm).add(w);
-    }
-    for (const f of b.families ?? []) firm.add(words(f).join(' '));
-  }
-  for (const p of BRAND_PHRASES) firm.add(words(p).join(' '));
-  for (const p of PRODUCT_LINE_WORDS) firm.add(words(p).join(' '));
-  for (const w of firm) loose.delete(w);
-  return { firm, loose };
+/** A crude singular, applied alike to both sides of a comparison ("laptops", "laptop"). */
+function singular(w) {
+  if (/(ch|sh|x|ss|zz)es$/.test(w)) return w.slice(0, -2);
+  if (/[^aeiou]ies$/.test(w)) return w.slice(0, -3) + 'y';
+  if (/[^s]s$/.test(w)) return w.slice(0, -1);
+  return w;
 }
 
-/** Plain words that appear in product names but never make one specific on their own. */
-const GENERIC_WORDS = new Set(['laptop', 'computer', 'phone', 'watch', 'tablet', 'tv', 'camera', 'drone', 'truck', 'tractor',
-  'mower', 'saw', 'drill', 'chair', 'table', 'desk', 'bed', 'boat', 'trailer', 'car', 'bike', 'rifle', 'pistol', 'shotgun',
-  'knife', 'ring', 'necklace', 'speaker', 'speakers', 'monitor', 'printer', 'router', 'console', 'controller', 'game',
-  'pro', 'air', 'mini', 'max', 'plus', 'ultra', 'lite', 'one', 'series', 'model', 'sport', 'classic', 'deluxe', 'tools',
-  'tool', 'the', 'and', 'of', 'co', 'company', 'inc', 'electric', 'power', 'home', 'house', 'shop', 'case', 'mac',
-  'box', 'super', 'duty', 'big', 'little', 'king', 'star', 'gold', 'silver', 'safe', 'wrench', 'land', 'deer', 'turn']);
+/** How a term is compared with a concept's names. */
+export function nameKey(text) {
+  return words(text).map(singular).join(' ');
+}
 
 /**
- * A term names a specific product when it contains a whole brand name or
- * product line ("iphone", "rolex", "dell latitude", "john deere gator"), or an
- * ambiguous brand word in the brand's place at the front ("apple watch",
- * "ram 1500", never "phone case").
+ * What names a concept (taxonomy rule 6): its label, its id and the terms
+ * CONCEPT_NAMES lists. A query for any other term keeps that term's words.
  */
-export function isSpecific(term, sw) {
-  const all = words(term);
-  for (let i = 0; i < all.length; i++) {
-    for (let j = all.length; j > i; j--) {
-      const seq = all.slice(i, j).join(' ');
-      if (sw.firm.has(seq) && !(j - i === 1 && GENERIC_WORDS.has(seq))) return true;
-    }
-  }
-  return all.length >= 2 && sw.loose.has(all[0]) && !GENERIC_WORDS.has(all[0]);
+export function conceptNames(concept) {
+  return new Set([nameKey(concept.label), nameKey(concept.id.replace(/-/g, ' ')),
+    ...(CONCEPT_NAMES[concept.id] ?? []).map(nameKey)]);
 }
 
 export function orderedConcepts() {
@@ -140,17 +112,19 @@ export function orderedConcepts() {
 
 /**
  * The document search_load_vocabulary() takes. A term is a string ("!" in
- * front when it names a specific product) or, when it carries cues or is a
- * fallback meaning, an object.
+ * front when a query for it needs its own words: a product's name, or a kind
+ * narrower than its concept) or, when it carries cues or is a fallback
+ * meaning, an object.
  */
 export function vocabulary() {
-  const sw = specificWords();
   const concepts = orderedConcepts();
   const items = {};
   for (const c of concepts) {
+    const names = conceptNames(c);
     items[c.id] = c.terms.map((t) => {
       const text = typeof t === 'string' ? t : t.text;
-      const specific = isSpecific(text, sw);
+      // A name always stands for the whole concept, trademark or not ("jet ski").
+      const specific = !names.has(nameKey(text));
       const cues = typeof t === 'string' ? [] : (t.cues ?? []);
       const fallback = typeof t !== 'string' && Boolean(t.fallback);
       if (!cues.length && !fallback) return specific ? `!${text}` : text;
