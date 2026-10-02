@@ -101,22 +101,49 @@ as $$ select array_to_string(public.search_tokens(p_text), ' ') $$;
 -- box), the meaning whose cue words appear in the same text wins, else the
 -- default one. A query (p_all_meanings) keeps every meaning its own words do
 -- not rule out: "router" alone asks for both kinds.
+--
+-- plpgsql so its plan is cached: it runs twice for every lot classified. The
+-- candidate phrases are built first and looked up by index, never by
+-- scanning the vocabulary.
 create or replace function public.search_match(p_toks text[], p_all_meanings boolean default false)
 returns table (st integer, en integer, kind text, concept text, cue_hit boolean, specific boolean)
-language sql stable parallel safe
+language plpgsql stable parallel safe
 set search_path = pg_catalog, public
 as $$
-  with grams as (
-    select s as st, s + k - 1 as en, array_to_string(p_toks[s:s + k - 1], ' ') as norm
-      from generate_series(1, coalesce(cardinality(p_toks), 0)) s
-      cross join generate_series(1, 5) k
-     where s + k - 1 <= cardinality(p_toks)
-       and not (p_toks[s:s + k - 1] && array['zzsep', 'zzwith'])
-       and p_toks[s] <> 'and' and p_toks[s + k - 1] <> 'and'
+#variable_conflict use_column
+declare
+  n      integer := coalesce(cardinality(p_toks), 0);
+  v_st   integer[] := '{}';
+  v_en   integer[] := '{}';
+  v_norm text[] := '{}';
+  a      integer;
+  b      integer;
+begin
+  -- Every run of one to five words that crosses no separator and neither
+  -- starts nor ends with "and".
+  for a in 1 .. n loop
+    continue when p_toks[a] in ('zzsep', 'zzwith', 'and');
+    for b in a .. least(a + 4, n) loop
+      exit when p_toks[b] in ('zzsep', 'zzwith');
+      continue when p_toks[b] = 'and';
+      v_st := v_st || a;
+      v_en := v_en || b;
+      v_norm := v_norm || array_to_string(p_toks[a:b], ' ');
+    end loop;
+  end loop;
+  if cardinality(v_norm) = 0 then
+    return;
+  end if;
+
+  return query
+  with terms as materialized (
+    select t.norm, t.kind, t.concept, t.cues, t.is_default, t.specific
+      from public.search_terms t
+     where t.norm = any(v_norm) and t.active
   ), hits as (
     select g.st, g.en, t.kind, t.concept, t.cues, t.is_default, t.specific
-      from grams g
-      join public.search_terms t on t.norm = g.norm and t.active
+      from unnest(v_st, v_en, v_norm) as g(st, en, norm)
+      join terms t on t.norm = g.norm
   ), outer_hits as (
     select h.*
       from hits h
@@ -133,8 +160,8 @@ as $$
   select r.st, r.en, r.kind, r.concept, r.hit, r.specific
     from ranked r
    where (r.rn = 1 and (r.is_default or r.hit))
-      or (p_all_meanings and r.kind = 'item' and (r.hit or not r.any_hit))
-$$;
+      or (p_all_meanings and r.kind = 'item' and (r.hit or not r.any_hit));
+end $$;
 
 -- ------------------------------------------------------------ listings
 -- What a listing IS. Titles are cut into segments at commas, dashes, "with"
@@ -295,7 +322,11 @@ end $$;
 -- "thermal", "tractor"; and so must a specific product's own name ("iphone",
 -- "rolex"), so "rolex" finds Rolex watches, not every watch. Two kinds of
 -- word need not: one that only chose a meaning ("wifi" in "wifi router"),
--- and a number that measures ("20" in "20 acres").
+-- and a number that measures ("20" in "20 acres"). Model numbers match
+-- however a listing writes them ("f150", "F-150", "F 150").
+--
+-- required_q and words_q hold each required word, and each word, as a
+-- tsquery over the stemmed words, for search_lots.
 create or replace function public.search_resolve(p_query text)
 returns jsonb
 language plpgsql stable parallel safe
@@ -324,6 +355,15 @@ declare
   v_plain boolean := false;
   v_brand boolean := false;
   v_excl  text[] := '{}';
+  v_req_q text[] := '{}';
+  v_wrd_q text[] := '{}';
+  mfrag   text[];
+  mdisp   text[];
+  taken   boolean[];
+  ml      text;
+  mn      text;
+  v_w     text;
+  v_f     text;
   -- Units a number measures in, stemmed as search_tokens() leaves them.
   c_units constant text[] := array['acr', 'acre', 'ft', 'foot', 'feet', 'inch', 'in', 'gallon', 'gal', 'lb', 'lbs',
                                    'pound', 'ton', 'hp', 'cc', 'mm', 'cm', 'gb', 'tb', 'ghz', 'mhz', 'watt', 'w', 'volt',
@@ -409,12 +449,42 @@ begin
     end if;
   end loop;
 
+  -- Model numbers: a few letters then digits, together or apart ("f150",
+  -- "F-150", "F 150", "ms250", "AR-15"). The text index keeps "F-150" as 'f'
+  -- and '-150' and "F150" as 'f150', so each is asked for in every form. A
+  -- letter the index drops as a stop word ("S-185" is kept as '-185' alone)
+  -- is left out of the phrase.
+  mfrag := array_fill(null::text, array[n]);
+  mdisp := array_fill(null::text, array[n]);
+  taken := array_fill(false, array[n]);
   for i in 1 .. n loop
-    continue when segs[i] = 0 or (ts_lexize('english_stem', v_toks[i])) = '{}';
-    if not (v_toks[i] = any(v_words)) then v_words := v_words || v_toks[i]; end if;
+    continue when taken[i] or inprim[i] or segs[i] = 0;
+    if v_toks[i] ~ '^[a-z]{1,3}$' and i < n and segs[i + 1] = segs[i]
+       and v_toks[i + 1] ~ '^[0-9]+[a-z0-9]*$' then
+      ml := v_toks[i]; mn := v_toks[i + 1]; taken[i + 1] := true;
+    elsif v_toks[i] ~ '^[a-z]{1,3}[0-9]+[a-z0-9]*$' then
+      ml := substring(v_toks[i] from '^[a-z]+'); mn := substring(v_toks[i] from '^[a-z]+(.*)$');
+    else
+      continue;
+    end if;
+    if (ts_lexize('english_stem', ml)) = '{}' then
+      mfrag[i] := format('%1$s | %2$s | %3$s', quote_literal(mn), quote_literal('-' || mn), quote_literal(ml || mn));
+    else
+      mfrag[i] := format('%1$s <-> %2$s | %1$s <-> %3$s | %4$s',
+                         quote_literal(ml), quote_literal(mn), quote_literal('-' || mn), quote_literal(ml || mn));
+    end if;
+    mdisp[i] := ml || mn;
+  end loop;
+
+  for i in 1 .. n loop
+    continue when segs[i] = 0 or taken[i] or (mfrag[i] is null and (ts_lexize('english_stem', v_toks[i])) = '{}');
+    v_w := coalesce(mdisp[i], v_toks[i]);
+    v_f := coalesce(mfrag[i], quote_literal(v_toks[i]));
+    if not (v_w = any(v_words)) then v_words := v_words || v_w; v_wrd_q := v_wrd_q || v_f; end if;
     continue when inprim[i];
-    -- A cue that only chose a meaning is not required; a brand always is.
-    continue when v_toks[i] = any(v_cues) and not brandc[i];
+    -- A cue that only chose a meaning is not required; a brand always is, and
+    -- so is a number ("2017" in "2017 audi").
+    continue when v_toks[i] = any(v_cues) and not brandc[i] and v_toks[i] !~ '^[0-9]+$';
     -- A number with its unit measures ("20 acres", "7500 watt"): the listing
     -- may say 18 acres or 8000 watts. So does one written without the space
     -- ("256gb", "20acres"), which a listing may well write as "256 GB".
@@ -422,7 +492,7 @@ begin
     continue when v_toks[i] = any(c_units) and i > 1 and v_toks[i - 1] ~ '^[0-9]+$';
     continue when v_toks[i] ~ ('^[0-9]+(acr|acre|ft|in|gallon|gal|lb|lbs|ton|hp|cc|mm|cm|gb|tb|ghz|mhz|watt|w|volt|v|'
                                'amp|ah|oz|qt|liter|psi|cfm|gpm|rpm|btu|yd|mi|hr|k)$');
-    if not (v_toks[i] = any(v_req)) then v_req := v_req || v_toks[i]; end if;
+    if not (v_w = any(v_req)) then v_req := v_req || v_w; v_req_q := v_req_q || v_f; end if;
     -- A word no brand or attribute explains makes this more than a brand search.
     if not covered[i] then v_plain := true; end if;
   end loop;
@@ -434,7 +504,9 @@ begin
     'primary', to_jsonb(v_prim),
     'modifiers', to_jsonb(v_mods),
     'required', to_jsonb(v_req),
+    'required_q', to_jsonb(v_req_q),
     'words', to_jsonb(v_words),
+    'words_q', to_jsonb(v_wrd_q),
     'excluded', to_jsonb(v_excl),
     'brand_only', v_brand,
     'expanded', to_jsonb(coalesce((select array_agg(distinct d) from public.search_concepts c, unnest(c.descendants) d
@@ -446,7 +518,13 @@ begin
                                     cross join unnest(c.related) r
                                     join public.search_concepts rc on rc.id = r
                                     cross join unnest(rc.descendants) d
-                                   where c.id = any(v_prim)), '{}'))
+                                   where c.id = any(v_prim)), '{}')),
+    -- Coarser kinds a lot may have been filed under: a "2017 Audi Q7" known
+    -- only as a vehicle may well be the car asked for.
+    'broader', to_jsonb(coalesce((select array_agg(distinct a)
+                                    from public.search_concepts c
+                                    cross join unnest(c.ancestors) a
+                                   where c.id = any(v_prim) and a <> all(v_prim)), '{}'))
   );
 end $$;
 
@@ -521,9 +599,10 @@ $$;
 --
 --   concepts  [[id, label, parent, [related...]], ...], parents first
 --   items     {concept: [term, ...]}. A term is a string, "!" in front when
---             it names a specific product ("!iphone"), or an object
---             {"t": term, "c": [cue words], "f": true when it is the fallback
---             meaning, "s": true when specific}
+--             a query for it needs its words ("!iphone", "!socket set"), or
+--             an object {"t": term, "c": [cue words, or "#year" for any
+--             model year], "f": true when it is the fallback meaning, "s":
+--             true when its words are needed}
 --   brands    [name, ...]
 --   attrs     [word, ...]
 --
@@ -569,9 +648,15 @@ begin
           union all
           select a, 'attr', null, '{}', true, false from jsonb_array_elements_text(p_vocab -> 'attrs') a
         ) v
+        -- A cue is a word that, beside the term, picks this meaning. "#year"
+        -- stands for any model year. A term's own words never count: they
+        -- are always beside it.
         left join lateral (select w as cue
                              from unnest(v.cues) c
-                             cross join unnest(public.search_tokens(c)) w) x on true
+                             cross join unnest(case when c = '#year'
+                                                    then array(select y::text from generate_series(1900, 2035) y)
+                                                    else public.search_tokens(c) end) w
+                            where w <> all(public.search_tokens(v.term))) x on true
     ) s
    where s.norm <> ''
    group by s.norm, s.kind, s.concept
@@ -658,8 +743,10 @@ begin
      order by closed, id
      limit greatest(coalesce(p_limit, 2000), 1)
   ), c as (
-    select l.id, (public.classify_listing(l.title, l.description)).*
+    -- A lateral call: (f(x)).* would run the classifier once per column.
+    select l.id, x.heads, x.mods, x.mentions, x.head_words
       from public.lots l join todo using (id)
+      cross join lateral public.classify_listing(l.title, l.description) x
   )
   update public.lots l
      set item_heads = c.heads, item_mods = c.mods, item_mentions = c.mentions,
@@ -726,7 +813,7 @@ declare
   v_exp      text[] := '{}';
   v_all      text[] := '{}';
   v_rel      text[] := '{}';
-  v_words    text[] := '{}';
+  v_brd      text[] := '{}';
   v_reqw     text[] := '{}';
   v_req      tsquery;
   v_req_ab   tsquery;
@@ -764,14 +851,20 @@ begin
     v_exp := array(select jsonb_array_elements_text(v_res -> 'expanded'));
     v_all := array(select jsonb_array_elements_text(v_res -> 'expanded_all'));
     v_rel := array(select jsonb_array_elements_text(v_res -> 'related'));
-    v_words := array(select jsonb_array_elements_text(v_res -> 'words'));
+    v_brd := array(select jsonb_array_elements_text(coalesce(v_res -> 'broader', '[]')));
     v_reqw := array(select jsonb_array_elements_text(v_res -> 'required'));
-    if cardinality(v_reqw) > 0 then
-      v_req := to_tsquery('simple', array_to_string(array(select quote_literal(w) from unnest(v_reqw) w), ' & '));
-      v_req_ab := to_tsquery('simple', array_to_string(array(select quote_literal(w) || ':AB' from unnest(v_reqw) w), ' & '));
+    -- Each required word is a tsquery over stemmed words ('f' <-> '-150' |
+    -- 'f150' for a model number); :AB asks for it in the title, brand or model.
+    if jsonb_array_length(coalesce(v_res -> 'required_q', '[]')) > 0 then
+      v_req := to_tsquery('simple', array_to_string(array(
+                 select '(' || q || ')' from jsonb_array_elements_text(v_res -> 'required_q') q), ' & '));
+      v_req_ab := to_tsquery('simple', array_to_string(array(
+                    select '(' || regexp_replace(q, '(''[^'']*'')', '\1:AB', 'g') || ')'
+                      from jsonb_array_elements_text(v_res -> 'required_q') q), ' & '));
     end if;
-    if cardinality(v_words) > 0 then
-      v_any := to_tsquery('simple', array_to_string(array(select quote_literal(w) from unnest(v_words) w), ' & '));
+    if jsonb_array_length(coalesce(v_res -> 'words_q', '[]')) > 0 then
+      v_any := to_tsquery('simple', array_to_string(array(
+                 select '(' || q || ')' from jsonb_array_elements_text(v_res -> 'words_q') q), ' & '));
     end if;
     if jsonb_array_length(coalesce(v_res -> 'excluded', '[]')) > 0 then
       v_excl := to_tsquery('simple', array_to_string(array(
@@ -791,7 +884,7 @@ begin
      where l.closed = false and s.active and s.ingest_allowed
        and (
              v_res is null
-          or (v_items and (l.item_heads && (v_all || v_rel) or l.item_mods && (v_all || v_rel)
+          or (v_items and (l.item_heads && (v_all || v_rel || v_brd) or l.item_mods && (v_all || v_rel)
                            or l.item_mentions && (v_all || v_rel)))
           or (v_any is not null and l.search_tsv @@ v_any)
           or (not v_items and v_tsq is not null and l.search_tsv @@ v_tsq)
@@ -822,9 +915,10 @@ begin
             -- It IS one, and everything else typed is there.
             when (c.item_heads && v_exp or (c.sale_level and c.item_mentions && v_exp))
                  and (v_req is null or c.search_tsv @@ v_req) then 1
-            -- A close match: another thing the query names, a related kind,
-            -- or a lot whose description says it includes the thing.
-            when c.item_heads && (v_all || v_rel) or c.item_mentions && v_exp then 2
+            -- A close match: another thing the query names, a related kind, a
+            -- coarser kind it may be, or a lot whose description says it
+            -- includes the thing.
+            when c.item_heads && (v_all || v_rel || v_brd) or c.item_mentions && v_exp then 2
             else 3
           end
         when v_brand then
