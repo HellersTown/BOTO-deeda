@@ -5,7 +5,7 @@
 -- Do not edit by hand: edit taxonomy.ts and run the script.
 -- packages/query/test/taxonomy.test.ts fails when this file is stale.
 --
--- 240 concepts, 7235 terms. Loading replaces the whole vocabulary and moves
+-- 240 concepts, 7244 terms. Loading replaces the whole vocabulary and moves
 -- its version on, so every lot is re-classified in the background
 -- (reclassify_lots, every minute; lots_classify for lots ingest rewrites).
 
@@ -1327,11 +1327,12 @@ select public.search_load_vocabulary($vocab${
   ],
   "lighting": [
     {"t":"light","c":["led","ceiling","pendant","fixture","lamp","bulb","flood","string","solar","outdoor","wall","recessed","track","chandelier","night","desk","floor","christmas","holiday","landscape","motion","shop","garage","strip","bar light","vanity","porch","post"]},
-    "light fixture", "lighting fixture", "!ceiling light", "!pendant light", "!chandelier", "!recessed light",
-    "!can light", "!track lighting", "!wall sconce", "!sconce", "!vanity light", "!flood light", "!floodlight",
-    "!led flood light", "!outdoor light", "!porch light", "!landscape lighting", "!string lights", "!led strip",
-    "!led lights", "!light bulb", "!light bulbs", "!bulb", "!bulbs", "!led bulbs", "!fluorescent fixture",
-    "!shop light fixture", "!high bay light", "!lamp post", "!solar lights", "!motion light", "lighting"
+    "!lighted", "light fixture", "lighting fixture", "!ceiling light", "!pendant light", "!chandelier",
+    "!recessed light", "!can light", "!track lighting", "!wall sconce", "!sconce", "!vanity light",
+    "!flood light", "!floodlight", "!led flood light", "!outdoor light", "!porch light", "!landscape lighting",
+    "!string lights", "!led strip", "!led lights", "!light bulb", "!light bulbs", "!bulb", "!bulbs",
+    "!led bulbs", "!fluorescent fixture", "!shop light fixture", "!high bay light", "!lamp post",
+    "!solar lights", "!motion light", "lighting"
   ],
   "hardware": [
     "hardware", "fasteners", "!screws", "!screw", "!wood screws", "!deck screws", "!bolts", "!bolt",
@@ -1496,10 +1497,10 @@ select public.search_load_vocabulary($vocab${
   "holiday-decor": [
     "christmas decorations", "christmas decor", "holiday decor", "holiday decorations", "!christmas tree",
     "!artificial christmas tree", "!christmas ornaments", "!ornaments", "!ornament", "!christmas lights",
-    "!holiday lights", "!nativity", "!nativity set", "!christmas village", "!halloween decorations",
-    "!halloween decor", "!easter decorations", "!thanksgiving decor", "!fall decor", "!seasonal decor",
-    "!inflatable", "!yard inflatable", "!christmas inflatable", "!tree skirt", "!christmas stockings",
-    "!christmas stocking", "!holiday truck", "!christmas truck"
+    "!holiday lights", "!nativity", "!nativity set", "!christmas village", "!tree star", "!tree topper",
+    "!halloween decorations", "!halloween decor", "!easter decorations", "!thanksgiving decor", "!fall decor",
+    "!seasonal decor", "!inflatable", "!yard inflatable", "!christmas inflatable", "!tree skirt",
+    "!christmas stockings", "!christmas stocking", "!holiday truck", "!christmas truck"
   ],
   "lamps": [
     "lamp", "!table lamp", "!floor lamp", "!desk lamp", "!lamp shade", "!lampshade", "!oil lamp",
@@ -1652,8 +1653,8 @@ select public.search_load_vocabulary($vocab${
     "!serigraph", "!giclee", "!poster", "!posters", "!framed print", "!signed print", "!limited edition print",
     "artwork", "original art", "!pencil drawing", "!charcoal drawing", "!ink drawing", "!original drawing",
     "!sketch", "!portrait", "!landscape painting", "!sculpture art", "!bronze", "!bronze sculpture", "!carving",
-    "!wood carving", "!tapestry", "!mosaic", "!stained glass", "!stained glass window", "!folk art",
-    "!native american art"
+    "!wood carving", "!tapestry", "!mosaic", "!hand carved", "!carved wood", "!carved wooden", "!stained glass",
+    "!stained glass window", "!folk art", "!native american art"
   ],
   "books-media": [
     "book", "books", "book lot", "book collection", "!hardcover", "!paperback", "!first edition",
@@ -1736,7 +1737,7 @@ select public.search_load_vocabulary($vocab${
     "!hunting jacket", "!hunting boots", "!blaze orange", "!game cart", "!deer cart", "!game hoist", "!gambrel",
     "!field dressing kit", "!skinning knife", "!game processing", "!meat processing", "!taxidermy",
     "!deer mount", "!deer head", "!shoulder mount", "!european mount", "!antlers", "!antler", "!deer antlers",
-    "!shed antlers"
+    "!shed antlers", "!antler rack", "!antler racks", "!deer rack"
   ],
   "knives": [
     "knife", "knives", "!pocket knife", "!pocketknife", "!pocket knives", "!folding knife", "!fixed blade knife",

@@ -1004,6 +1004,8 @@ export const TAXONOMY: readonly ItemConcept[] = [
     cue('light', ['led', 'ceiling', 'pendant', 'fixture', 'lamp', 'bulb', 'flood', 'string', 'solar', 'outdoor', 'wall',
       'recessed', 'track', 'chandelier', 'night', 'desk', 'floor', 'christmas', 'holiday', 'landscape', 'motion', 'shop',
       'garage', 'strip', 'bar light', 'vanity', 'porch', 'post']),
+    // A participle keeps its form (0052): a "Lighted Tree Star" is still a light.
+    'lighted',
     'light fixture', 'lighting fixture', 'ceiling light', 'pendant light', 'chandelier', 'recessed light', 'can light',
     'track lighting', 'wall sconce', 'sconce', 'vanity light', 'flood light', 'floodlight', 'led flood light',
     'outdoor light', 'porch light', 'landscape lighting', 'string lights', 'led strip', 'led lights', 'light bulb',
@@ -1158,7 +1160,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
   k('holiday-decor', 'Holiday & seasonal decor', 'home-decor', [
     'christmas decorations', 'christmas decor', 'holiday decor', 'holiday decorations', 'christmas tree',
     'artificial christmas tree', 'christmas ornaments', 'ornaments', 'ornament', 'christmas lights', 'holiday lights',
-    'nativity', 'nativity set', 'christmas village', 'halloween decorations', 'halloween decor', 'easter decorations',
+    'nativity', 'nativity set', 'christmas village', 'tree star', 'tree topper', 'halloween decorations', 'halloween decor', 'easter decorations',
     'thanksgiving decor', 'fall decor', 'seasonal decor', 'inflatable', 'yard inflatable', 'christmas inflatable',
     'tree skirt', 'christmas stockings', 'christmas stocking', 'holiday truck', 'christmas truck',
   ]),
@@ -1278,6 +1280,8 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'framed print', 'signed print', 'limited edition print', 'artwork', 'original art', 'pencil drawing',
     'charcoal drawing', 'ink drawing', 'original drawing', 'sketch', 'portrait',
     'landscape painting', 'sculpture art', 'bronze', 'bronze sculpture', 'carving', 'wood carving', 'tapestry', 'mosaic',
+    // A participle keeps its form (0052), so "Hand Carved" no longer reads as "carving".
+    'hand carved', 'carved wood', 'carved wooden',
     'stained glass', 'stained glass window', 'folk art', 'native american art']),
   k('books-media', 'Books, records & media', 'collectibles', ['book', 'books', 'book lot', 'book collection', 'hardcover',
     'paperback', 'first edition', 'antique book', 'bible', 'encyclopedia', 'cookbook', 'cookbooks', 'magazine',
@@ -1332,7 +1336,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'duck call', 'deer call', 'predator call', 'scent', 'hunting clothes', 'hunting jacket', 'hunting boots',
     'blaze orange', 'game cart', 'deer cart', 'game hoist', 'gambrel', 'field dressing kit',
     'skinning knife', 'game processing', 'meat processing', 'taxidermy', 'deer mount', 'deer head', 'shoulder mount', 'european mount',
-    'antlers', 'antler', 'deer antlers', 'shed antlers'], ['firearms', 'archery', 'optics']),
+    'antlers', 'antler', 'deer antlers', 'shed antlers', 'antler rack', 'antler racks', 'deer rack'], ['firearms', 'archery', 'optics']),
   k('knives', 'Knives, axes & machetes', null, [
     'knife', 'knives', 'pocket knife', 'pocketknife', 'pocket knives', 'folding knife', 'fixed blade knife',
     'fixed blade', 'hunting knife', 'survival knife', 'tactical knife', 'bowie knife', 'machete', 'multitool',
