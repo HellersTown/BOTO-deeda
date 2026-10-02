@@ -538,6 +538,26 @@ summary {
   text-decoration: none;
 }
 
+/* A hunt's match scope (0045): Exact, Close matches too, Every mention. */
+.hunt-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.hunt-scope__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.hunt-scope__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .button-row {
   display: flex;
   flex-wrap: wrap;
@@ -1288,6 +1308,18 @@ select.input {
   line-height: 1.5;
 }
 
+/* What the words were understood to mean (search_explain, 0045). */
+.read-as__meaning {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.read-as__meaning strong {
+  color: var(--ink);
+}
+
 .chip-row {
   display: flex;
   gap: 8px;
@@ -1386,6 +1418,115 @@ select.input {
 .farther-row__cta {
   font-weight: 700;
   color: var(--link);
+}
+
+/* Close matches and word matches, folded under the exact ones (0045). */
+.match-group {
+  border-top: 1px solid var(--line);
+}
+
+.match-group__heading {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.match-group__toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'title cta'
+    'kinds cta';
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 2px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.match-group__toggle:disabled {
+  cursor: progress;
+}
+
+.match-group__title {
+  grid-area: title;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.match-group__count {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.match-group__kinds {
+  grid-area: kinds;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.match-group__cta {
+  grid-area: cta;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--link);
+}
+
+.match-group__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 10px;
+}
+
+.match-group__body[hidden] {
+  display: none;
+}
+
+/* The same search on other sites, opened in the buyer's own browser. */
+.elsewhere {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.elsewhere__title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.elsewhere__note {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.elsewhere__links {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.elsewhere__links .chip {
+  text-decoration: none;
 }
 
 /* "Keep watch for this": pine (Main.dc.html) */
@@ -3424,6 +3565,23 @@ select.input {
 
   .farther-row {
     display: flex;
+  }
+
+  /* After the exact grid and its "farther" row: the folded groups, then other sites. */
+  .search-results > .match-none {
+    order: 3;
+  }
+
+  .match-group {
+    order: 5;
+  }
+
+  .match-group__body > .btn {
+    order: 4;
+  }
+
+  .elsewhere {
+    order: 6;
   }
 
   .lot-grid > li {

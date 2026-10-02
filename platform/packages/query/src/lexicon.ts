@@ -72,8 +72,6 @@ export interface Category {
    * They are dropped from the text query whenever a more specific word remains.
    */
   broad?: readonly string[];
-  /** Matched so the parser can say so, but not something Skeuos lists. */
-  outOfScope?: boolean;
 }
 
 export interface Feature {
@@ -224,7 +222,7 @@ function category(
   label: string,
   synonyms: readonly string[],
   negativeTerms: readonly string[],
-  extra: Partial<Pick<Category, 'parent' | 'broad' | 'outOfScope'>> = {},
+  extra: Partial<Pick<Category, 'parent' | 'broad'>> = {},
 ): Category {
   return { slug, label, synonyms, negativeTerms, ...extra };
 }
@@ -639,15 +637,15 @@ export const CATEGORIES: readonly Category[] = [
     'mystery box', 'liquidation pallet',
   ], ['pallet jack', 'pallet racking', 'pallet rack', 'pallet wood', 'pallet forks']),
 
-  category('real-estate', 'Real estate (not covered)', [
+  // Land and buildings are listed: county tax-deed parcels, land auctions.
+  category('real-estate', 'Real estate', [
     'real estate', 'house', 'land', 'acreage', 'acres', 'acre', 'farmland',
     'vacant land', 'hunting land', 'recreational land', 'parcel', 'condo',
     'mobile home', 'manufactured home', 'commercial property',
     'rental property', 'duplex', 'lake lot', 'building lot',
     'investment property', 'tax sale', 'foreclosure', 'lake home', 'lake house',
     'homestead',
-  ], ['dollhouse', 'doll house', 'bird house', 'birdhouse', 'dog house', 'doghouse', 'house paint', 'house plant'],
-  { outOfScope: true }),
+  ], ['dollhouse', 'doll house', 'bird house', 'birdhouse', 'dog house', 'doghouse', 'house paint', 'house plant']),
 ];
 
 // ------------------------------------------------------------------- brands
@@ -1563,7 +1561,6 @@ export const SYNONYM_GROUPS: readonly (readonly string[])[] = [
   ['armoire', 'wardrobe'],
   ['hutch', 'china cabinet'],
   ['watch', 'wristwatch', 'timepiece'],
-  ['computer', 'pc'],
   ['headphones', 'headset', 'earbuds'],
   ['ac', 'air conditioner'],
   ['stove', 'range', 'oven'],
@@ -1578,7 +1575,8 @@ export const SYNONYM_GROUPS: readonly (readonly string[])[] = [
   ['rangefinder', 'range finder'],
   ['gun safe', 'rifle safe', 'firearm safe'],
   ['ammo can', 'ammo box', 'ammunition can'],
-  ['replica', 'reproduction', 'repro', 'copy', 'counterfeit', 'fake'],
+  // Not "copy": a copy machine, a copy of a book.
+  ['replica', 'reproduction', 'repro', 'counterfeit', 'fake'],
   ['signed', 'autographed', 'autograph'],
   ['lithograph', 'litho'],
   ['comic', 'comic book'],

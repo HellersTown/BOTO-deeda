@@ -7,13 +7,13 @@
  *   hunt_matches  owner-only through the hunt; only `dismissed` is updatable (0009).
  *   run_my_hunt   0013: fills one hunt's matches now, without sending alerts.
  */
-import type { HuntInsert, HuntRow, Json, MatchBasis } from './database.types';
+import type { HuntInsert, HuntRow, Json, MatchBasis, SearchScope } from './database.types';
 import { toDataError } from './errors';
 import { fromEmbeddedLot, type LotSummary } from './lotSummary';
 import { db } from './supabase';
 
 const HUNT_SELECT =
-  'id, user_id, name, query_text, parsed, keywords, exclude_keywords, category_ids, brands, required_terms, min_price_cents, max_price_cents, conditions, postal_code, radius_miles, states, include_shippable, sources_only, tiers_only, reference_image_url, min_similarity, min_sleeper_score, active, notify_immediately, last_run_at, match_count, created_at, paused_reason, paused_at' as const;
+  'id, user_id, name, query_text, parsed, keywords, exclude_keywords, category_ids, brands, required_terms, min_price_cents, max_price_cents, conditions, postal_code, radius_miles, states, include_shippable, sources_only, tiers_only, reference_image_url, min_similarity, min_sleeper_score, active, notify_immediately, match_scope, last_run_at, match_count, created_at, paused_reason, paused_at' as const;
 
 export async function listMyHunts(userId: string): Promise<HuntRow[]> {
   const { data, error } = await db()
@@ -66,6 +66,21 @@ export async function setHuntActive(huntId: string, active: boolean): Promise<Hu
 export async function renameHunt(huntId: string, name: string): Promise<HuntRow> {
   const { data, error } = await db().from('hunts').update({ name }).eq('id', huntId).select(HUNT_SELECT).single();
   if (error) throw toDataError(error, 'rename hunt');
+  return data;
+}
+
+/**
+ * How widely the hunt matches (0045; 0051 grants the column). Matches it found
+ * before stay until dismissed; the next check adds what the new scope admits.
+ */
+export async function setHuntScope(huntId: string, matchScope: SearchScope): Promise<HuntRow> {
+  const { data, error } = await db()
+    .from('hunts')
+    .update({ match_scope: matchScope })
+    .eq('id', huntId)
+    .select(HUNT_SELECT)
+    .single();
+  if (error) throw toDataError(error, 'change hunt scope');
   return data;
 }
 

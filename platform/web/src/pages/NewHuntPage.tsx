@@ -193,7 +193,6 @@ export function NewHuntPage() {
               {!huntHasCriteria(current) ? (
                 <p className="field-error">Add at least one word or brand to look for.</p>
               ) : null}
-              {current.parse.outOfScope ? <p className="field-error">Skeuos covers things sold at auction, not real estate.</p> : null}
             </>
           )}
         </section>

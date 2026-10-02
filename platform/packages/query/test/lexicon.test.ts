@@ -101,9 +101,11 @@ test('the taxonomy has about forty categories with the required slugs', () => {
   }
 });
 
-test('real estate is matched but flagged out of scope, and only real estate is', () => {
-  const out = CATEGORIES.filter((c) => c.outOfScope).map((c) => c.slug);
-  assert.deepEqual(out, ['real-estate']);
+test('real estate is a category like any other: land and tax-deed parcels are listed', () => {
+  const land = CATEGORIES.find((c) => c.slug === 'real-estate');
+  assert.ok(land);
+  assert.equal(land.label, 'Real estate');
+  assert.ok(land.synonyms.includes('acres'));
 });
 
 test('all 50 states plus DC, with unique codes', () => {

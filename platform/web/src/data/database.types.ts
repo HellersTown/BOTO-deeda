@@ -2,7 +2,9 @@
  * The public schema as the browser sees it, hand-written from
  * platform/supabase/migrations (0002 tables, 0004 and 0010 views, 0005/0006
  * search_lots, 0013 run_my_hunt, 0016 pickup_geo_source, 0018 p_tsquery,
- * 0023 sale-level rows) in the shape `supabase gen types` produces.
+ * 0023 sale-level rows, 0045 match tiers, search_explain and
+ * hunts.match_scope, 0051 its update grant) in the shape `supabase gen types`
+ * produces.
  *
  * Two things are encoded here on purpose, so the compiler enforces the
  * backend's rules instead of the reviewer:
@@ -53,6 +55,14 @@ export type AlertKind =
   | 'lot_sold'
   | 'hunt_digest';
 export type SearchSort = 'relevance' | 'closing' | 'nearest' | 'cheapest' | 'sleeper' | 'newest';
+/**
+ * 0045: how far from the thing asked for a search or hunt reaches. 'exact'
+ * keeps tier 1 (the lot IS one), 'related' adds tier 2 (close matches), 'all'
+ * adds tier 3 (the words appear, nothing more).
+ */
+export type SearchScope = 'exact' | 'related' | 'all';
+/** 0045: search_lots().match_tier. 1 exact, 2 close match, 3 the words only. */
+export type MatchTier = 1 | 2 | 3;
 export type MatchBasis = 'nearby' | 'in_state' | 'ships_to_you' | 'other';
 
 /**
@@ -80,6 +90,8 @@ export type SourceRow = {
   active: boolean | null;
   access_status: AccessStatus | null;
   last_ok_at: string | null;
+  /** A search URL for the site ({query}, {max_price}, {region}, {location}); see lib/elsewhere.ts. */
+  search_template: string | null;
 }
 
 export type AuctionRow = {
@@ -259,6 +271,8 @@ export type HuntRow = {
   min_sleeper_score: number | null;
   active: boolean;
   notify_immediately: boolean;
+  /** 0045. The hunt matcher alerts on this scope; 'exact' unless the member widened it. */
+  match_scope: SearchScope;
   last_run_at: string | null;
   match_count: number;
   created_at: string;
@@ -288,9 +302,10 @@ export type HuntInsert = {
   min_sleeper_score?: number | null;
   active?: boolean;
   notify_immediately?: boolean;
+  match_scope?: SearchScope;
 }
 
-/** 0009: the hunts columns `authenticated` may update. match_count and last_run_at are the runner's. */
+/** 0009 (and 0051, match_scope): the hunts columns `authenticated` may update. match_count and last_run_at are the runner's. */
 export type HuntUpdate = {
   name?: string;
   query_text?: string | null;
@@ -311,6 +326,7 @@ export type HuntUpdate = {
   min_sleeper_score?: number | null;
   active?: boolean;
   notify_immediately?: boolean;
+  match_scope?: SearchScope;
 }
 
 export type HuntMatchRow = {
@@ -488,6 +504,8 @@ export type SearchLotsArgs = {
    * when it does not, so sending both is always safe.
    */
   p_tsquery?: string | null;
+  /** 0045. The SQL default is 'all': every tier, ordered exact first. */
+  p_scope?: SearchScope;
 }
 
 /** One search_lots() row. */
@@ -525,6 +543,36 @@ export type SearchLotRow = {
   sale_level: boolean;
   /** 0023: the lot count of the row's auction (auctions.lot_count); for a sale-level row, the sale's. May be null. */
   sale_lot_count: number | null;
+  /**
+   * 0045: how the lot answers the query. 1: it is the thing asked for. 2: a
+   * close match (a related kind, a coarser kind it may be, or a lot whose
+   * description says it includes one). 3: the words appear, nothing more.
+   * Rows are ordered by it. Optional so rows shaped before 0045 still type-check.
+   */
+  match_tier?: MatchTier | null;
+  /** 0045: the concept the lot was matched as (search_concepts.id), or its own first kind. */
+  match_concept?: string | null;
+  /** 0045: that concept's label ("Laptops"). */
+  match_label?: string | null;
+}
+
+/** One concept a query was read as (search_explain, 0045). */
+export type ExplainedConcept = {
+  id: string;
+  label: string;
+  /** Labels of its direct sub-kinds ("Laptops" under "Computers"). */
+  includes: string[];
+};
+
+/** search_explain(): what a query was understood to ask for. Null for an empty query. */
+export type SearchExplanation = {
+  concepts: ExplainedConcept[];
+  /** Labels of related kinds that count as close matches. */
+  related: string[];
+  /** Words a match must contain, stemmed ("batteri"), model numbers joined ("f150"). */
+  required: string[];
+  /** The query named only brands: everything they make matches. */
+  brand_only: boolean;
 }
 
 type Rel<Name extends string, Cols extends string, To extends string> = {
@@ -609,6 +657,7 @@ export type Database = {
     };
     Functions: {
       search_lots: { Args: SearchLotsArgs; Returns: SearchLotRow[] };
+      search_explain: { Args: { p_query: string }; Returns: SearchExplanation | null };
       run_my_hunt: { Args: { p_hunt_id: string }; Returns: Json };
     };
     Enums: {

@@ -9,11 +9,21 @@ import { LotCard } from '../components/LotCard';
 import { CardSkeletons, EmptyState, ErrorState } from '../components/States';
 import type { SearchLotRow } from '../data/database.types';
 import { fromSearchRow } from '../data/lotSummary';
-import { resolvePlace } from '../data/postal';
-import { countSearchLots, fetchLotCloseInfo, searchLots, SEARCH_LIMIT_MAX, type LotCloseInfo } from '../data/search';
+import { lookupPostalCode, resolvePlace } from '../data/postal';
+import {
+  countSearchLots,
+  explainSearch,
+  fetchLotCloseInfo,
+  listElsewhereSources,
+  searchLots,
+  SEARCH_LIMIT_MAX,
+  type LotCloseInfo,
+} from '../data/search';
 import { useAsync } from '../hooks/useAsync';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useNow } from '../hooks/useNow';
+import { elsewhereLinks, elsewhereWords } from '../lib/elsewhere';
+import { explainParts, groupByMatch, kindsText, truncatedGroup, type ExplainPart, type MatchGroupKey } from '../lib/matchTiers';
 import { formatCentsShort } from '../lib/money';
 import { tallyRows } from '../lib/sale';
 import {
@@ -37,8 +47,22 @@ interface Results {
   readonly info: ReadonlyMap<string, LotCloseInfo>;
 }
 
-/** The design's "Read as generator · up to $800 · within 60 mi of 53202". */
-function ReadAs({ parse, filters, origin }: { parse: ParsedQuery; filters: SearchFilters; origin: string | null }) {
+/**
+ * The design's "Read as generator · up to $800 · within 60 mi of 53202", and
+ * under it what the database understood the words to mean (0045): "Looking for
+ * Computers, including desktop computers, laptops and workstations & servers".
+ */
+function ReadAs({
+  parse,
+  filters,
+  origin,
+  meaning,
+}: {
+  parse: ParsedQuery;
+  filters: SearchFilters;
+  origin: string | null;
+  meaning: readonly ExplainPart[] | null;
+}) {
   const words = [
     ...parse.terms,
     ...parse.phrases.map((p) => `“${p}”`),
@@ -62,6 +86,11 @@ function ReadAs({ parse, filters, origin }: { parse: ParsedQuery; filters: Searc
         Read as <strong>{words || 'everything'}</strong>
         {parts.map((p) => ` · ${p}`).join('')}
       </p>
+      {meaning ? (
+        <p className="read-as__meaning">
+          {meaning.map((part, i) => (part.strong ? <strong key={i}>{part.text}</strong> : <span key={i}>{part.text}</span>))}
+        </p>
+      ) : null}
       {parse.explanation.length > 0 && parse.input.trim() !== '' ? (
         <details className="read-as__details">
           <summary>How your words were read</summary>
@@ -125,6 +154,22 @@ interface SetOutState {
   readonly setOut?: { readonly hunts?: number };
 }
 
+/** The groups that start folded under the exact matches. */
+type FoldKey = Exclude<MatchGroupKey, 'exact'>;
+
+interface ViewState {
+  /** The search (argsKey) this view belongs to; a new search starts a fresh view. */
+  readonly key: string;
+  /** Groups the buyer opened or closed. Absent: the default (see isOpen). */
+  readonly open: Partial<Record<FoldKey, boolean>>;
+  /** Cards shown per group. */
+  readonly shown: Record<MatchGroupKey, number>;
+}
+
+function freshView(key: string): ViewState {
+  return { key, open: {}, shown: { exact: PAGE_SIZE, close: PAGE_SIZE, mentions: PAGE_SIZE } };
+}
+
 export function SearchPage() {
   const [params, setParams] = useSearchParams();
   const location = useLocation();
@@ -132,6 +177,7 @@ export function SearchPage() {
   const q = params.get('q') ?? '';
   const home = useHome();
   const now = useNow();
+  const uid = useId();
   const [text, setText] = useState(q);
   useEffect(() => setText(q), [q]);
   useDocumentTitle(q ? `“${q}”` : 'Search');
@@ -181,41 +227,83 @@ export function SearchPage() {
   const search = useAsync<Results>(async () => {
     if (!args) return { rows: [], info: new Map() };
     const rows = await searchLots(args);
+    // Close-time facts for the first cards the page opens with: the exact
+    // group's, or the first group that has any when nothing is exact.
+    const g = groupByMatch(rows);
+    const first = [g.exact, g.close, g.mentions].find((list) => list.length > 0) ?? [];
     let info: ReadonlyMap<string, LotCloseInfo> = new Map();
     try {
-      info = await fetchLotCloseInfo(rows.slice(0, PAGE_SIZE).map((r) => r.lot_id));
+      info = await fetchLotCloseInfo(first.slice(0, PAGE_SIZE).map((r) => r.lot_id));
     } catch (err) {
       console.warn(err); // precision unknown: cards show the date only, never a countdown
     }
     return { rows, info };
   }, [argsKey]);
 
+  // The headline counts exact matches, so "N farther away" counts exact matches too.
   const farther = useAsync(async () => {
     const wider = args ? fartherArgs(args) : null;
-    return wider ? countSearchLots(wider) : null;
+    return wider ? countSearchLots({ ...wider, p_scope: 'exact' }) : null;
   }, [argsKey]);
 
-  const [visible, setVisible] = useState(PAGE_SIZE);
-  useEffect(() => setVisible(PAGE_SIZE), [argsKey]);
-  const [loadingMore, setLoadingMore] = useState(false);
+  // What the words were understood to mean (search_explain, 0045).
+  const pQuery = args?.p_query ?? null;
+  const explained = useAsync(() => explainSearch(pQuery ?? ''), [pQuery], Boolean(pQuery));
+  const meaning = pQuery && explained.data && !explained.loading ? explainParts(explained.data, q) : null;
 
-  async function showMore() {
+  // The same search on sites Skeuos does not copy listings from.
+  const elsewhere = useAsync(() => listElsewhereSources(), []);
+  const originPlace = useAsync(() => lookupPostalCode(origin ?? ''), [origin], origin !== null);
+
+  const [view, setView] = useState<ViewState>(() => freshView(argsKey));
+  const current = view.key === argsKey ? view : freshView(argsKey);
+  const updateView = (key: string, change: (v: ViewState) => ViewState) =>
+    setView((v) => change(v.key === key ? v : freshView(key)));
+  const [loadingMore, setLoadingMore] = useState<MatchGroupKey | null>(null);
+
+  const rows = search.data?.rows ?? [];
+  const groups = groupByMatch(rows);
+  const exact = groups.exact;
+  const truncated = truncatedGroup(rows, SEARCH_LIMIT_MAX);
+
+  // A folded group opens by itself when nothing above it matched.
+  const isOpen = (key: FoldKey): boolean =>
+    current.open[key] ?? (key === 'close' ? exact.length === 0 : exact.length === 0 && groups.close.length === 0);
+
+  /** Fetch close-time facts for the cards about to show, then show them. */
+  async function reveal(group: MatchGroupKey, list: readonly SearchLotRow[], upTo: number, apply: () => void) {
     const data = search.data;
     if (!data) return;
-    const next = visible + PAGE_SIZE;
-    const missing = data.rows.slice(visible, next).map((r) => r.lot_id).filter((id) => !data.info.has(id));
-    setLoadingMore(true);
+    const missing = list.slice(0, upTo).map((r) => r.lot_id).filter((id) => !data.info.has(id));
+    if (missing.length === 0) {
+      apply();
+      return;
+    }
+    setLoadingMore(group);
     try {
-      if (missing.length) {
-        const more = await fetchLotCloseInfo(missing);
-        search.setData((cur) => ({ rows: cur?.rows ?? data.rows, info: new Map([...(cur?.info ?? data.info), ...more]) }));
-      }
+      const more = await fetchLotCloseInfo(missing);
+      search.setData((cur) => ({ rows: cur?.rows ?? data.rows, info: new Map([...(cur?.info ?? data.info), ...more]) }));
     } catch (err) {
       console.warn(err);
     } finally {
-      setLoadingMore(false);
-      setVisible(next);
+      setLoadingMore(null);
+      apply();
     }
+  }
+
+  function showMore(group: MatchGroupKey, list: readonly SearchLotRow[]) {
+    const key = argsKey;
+    const next = current.shown[group] + PAGE_SIZE;
+    void reveal(group, list, next, () => updateView(key, (v) => ({ ...v, shown: { ...v.shown, [group]: next } })));
+  }
+
+  function toggle(group: FoldKey, list: readonly SearchLotRow[]) {
+    const key = argsKey;
+    if (isOpen(group)) {
+      updateView(key, (v) => ({ ...v, open: { ...v.open, [group]: false } }));
+      return;
+    }
+    void reveal(group, list, current.shown[group], () => updateView(key, (v) => ({ ...v, open: { ...v.open, [group]: true } })));
   }
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -229,19 +317,16 @@ export function SearchPage() {
     setParams(next);
   }
 
-  const rows = search.data?.rows ?? [];
-  const summaries = rows.slice(0, visible).map((r) => fromSearchRow(r, search.data?.info.get(r.lot_id)));
-  const capped = rows.length >= SEARCH_LIMIT_MAX;
   const radiusSearch = origin !== null && filters.radius !== 'anywhere';
-  const nearbyRows = rows.filter((r) => r.match_basis === 'nearby');
-  const shipping = rows.filter((r) => r.match_basis === 'ships_to_you').length;
-  const inState = rows.filter((r) => r.match_basis === 'in_state').length;
+  const nearbyRows = exact.filter((r) => r.match_basis === 'nearby');
+  const shipping = exact.filter((r) => r.match_basis === 'ships_to_you').length;
+  const inState = exact.filter((r) => r.match_basis === 'in_state').length;
   // 0023: under "Price" and "Worth the trip", sales (no price, no score) come after the lots; say so.
   const sortNote = search.loading || search.error ? null : saleSortNote(filters.sort, rows.some((r) => r.sale_level === true));
-  const more = farther.data != null && search.data ? fartherCount(farther.data, rows.length, SEARCH_LIMIT_MAX) : null;
+  const more = farther.data != null && search.data ? fartherCount(farther.data, exact.length, SEARCH_LIMIT_MAX) : null;
 
   // The design's "3 within 60 mi" on a phone, "3 lots within 60 mi" on the web,
-  // which names sales apart: "3 lots and 2 sales within 60 mi".
+  // which names sales apart: "3 lots and 2 sales within 60 mi". Exact matches only.
   let title: ReactNode;
   const extras: string[] = [];
   if (radiusSearch) {
@@ -254,11 +339,11 @@ export function SearchPage() {
     if (shipping) extras.push(`${shipping} more ship to you`);
     if (inState) extras.push(`${inState} more in ${parse.location.states.join(', ')}`);
   } else if (parse.location.states.length && filters.radius !== 'anywhere') {
-    title = `${tallyRows(rows)} in ${parse.location.states.join(', ')}`;
+    title = `${tallyRows(exact)} in ${parse.location.states.join(', ')}`;
   } else {
-    title = `${tallyRows(rows)} anywhere`;
+    title = `${tallyRows(exact)} anywhere`;
   }
-  if (capped) extras.push(`showing the top ${SEARCH_LIMIT_MAX}`);
+  if (truncated === 'exact') extras.push(`showing the top ${SEARCH_LIMIT_MAX}`);
   const fartherCountText = more ? `${more.count}${more.atLeast ? '+' : ''}` : null;
   const fartherText = more ? `${fartherCountText} more ${more.count === 1 ? 'match' : 'matches'} farther than ${filters.radius} mi` : null;
   const showFarther = fartherText !== null && !search.loading && !search.error;
@@ -266,13 +351,28 @@ export function SearchPage() {
 
   const hasWords = parse.websearchQuery.trim() !== '' || parse.brands.length > 0;
   const huntHref = `/hunts/new?q=${encodeURIComponent(q)}`;
+  const others = [
+    groups.close.length ? `${groups.close.length} close ${groups.close.length === 1 ? 'match' : 'matches'}` : null,
+    groups.mentions.length ? `${groups.mentions.length} word ${groups.mentions.length === 1 ? 'match' : 'matches'}` : null,
+  ].filter((x): x is string => x !== null);
   const status = !args
     ? 'Check at least one seller type to search.'
     : search.loading
       ? 'Searching…'
       : search.error
         ? 'The search did not load.'
-        : `${tallyRows(rows)} found.`;
+        : `${tallyRows(exact)} found${others.length ? `, plus ${others.join(' and ')}` : ''}.`;
+
+  const words = elsewhereWords(parse.websearchQuery);
+  const links =
+    hasWords && !search.loading
+      ? elsewhereLinks(elsewhere.data ?? [], {
+          words,
+          maxCents: filters.maxCents,
+          origin: originPlace.data ? { zip: originPlace.data.postalCode, lat: originPlace.data.lat, lon: originPlace.data.lon } : null,
+          radiusMiles: radiusSearch ? (filters.radius as number) : null,
+        })
+      : [];
 
   const chooser =
     place && candidates.length > 1 && !resolvedZip ? (
@@ -298,6 +398,67 @@ export function SearchPage() {
         </p>
       </div>
     ) : null;
+
+  const cards = (list: readonly SearchLotRow[], group: MatchGroupKey, label: string, tile: ReactNode = null) => {
+    const count = current.shown[group];
+    const summaries = list.slice(0, count).map((r) => fromSearchRow(r, search.data?.info.get(r.lot_id)));
+    return (
+      <>
+        <ul className="lot-grid" aria-label={label}>
+          {summaries.map((lot) => (
+            <li key={lot.id}>
+              <LotCard lot={lot} now={now} from={`/?${params.toString()}`} />
+            </li>
+          ))}
+          {tile}
+        </ul>
+        {count < list.length ? (
+          <button type="button" className="btn btn--secondary btn--block" onClick={() => showMore(group, list)} disabled={loadingMore !== null}>
+            {loadingMore === group ? 'Loading…' : `Show ${Math.min(PAGE_SIZE, list.length - count)} more`}
+          </button>
+        ) : null}
+      </>
+    );
+  };
+
+  const fold = (group: FoldKey, list: readonly SearchLotRow[], heading: string, lead: string) => {
+    if (list.length === 0) return null;
+    const open = isOpen(group);
+    const kinds = kindsText(list);
+    const headId = `${uid}-${group}-head`;
+    const bodyId = `${uid}-${group}-body`;
+    return (
+      <section className={`match-group match-group--${group}`} aria-labelledby={headId}>
+        <h2 className="match-group__heading">
+          <button
+            type="button"
+            id={headId}
+            className="match-group__toggle"
+            aria-expanded={open}
+            aria-controls={bodyId}
+            onClick={() => toggle(group, list)}
+            disabled={loadingMore === group}
+          >
+            <span className="match-group__title">
+              {heading} <span className="match-group__count">{`${list.length}${truncated === group ? '+' : ''}`}</span>
+            </span>
+            <span className="match-group__kinds">
+              {lead}
+              {kinds ? `: ${kinds}` : ''}
+            </span>
+            <span className="match-group__cta" aria-hidden="true">
+              {loadingMore === group ? 'Loading…' : open ? 'Hide' : 'Show'}
+            </span>
+          </button>
+        </h2>
+        <div id={bodyId} className="match-group__body" hidden={!open}>
+          {open ? cards(list, group, heading) : null}
+        </div>
+      </section>
+    );
+  };
+
+  const settled = Boolean(args) && !search.error && !(search.loading && !search.data);
 
   return (
     <div className="search-page">
@@ -340,7 +501,7 @@ export function SearchPage() {
                 </p>
               </div>
             ) : null}
-            <ReadAs parse={parse} filters={filters} origin={origin} />
+            <ReadAs parse={parse} filters={filters} origin={origin} meaning={meaning} />
             {!home.zip && !place && parse.location.states.length === 0 && !parse.location.postalCode ? (
               <div className="notice" role="status">
                 <p>Set your ZIP to rank lots by driving distance. Until then, results are not limited by distance.</p>
@@ -417,33 +578,38 @@ export function SearchPage() {
                 {hasWords ? 'Or keep watch for it: save it as a hunt and Skeuos tells you when one is listed.' : ''}
               </p>
             </EmptyState>
-          ) : (
-            <>
-              <ul className="lot-grid" aria-label="Lots">
-                {summaries.map((lot) => (
-                  <li key={lot.id}>
-                    <LotCard lot={lot} now={now} from={`/?${params.toString()}`} />
-                  </li>
-                ))}
-                {hasWords && q ? (
-                  <li className="desktop-only">
-                    <Link to={huntHref} className="hunt-tile">
-                      <span className="hunt-tile__title">Keep watch for this</span>
-                      <span className="hunt-tile__body">
-                        Save it as a hunt. Skeuos checks every source each hour and tells you when a new one is listed
-                        {origin ? ` near ${origin}` : ''}.
-                      </span>
-                      <span className="hunt-tile__cta">Save as a hunt</span>
-                    </Link>
-                  </li>
-                ) : null}
-              </ul>
-              {visible < rows.length ? (
-                <button type="button" className="btn btn--secondary btn--block" onClick={showMore} disabled={loadingMore}>
-                  {loadingMore ? 'Loading…' : `Show ${Math.min(PAGE_SIZE, rows.length - visible)} more`}
-                </button>
+          ) : exact.length === 0 ? (
+            <div className="notice match-none" role="status">
+              <p>
+                Nothing open is exactly what you asked for{radiusSearch ? ` within ${filters.radius} mi` : ''} yet.
+                {groups.close.length > 0 ? ' The close matches are below.' : ' Listings that use your words are below.'}
+              </p>
+              {hasWords && q ? (
+                <div className="notice__actions">
+                  <Link to={huntHref} className="btn btn--secondary btn--small">
+                    Keep watch for it
+                  </Link>
+                </div>
               ) : null}
-            </>
+            </div>
+          ) : (
+            cards(
+              exact,
+              'exact',
+              'Lots',
+              hasWords && q ? (
+                <li className="desktop-only">
+                  <Link to={huntHref} className="hunt-tile">
+                    <span className="hunt-tile__title">Keep watch for this</span>
+                    <span className="hunt-tile__body">
+                      Save it as a hunt. Skeuos checks every source each hour and tells you when a new one is listed
+                      {origin ? ` near ${origin}` : ''}.
+                    </span>
+                    <span className="hunt-tile__cta">Save as a hunt</span>
+                  </Link>
+                </li>
+              ) : null,
+            )
           )}
 
           {showFarther ? (
@@ -451,6 +617,32 @@ export function SearchPage() {
               <span>{fartherText}</span>
               <span className="farther-row__cta">Show them</span>
             </button>
+          ) : null}
+
+          {settled ? (
+            <>
+              {fold('close', groups.close, 'Close matches', 'Related kinds, or lots that include one')}
+              {fold('mentions', groups.mentions, 'Word matches', 'Your words appear, but these are other things')}
+            </>
+          ) : null}
+
+          {links.length > 0 ? (
+            <section className="elsewhere" aria-labelledby={`${uid}-elsewhere`}>
+              <h2 id={`${uid}-elsewhere`} className="elsewhere__title">
+                Search other sites for “{words}”
+              </h2>
+              <p className="elsewhere__note">Skeuos does not copy listings from these sites. Each link opens the same search there.</p>
+              <ul className="elsewhere__links">
+                {links.map((l) => (
+                  <li key={l.key}>
+                    <a className="chip" href={l.href} target="_blank" rel="noopener noreferrer">
+                      {l.name}
+                      {l.place ? ` · ${l.place}` : ''}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ) : null}
 
           {hasWords && q ? (
@@ -468,7 +660,7 @@ export function SearchPage() {
         filters={filters}
         onChange={setFilters}
         zip={origin ?? home.zip}
-        countText={search.data && !search.loading ? tallyRows(rows) : null}
+        countText={search.data && !search.loading && exact.length > 0 ? tallyRows(exact) : null}
       />
     </div>
   );

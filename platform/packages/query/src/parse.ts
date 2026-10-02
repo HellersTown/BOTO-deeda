@@ -168,8 +168,6 @@ export interface ParsedQuery {
   sort: SortKey;
   tiers: SourceTier[];
   minSleeperScore: number | null;
-  /** True when the query is for something Skeuos does not list (real estate). */
-  outOfScope: boolean;
   /** Safe for websearch_to_tsquery('english', ...): no synonym groups. Empty when there is nothing to match. */
   websearchQuery: string;
   /** Valid to_tsquery('english', ...) syntax with synonym groups. Empty when there is nothing to match. */
@@ -2383,7 +2381,6 @@ function assemble(p: Parser, input: string, opts: ParseOptions, defaultRadius: n
   }
   const positiveWords = units.flatMap((u) => u.words);
   const categories = categoryList.filter((c) => !c.negativeTerms.some((n) => containsWords(positiveWords, normalizeKey(n).split(' '))));
-  const outOfScope = categories.some((c) => c.outOfScope);
 
   // Generic labels ("jewelry") are dropped when something specific remains.
   for (const u of units) {
@@ -2538,7 +2535,6 @@ function assemble(p: Parser, input: string, opts: ParseOptions, defaultRadius: n
   if (p.sort !== 'relevance') explanation.push(`Sorted by ${SORT_WORDS[p.sort]} (from “${p.sortText}”).`);
   if (p.minSleeper !== null) explanation.push(`Sleeper score at least ${p.minSleeper}.`);
   if (p.quantityTexts.length) explanation.push(`Quantity (${listWords(p.quantityTexts.map((q) => `“${q}”`))}) noted, but lots are not searchable by quantity.`);
-  if (outOfScope) explanation.push('Real estate is out of scope: Skeuos covers things sold at auction, not land or buildings.');
   const ignored = p.tokens.filter((t) => t.role === 'filler' && !/^\W+$/.test(t.text)).map((t) => t.text);
   if (ignored.length) explanation.push(`Ignored as filler: ${listWords([...new Set(ignored)].map((w) => `“${w}”`))}.`);
   explanation.push(...setupNotes, ...p.notes);
@@ -2550,7 +2546,6 @@ function assemble(p: Parser, input: string, opts: ParseOptions, defaultRadius: n
   const rejected = meaningful.filter((t) => t.role === 'unparsed').length;
   let confidence = meaningful.length === 0 ? 0 : (meaningful.length - rejected) / meaningful.length;
   confidence *= 0.85 ** p.penalties;
-  if (outOfScope) confidence *= 0.5;
   confidence = Math.round(Math.max(0, Math.min(1, confidence)) * 100) / 100;
 
   const snapshot: ParsedSnapshot = {
@@ -2574,7 +2569,6 @@ function assemble(p: Parser, input: string, opts: ParseOptions, defaultRadius: n
     sort: p.sort,
     tiers: [...tiers],
     minSleeperScore: p.minSleeper,
-    outOfScope,
     websearchQuery: ws.query,
     tsquery,
     explanation: lines,

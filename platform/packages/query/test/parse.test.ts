@@ -535,8 +535,8 @@ test('tiers: "estate jewelry", "real estate" and "school bus" are not seller typ
   assert.deepEqual(parse('school bus').tiers, []);
   const land = parse('real estate');
   assert.deepEqual(land.tiers, []);
-  assert.equal(land.outOfScope, true);
-  assert.ok(land.explanation.some((e) => e.includes('out of scope')));
+  assert.deepEqual(land.categories, ['real-estate']);
+  assert.ok(!land.explanation.some((e) => e.includes('out of scope')));
 });
 
 // --------------------------------------------------------------- exclusions

@@ -3,7 +3,8 @@
  * authenticated. Plus the one thing it does not return that the UI must know:
  * whether a lot's close time is precise (lots.raw->'_meta'->>'closeTimePrecise').
  */
-import type { Json, SearchLotRow, SearchLotsArgs } from './database.types';
+import type { Json, SearchExplanation, SearchLotRow, SearchLotsArgs } from './database.types';
+import type { ElsewhereSource } from '../lib/elsewhere';
 import { toDataError } from './errors';
 import { db } from './supabase';
 
@@ -31,6 +32,34 @@ export async function countSearchLots(args: SearchLotsArgs): Promise<number> {
   const { count, error } = await db().rpc('search_lots', defined, { count: 'exact', head: true });
   if (error) throw toDataError(error, 'search_lots count');
   return count ?? 0;
+}
+
+/**
+ * What the database understood a query to ask for (search_explain, 0045): the
+ * kinds of thing, their sub-kinds, the related kinds that count as close, and
+ * the words a match must contain. Null for a query with no words.
+ */
+export async function explainSearch(query: string): Promise<SearchExplanation | null> {
+  if (!query.trim()) return null;
+  const { data, error } = await db().rpc('search_explain', { p_query: query });
+  if (error) throw toDataError(error, 'search_explain');
+  return data ?? null;
+}
+
+/**
+ * Sites the buyer can run the same search on (sources.search_template; the
+ * table is readable by anyone, 0003). Deep-link-only sites are included: that
+ * is what they are for.
+ */
+export async function listElsewhereSources(): Promise<ElsewhereSource[]> {
+  const { data, error } = await db()
+    .from('sources')
+    .select('slug, name, search_template')
+    .eq('active', true)
+    .not('search_template', 'is', null)
+    .order('name');
+  if (error) throw toDataError(error, 'search templates');
+  return (data ?? []).flatMap((r) => (r.search_template ? [{ slug: r.slug, name: r.name, searchTemplate: r.search_template }] : []));
 }
 
 /** Close-time facts search_lots does not return. */

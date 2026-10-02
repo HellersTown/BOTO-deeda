@@ -4,8 +4,9 @@ import { BackIcon } from '../components/Icons';
 import { LotCard } from '../components/LotCard';
 import { CardSkeletons, EmptyState, ErrorState, LoadingState } from '../components/States';
 import { UpgradePrompt } from '../components/UpgradePrompt';
+import type { SearchScope } from '../data/database.types';
 import { DataError, describeError } from '../data/errors';
-import { deleteHunt, dismissHuntMatch, getHunt, listHuntMatches, renameHunt, runMyHunt, setHuntActive } from '../data/hunts';
+import { deleteHunt, dismissHuntMatch, getHunt, listHuntMatches, renameHunt, runMyHunt, setHuntActive, setHuntScope } from '../data/hunts';
 import { getMyEntitlements } from '../data/profile';
 import { useAsync } from '../hooks/useAsync';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -13,6 +14,19 @@ import { useNow } from '../hooks/useNow';
 import { cadenceWords, formatAgo } from '../lib/dates';
 import { summarizeHunt } from '../lib/huntDraft';
 import { useAuth } from '../providers/AuthProvider';
+
+/** How widely a hunt matches (hunts.match_scope, 0045), widest last. */
+const SCOPES: readonly { readonly value: SearchScope; readonly label: string; readonly note: string }[] = [
+  { value: 'exact', label: 'Exact', note: 'Alerts only for lots that are what you asked for.' },
+  {
+    value: 'related',
+    label: 'Close matches too',
+    note: 'Also related kinds and lots that include one: a laptop charger on a laptop hunt, a tractor with a loader on a loader hunt.',
+  },
+  { value: 'all', label: 'Every mention', note: 'Also any lot whose listing uses your words, whatever it is.' },
+];
+
+const scopeRank = (scope: SearchScope): number => SCOPES.findIndex((o) => o.value === scope);
 
 export function HuntDetailPage() {
   const { id = '' } = useParams();
@@ -110,6 +124,30 @@ export function HuntDetailPage() {
       matches.setData((cur) => (cur ?? []).filter((m) => m.id !== matchId));
     });
 
+  const scope: SearchScope = h.match_scope ?? 'exact';
+  const changeScope = (next: SearchScope) => {
+    if (next === scope) return;
+    const widened = scopeRank(next) > scopeRank(scope);
+    void act('scope', async () => {
+      const saved = await setHuntScope(h.id, next);
+      hunt.setData(saved);
+      if (!widened) {
+        setMessage('Saved. Matches found before stay until you dismiss them.');
+      } else if (!saved.active) {
+        setMessage('Saved. Resume the hunt to look with it.');
+      } else {
+        const run = await runMyHunt(h.id);
+        matches.reload();
+        hunt.reload();
+        setMessage(
+          run.newMatches > 0
+            ? `Saved. ${run.newMatches} more ${run.newMatches === 1 ? 'match' : 'matches'} found.`
+            : 'Saved. Nothing more matches yet.',
+        );
+      }
+    });
+  };
+
   const rename = (event: FormEvent) => {
     event.preventDefault();
     const name = newName.trim();
@@ -157,6 +195,27 @@ export function HuntDetailPage() {
           {h.active ? `Checks ${cadence}` : 'Paused: not checking for new lots'}
           {checked ? ` · last checked ${checked}` : ''}
         </p>
+
+        <div className="hunt-scope" role="group" aria-labelledby="hunt-scope-label">
+          <p id="hunt-scope-label" className="hunt-scope__label">
+            Matches
+          </p>
+          <div className="hunt-scope__chips">
+            {SCOPES.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                className="chip"
+                aria-pressed={scope === o.value}
+                onClick={() => changeScope(o.value)}
+                disabled={busy !== null}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">{SCOPES.find((o) => o.value === scope)?.note}</p>
+        </div>
 
         <div className="button-row">
           <button type="button" className="btn btn--outline btn--small" onClick={toggleActive} disabled={busy !== null}>
