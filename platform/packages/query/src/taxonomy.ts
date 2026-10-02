@@ -733,7 +733,8 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'trailer axle', 'trailer jack', 'trailer tongue jack', 'trailer coupler', 'coupler', 'trailer lights',
     'trailer wiring', 'trailer ramps', 'trailer ramp', 'trailer hub', 'trailer fender', 'trailer spring', 'leaf spring',
     'trailer parts', 'loading ramps', 'loading ramp', 'axle kit', 'trailer winch', 'wheel chock', 'hitch lock',
-    'reefer unit', 'refer unit',
+    'reefer unit', 'refer unit', 'trailer mover', 'trailer movers', 'trailer dolly', 'trailer dollies',
+    'trailer spotter', 'landing gear',
   ]),
   k('powersports-parts', 'ATV, UTV & motorcycle parts', 'vehicle-parts', ['atv parts', 'utv parts', 'motorcycle parts',
     'atv plow', 'utv plow', 'atv winch', 'motorcycle helmet', 'helmet motorcycle', 'atv helmet', 'riding gear',
@@ -1477,6 +1478,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'vacant land', 'acreage', 'acres', 'acre', 'farmland', 'farm land', 'hunting land', 'recreational land',
     'wooded land', 'timber land', 'lot land', 'building lot', 'residential lot', 'vacant lot', 'tract', 'tracts',
     'tillable land', 'tillable acres', 'pasture land', 'woodland', 'lake lot', 'land parcel',
+    'wooded lot', 'wooded acreage', 'wooded parcel', 'wooded property', 'hunting property', 'recreational property',
   ], ['homes']),
   k('homes', 'Homes', 'real-estate', [
     'house', 'residence', 'single family home', 'single family', 'duplex', 'condo', 'condominium', 'townhouse',
