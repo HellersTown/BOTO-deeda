@@ -777,6 +777,33 @@ test('run(): watched ids the platform no longer returns are reported, not guesse
   assert.ok(res.warnings.some((w) => /1 known lot\(s\) were not returned by \/api\/items/.test(w)));
 });
 
+test('run(): a batch refused for one missing lot does not stop the watch; its sale is read in full', async () => {
+  // /api/items answers 404 {"error":"Record not found!"} for the whole request
+  // when any one id is gone (bid.hansenauctiongroup.com, 2026-10-05). The
+  // other batches still go out, and the refused batch's sale is read in full.
+  const ids = Array.from({ length: 150 }, (_, i) => String(33_000_000 + i));
+  const { calls, fetch } = routes({
+    [`${BASE}/api/auctions?page=1`]: AUCTION_TJOFLAT,
+    [`${BASE}/api/auctions?page=2`]: '{"total":3420,"page":2,"per_page":50,"auctions":[]}',
+    // The first batch (ids 0-99) is not served: 404, as the platform answers.
+    [itemsByIdsUrl(BASE, ids.slice(100))]: '[]',
+    [`${BASE}/api/auctions/168337/items?page=1&per_page=100`]: '{"total":0,"items":[]}',
+  });
+  const known: KnownState = {
+    auctions: [{ externalId: '168337', itemsReadAt: at(HOUR), itemsReadCount: 195 }],
+    lots: ids.map((id, i) => ({ externalId: id, auctionExternalId: '168337', lastSeenAt: at(2 * HOUR - i), closesAt: null })),
+  };
+  const res = await runBidwrangler({ ...makeCtx(fetch), known }, noWait);
+  assert.deepEqual(calls.filter((u) => u.includes('/items')), [
+    itemsByIdsUrl(BASE, ids.slice(0, 100)),
+    itemsByIdsUrl(BASE, ids.slice(100)),
+    `${BASE}/api/auctions/168337/items?page=1&per_page=100`,
+  ]);
+  assert.equal(res.auctions.find((a) => a.externalId === '168337')!.itemsComplete, true);
+  assert.ok(res.warnings.some((w) => /1 id batch\(es\) \(100 lots\) named a lot the platform no longer has/.test(w)));
+  assert.ok(!res.warnings.some((w) => /due lot\(s\) left for the next run/.test(w)));
+});
+
 test('run(): the watch stops at the budget and says how many lots wait', async () => {
   const ids = Array.from({ length: 250 }, (_, i) => String(30_000_000 + i));
   const served: Record<string, string> = {

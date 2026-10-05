@@ -1195,6 +1195,13 @@ export async function runBidwrangler(
   let watchedLots = 0;
   let watchMissing = 0;
   let watchDeferred = 0;
+  /**
+   * Batches the platform refused with 404 ("Record not found!"): /api/items
+   * answers that for the whole request when any one id no longer exists
+   * (checked live on bid.hansenauctiongroup.com, 2026-10-05), so the other
+   * lots of the batch are unread too. Their sales are read in full instead.
+   */
+  const notFoundBatches: string[][] = [];
   /** Known lots by id, BW_IDS_PER_REQUEST at a time, skipping any already read in this run. */
   const watchIds = async (ids: readonly string[]) => {
     const due = ids.filter((id) => !readIds.has(id));
@@ -1218,6 +1225,11 @@ export async function runBidwrangler(
         outOfBudget = true;
         watchDeferred += due.length - i;
         return;
+      }
+      if (res.status === 404) {
+        // One lot of the batch is gone; the rest may be fine. Go on.
+        notFoundBatches.push(batch);
+        continue;
       }
       if (res.status !== 200) {
         warnings.push(`Items by id: HTTP ${res.status}; ${due.length - i} due lot(s) left for the next run.`);
@@ -1265,6 +1277,28 @@ export async function runBidwrangler(
     for (const { auction } of wp.firstReads) await fullRead(auction, reserve);
     for (const { auction } of wp.agedReads) await fullRead(auction, reserve);
     await watchIds(wp.stale);
+    // A batch naming a lot the platform no longer has: read its lots' sales in
+    // full, which refreshes the rest and lets the run close the lot that is
+    // gone (crawl_run_finish, per sale), so the next run's batches are clean.
+    if (notFoundBatches.length) {
+      const saleOf = new Map(ctx.known.lots.map((l) => [l.externalId, l.auctionExternalId]));
+      const sales = new Set<string>();
+      for (const batch of notFoundBatches) {
+        for (const id of batch) {
+          const sale = saleOf.get(id);
+          if (sale && !readIds.has(id)) sales.add(sale);
+        }
+      }
+      const toRead = [...sales]
+        .map((id) => byId.get(Number(id)))
+        .filter((a): a is BwRecord => a !== undefined && !auctionByExt.get(String(int(a.id)))?.itemsComplete);
+      for (const auction of toRead) await fullRead(auction);
+      const lotsInBatches = notFoundBatches.reduce((n, b) => n + b.length, 0);
+      warnings.push(
+        `Watch: ${notFoundBatches.length} id batch(es) (${lotsInBatches} lots) named a lot the platform no longer has ` +
+          `(HTTP 404 "Record not found!"); ${toRead.length} of their ${sales.size} sale(s) were read in full instead.`,
+      );
+    }
     // A complete snapshot still means every listed sale was read in full here.
     const unread = [...byId.values()].filter(
       (a) => (int(a.published_items_count) ?? int(a.items_count) ?? 0) > 0 && !auctionByExt.get(String(int(a.id)))?.itemsComplete,
