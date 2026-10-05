@@ -249,23 +249,24 @@ insert into sources (
  null, 'Farm and construction equipment auctions, timed online.',
  'https://steffesgroup.com/robots.txt', null),
 
--- Wisconsin houses on AuctionGuide that do not sell on HiBid (0062),
--- registered for review: robots.txt and terms not yet read.
+-- The two Wisconsin houses on AuctionGuide not obviously on HiBid (0062):
+-- Iggy's turned out to bid on HiBid and is held with it; Premier Machinery is
+-- a BidWrangler tenant, on for its Wisconsin sales (0063).
 ('iggys-auction-house', 'Iggy''s Auction House', 'https://www.iggysauction.com/',
  null, 'private', 'html', 'iggys', array['WI'],
  false, false, false, false, false,
- 'Registered 2026-10-05 for review: Wisconsin Rapids estate auctioneer whose online sales are not on HiBid (AuctionGuide lists its 695-lot Lobner estate sale, closing 2026-10-14). Terms not yet read.',
+ 'Held (0063): its catalogs are on HiBid (iggysauction.hibid.com), whose terms forbid automated collection; held with HiBid until its permission (docs/10 section 4). Its own site, www.iggysauction.com, was read once on 2026-10-05 to find where it bids.',
  10, false, false, 60, 45,
  null, 'Estate and household auctions, timed online, central Wisconsin.',
  'https://www.iggysauction.com/robots.txt', null),
 
-('premier-machinery-auctions', 'Premier Machinery Auctions', 'https://premiermachineryauctions.com/',
- null, 'private', 'html', 'premier-machinery', array['WI', 'MN'],
- false, false, false, false, false,
- 'Registered 2026-10-05 for review: industrial liquidations, two Wisconsin sales on AuctionGuide (La Crosse tool and die shop, closing 2026-10-27; Metal Crafters facility closure), not on HiBid. Terms not yet read.',
- 10, false, false, 60, 45,
+('premier-machinery-auctions', 'Premier Machinery Auctions', 'https://www.premiermachineryauctions.com',
+ 'https://bid.premiermachineryauctions.com', 'private', 'internal_json', 'bidwrangler', array['WI'],
+ false, false, false, true, true,
+ 'Terms read 2026-10-05 (0063): Premier''s ONLINE Terms and Conditions (4/15/2019) say nothing about automated access, collection or display. BidWrangler tenant bid.premiermachineryauctions.com; robots.txt allows /api/auctions. Wisconsin sales only (Stevens Point, La Crosse); its Minnesota and North Dakota sales are out of scope.',
+ 20, false, false, 15, 25,
  null, 'Machine shop and industrial facility liquidations, timed online.',
- 'https://premiermachineryauctions.com/robots.txt', null),
+ 'https://bid.premiermachineryauctions.com/robots.txt', true),
 
 ('invaluable', 'Invaluable', 'https://www.invaluable.com',
  null, 'private', 'internal_json', 'invaluable', null,
