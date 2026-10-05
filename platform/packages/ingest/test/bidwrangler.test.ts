@@ -800,8 +800,42 @@ test('run(): a batch refused for one missing lot does not stop the watch; its sa
     `${BASE}/api/auctions/168337/items?page=1&per_page=100`,
   ]);
   assert.equal(res.auctions.find((a) => a.externalId === '168337')!.itemsComplete, true);
-  assert.ok(res.warnings.some((w) => /1 id batch\(es\) \(100 lots\) named a lot the platform no longer has/.test(w)));
+  assert.ok(res.warnings.some((w) => /1 id request\(s\) \(100 lots\) named a lot the platform no longer has/.test(w)));
   assert.ok(!res.warnings.some((w) => /due lot\(s\) left for the next run/.test(w)));
+});
+
+test('run(): a refused batch is asked again one sale at a time, so a gone lot holds up only its own sale', async () => {
+  // The oldest 60 due lots are 168337's, the next 40 are 156558's, and one of
+  // 156558's is gone: the batch of 100 is refused. 168337's 60 are asked
+  // again on their own and refreshed; 156558, the last group, must hold the
+  // missing lot, so it is not asked again but read in full.
+  const a = Array.from({ length: 60 }, (_, i) => String(34_000_000 + i));
+  const b = Array.from({ length: 40 }, (_, i) => String(35_000_000 + i));
+  const { calls, fetch } = routes({
+    [`${BASE}/api/auctions?page=1`]: AUCTION_TJOFLAT,
+    [`${BASE}/api/auctions?page=2`]: AUCTIONS_P1,
+    [itemsByIdsUrl(BASE, a)]: '[]',
+    [`${BASE}/api/auctions/156558/items?page=1&per_page=100`]: '{"total":0,"items":[]}',
+  });
+  const known: KnownState = {
+    auctions: [
+      { externalId: '168337', itemsReadAt: at(HOUR), itemsReadCount: 195 },
+      { externalId: '169893', itemsReadAt: at(HOUR), itemsReadCount: 1 },
+      { externalId: '156558', itemsReadAt: at(HOUR), itemsReadCount: 1 },
+    ],
+    lots: [
+      ...a.map((id, i) => ({ externalId: id, auctionExternalId: '168337', lastSeenAt: at(5 * HOUR - i), closesAt: null })),
+      ...b.map((id, i) => ({ externalId: id, auctionExternalId: '156558', lastSeenAt: at(4 * HOUR - i), closesAt: null })),
+    ],
+  };
+  const res = await runBidwrangler({ ...makeCtx(fetch), known }, noWait);
+  assert.deepEqual(calls.filter((u) => u.includes('/items')), [
+    itemsByIdsUrl(BASE, [...a, ...b]),
+    itemsByIdsUrl(BASE, a),
+    `${BASE}/api/auctions/156558/items?page=1&per_page=100`,
+  ]);
+  assert.equal(res.auctions.find((x) => x.externalId === '156558')!.itemsComplete, true);
+  assert.ok(res.warnings.some((w) => /1 id request\(s\) \(40 lots\) named a lot the platform no longer has/.test(w)));
 });
 
 test('run(): the watch stops at the budget and says how many lots wait', async () => {

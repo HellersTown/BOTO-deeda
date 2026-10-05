@@ -1202,58 +1202,100 @@ export async function runBidwrangler(
    * lots of the batch are unread too. Their sales are read in full instead.
    */
   const notFoundBatches: string[][] = [];
+  /** The sale each known lot belongs to, for splitting a refused batch. */
+  const saleOfLot = new Map((ctx.known?.lots ?? []).map((l) => [l.externalId, l.auctionExternalId ?? '']));
+  /** A batch's ids grouped by sale, in the order the sales first appear. */
+  const bySale = (batch: readonly string[]): string[][] => {
+    const groups = new Map<string, string[]>();
+    for (const id of batch) {
+      const sale = saleOfLot.get(id) ?? '';
+      const group = groups.get(sale);
+      if (group) group.push(id);
+      else groups.set(sale, [id]);
+    }
+    return [...groups.values()];
+  };
+  /**
+   * One /api/items?ids= request. "stopped" means the budget or the platform
+   * ended the watch for this run; `why` says which, when it was the platform.
+   */
+  const fetchByIds = async (batch: readonly string[]): Promise<{ outcome: 'read' | 'not-found' | 'stopped'; why?: string }> => {
+    if (
+      outOfBudget ||
+      stats.httpRequests + 1 > maxRequests ||
+      (itemRequests > 0 && stats.bytesIn + batch.length * BW_EST_BYTES_PER_ITEM > maxBytes)
+    ) {
+      return { outcome: 'stopped' };
+    }
+    itemRequests++;
+    let res: Awaited<ReturnType<typeof get>>;
+    try {
+      res = await get(itemsByIdsUrl(base, batch));
+    } catch (e) {
+      if (!isBudgetRefusal(e)) throw e;
+      outOfBudget = true;
+      return { outcome: 'stopped' };
+    }
+    if (res.status === 404) return { outcome: 'not-found' };
+    if (res.status !== 200) return { outcome: 'stopped', why: `Items by id: HTTP ${res.status}` };
+    const json = parseJson(res.text);
+    if (!json.ok) return { outcome: 'stopped', why: 'Items by id were not JSON' };
+    const parsed = parseItemsList(json.value);
+    warnings.push(...parsed.warnings);
+    const returned = new Set<string>();
+    for (const item of parsed.records) {
+      const id = int(item.id);
+      if (id === null) continue;
+      returned.add(String(id));
+      const before = lots.length;
+      accept(item, byId.get(int(item.auction_id) ?? -1) ?? null, null);
+      watchedLots += lots.length - before;
+    }
+    watchMissing += batch.filter((id) => !returned.has(id)).length;
+    return { outcome: 'read' };
+  };
   /** Known lots by id, BW_IDS_PER_REQUEST at a time, skipping any already read in this run. */
   const watchIds = async (ids: readonly string[]) => {
     const due = ids.filter((id) => !readIds.has(id));
     for (let i = 0; i < due.length; i += BW_IDS_PER_REQUEST) {
       const batch = due.slice(i, i + BW_IDS_PER_REQUEST).filter((id) => !readIds.has(id));
       if (!batch.length) continue;
-      if (
-        outOfBudget ||
-        stats.httpRequests + 1 > maxRequests ||
-        (itemRequests > 0 && stats.bytesIn + batch.length * BW_EST_BYTES_PER_ITEM > maxBytes)
-      ) {
+      const after = Math.max(0, due.length - (i + BW_IDS_PER_REQUEST));
+      const r = await fetchByIds(batch);
+      if (r.outcome === 'stopped') {
+        if (r.why) warnings.push(`${r.why}; ${due.length - i} due lot(s) left for the next run.`);
         watchDeferred += due.length - i;
         return;
       }
-      itemRequests++;
-      let res: Awaited<ReturnType<typeof get>>;
-      try {
-        res = await get(itemsByIdsUrl(base, batch));
-      } catch (e) {
-        if (!isBudgetRefusal(e)) throw e;
-        outOfBudget = true;
-        watchDeferred += due.length - i;
-        return;
-      }
-      if (res.status === 404) {
-        // One lot of the batch is gone; the rest may be fine. Go on.
+      if (r.outcome === 'read') continue;
+      // One lot of the batch is gone; the rest may be fine. Ask again one sale
+      // at a time, so a lot that is gone holds up only its own sale: on
+      // 2026-10-05 eight lots withdrawn from one Hansen Auction Group sale were
+      // the oldest due ids and kept 92 lots of three other sales in their
+      // refused batch for hours. When every other sale was answered, the last
+      // must hold the missing lot and is not asked again.
+      const groups = bySale(batch);
+      if (groups.length === 1) {
         notFoundBatches.push(batch);
         continue;
       }
-      if (res.status !== 200) {
-        warnings.push(`Items by id: HTTP ${res.status}; ${due.length - i} due lot(s) left for the next run.`);
-        watchDeferred += due.length - i;
-        return;
+      let refused = false;
+      for (let g = 0; g < groups.length; g++) {
+        if (g === groups.length - 1 && !refused) {
+          notFoundBatches.push(groups[g]);
+          break;
+        }
+        const rg = await fetchByIds(groups[g]);
+        if (rg.outcome === 'not-found') {
+          refused = true;
+          notFoundBatches.push(groups[g]);
+        } else if (rg.outcome === 'stopped') {
+          const left = groups.slice(g).reduce((n, group) => n + group.length, 0) + after;
+          if (rg.why) warnings.push(`${rg.why}; ${left} due lot(s) left for the next run.`);
+          watchDeferred += left;
+          return;
+        }
       }
-      const json = parseJson(res.text);
-      if (!json.ok) {
-        warnings.push(`Items by id were not JSON; ${due.length - i} due lot(s) left for the next run.`);
-        watchDeferred += due.length - i;
-        return;
-      }
-      const parsed = parseItemsList(json.value);
-      warnings.push(...parsed.warnings);
-      const returned = new Set<string>();
-      for (const item of parsed.records) {
-        const id = int(item.id);
-        if (id === null) continue;
-        returned.add(String(id));
-        const before = lots.length;
-        accept(item, byId.get(int(item.auction_id) ?? -1) ?? null, null);
-        watchedLots += lots.length - before;
-      }
-      watchMissing += batch.filter((id) => !returned.has(id)).length;
     }
   };
 
@@ -1295,7 +1337,7 @@ export async function runBidwrangler(
       for (const auction of toRead) await fullRead(auction);
       const lotsInBatches = notFoundBatches.reduce((n, b) => n + b.length, 0);
       warnings.push(
-        `Watch: ${notFoundBatches.length} id batch(es) (${lotsInBatches} lots) named a lot the platform no longer has ` +
+        `Watch: ${notFoundBatches.length} id request(s) (${lotsInBatches} lots) named a lot the platform no longer has ` +
           `(HTTP 404 "Record not found!"); ${toRead.length} of their ${sales.size} sale(s) were read in full instead.`,
       );
     }
