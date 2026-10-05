@@ -604,12 +604,26 @@ const INFO_LOT_NAMES = new Set([
   'load out', 'loadout', 'transfers', 'transfer', 'shipping', 'shipping information',
   'terms', 'terms and conditions', 'important information', 'please read', "buyer's premium",
   "buyer's fee",
+  // Seen open on 2026-10-05 (Hansen Auction Group, North Central Sales, Hansen & Young).
+  "buyer's terms", 'buyers terms', 'highlighted terms', 'additional information', 'new registration',
+  'text messages & alerts', 'text messages and alerts', 'no shipping',
 ]);
+
+// Whole-name forms with a variable tail: "For Equipment Questions Please Call
+// Rich at 715-…", "FOR QUESTIONS ON THE ITEMS CONTACT: Andy • 715-…", "Fire
+// Arms Terms-FFL WI.", "Preview Auction October 1st". Anchored at the start, so
+// a lot that merely mentions terms or a preview is still a lot.
+const INFO_LOT_PATTERNS: readonly RegExp[] = [
+  /^for (?:[a-z]+ )?questions\b/,
+  /^(?:fire ?arms?|firearms?|gun) terms\b/,
+  /^preview auction\b/,
+];
 
 /**
  * An informational pseudo-lot ("#1A Payment Information"): a biddable row that
- * carries terms, not merchandise. Matched on the WHOLE name only, so "Pickup
- * Truck" and "Shipping Container" are real lots.
+ * carries terms, not merchandise. Matched on the WHOLE name (or one of the
+ * anchored forms above) only, so "Pickup Truck" and "Shipping Container" are
+ * real lots.
  */
 export function isInformationalLot(item: BwRecord): boolean {
   const name = str(item.name);
@@ -620,7 +634,7 @@ export function isInformationalLot(item: BwRecord): boolean {
     .replace(/[.:!*\s]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim();
-  return INFO_LOT_NAMES.has(n);
+  return INFO_LOT_NAMES.has(n) || INFO_LOT_PATTERNS.some((re) => re.test(n));
 }
 
 /** Lot images, largest-but-sane size first: lg (1200x756 box) > xl > sm > xs. */

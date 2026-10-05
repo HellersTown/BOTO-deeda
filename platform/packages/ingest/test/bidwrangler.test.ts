@@ -269,6 +269,18 @@ test('informational pseudo-lots are recognised by their whole name only', () => 
   assert.equal(isInformationalLot({ name: 'Open House' }), true);
   // Real merchandise that merely contains the words.
   assert.equal(isInformationalLot({ name: 'Pickup Truck' }), false);
+  // Seen open on 2026-10-05, each listed as a lot at $1.
+  for (const name of [
+    'Highlighted Terms', "Buyer's Terms", 'Buyers Terms', 'Text Messages & Alerts', 'New Registration',
+    'Additional Information', 'No Shipping', 'Fire Arms Terms-FFL WI.', 'Preview Auction October 1st',
+    'For Equipment Questions Please Call Rich at 715-483-7096', 'FOR QUESTIONS ON THE ITEMS CONTACT: Andy • 715-456-6281',
+  ]) {
+    assert.equal(isInformationalLot({ name }), true, name);
+  }
+  // A lot that only mentions such words is still a lot.
+  for (const name of ['Magnaflux Particle Inspection Equipment', 'Preview Monitor 24 in', 'Gun Safe with Terms Sheet', 'Questions & Answers Board Game']) {
+    assert.equal(isInformationalLot({ name }), false, name);
+  }
   assert.equal(isInformationalLot({ name: 'Shipping Container' }), false);
 });
 
