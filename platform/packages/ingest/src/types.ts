@@ -116,6 +116,13 @@ export interface NormalizedAuction {
   buyerPremiumNote?: string | null;
   termsUrl?: string | null;
   raw: unknown;
+  /**
+   * True when this run read every item the auction lists. Lots of this auction
+   * the run did not see have then been withdrawn, and crawl_run_finish closes
+   * them (0055); the time is kept as auctions.items_read_at, so the next run
+   * knows how fresh the auction's full read is.
+   */
+  itemsComplete?: boolean;
 }
 
 export interface NormalizedImage {
@@ -225,12 +232,45 @@ export interface AdapterContext {
   deadline?: number;
   log: (level: 'debug' | 'info' | 'warn' | 'error', msg: string, ctx?: unknown) => void;
   secrets: Record<string, string | undefined>;
+  /**
+   * What the database already holds for this source, for an adapter that asks
+   * for it (Adapter.wantsKnownState). It lets a run spend its requests where
+   * they are due: new sales read in full, known lots refreshed for price and
+   * bids, instead of re-reading everything every time (0055).
+   */
+  known?: KnownState;
+}
+
+/** An open lot the database holds, as the crawler last saw it. */
+export interface KnownLot {
+  readonly externalId: string;
+  readonly auctionExternalId: string | null;
+  /** When a run last saw this lot, ms since epoch. */
+  readonly lastSeenAt: number;
+  /** Its close time, ms since epoch, or null when the source gives none. */
+  readonly closesAt: number | null;
+}
+
+/** An auction the database holds. */
+export interface KnownAuction {
+  readonly externalId: string;
+  /** When a run last read every item it lists (ms since epoch); null if none has. */
+  readonly itemsReadAt: number | null;
+  /** How many items it declared at that read: a different count now means lots were added or removed. */
+  readonly itemsReadCount: number | null;
+}
+
+export interface KnownState {
+  readonly lots: readonly KnownLot[];
+  readonly auctions: readonly KnownAuction[];
 }
 
 export interface Adapter {
   /** Stable identifier, matching sources.platform or sources.slug. */
   readonly key: string;
   readonly method: IngestMethod;
+  /** When true, the worker passes AdapterContext.known (one database read per run). */
+  readonly wantsKnownState?: boolean;
   /** Discover and normalize. Must be idempotent and safe to replay. */
   run(ctx: AdapterContext): Promise<IngestResult>;
 }

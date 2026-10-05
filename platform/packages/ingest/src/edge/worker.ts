@@ -16,7 +16,10 @@
 // nothing due does no outbound I/O at all.
 //
 // Per claimed source:
-//   crawl_run_start -> adapter.run() -> ingest_batch (chunked) -> crawl_run_finish
+//   crawl_run_start -> [crawl_known_state] -> adapter.run() -> ingest_batch (chunked) -> crawl_run_finish
+// crawl_known_state (0055) is read only for an adapter that asks for it: what
+// the database already holds, so the run refreshes known lots for price and
+// bids instead of re-reading every sale.
 // A thrown adapter error still finishes the run as failed/rate_limited, so the
 // source's backoff and health stay truthful.
 //
@@ -37,7 +40,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { politeFetch, CRAWLER_UA } from '../http.ts';
 import { gateFetcher } from '../gate.ts';
 import type { RawFetch } from '../gate.ts';
-import type { Adapter, AdapterContext, NormalizedLot, SourceConfig } from '../types.ts';
+import { parseKnownState } from '../known.ts';
+import type { Adapter, AdapterContext, KnownState, NormalizedLot, SourceConfig } from '../types.ts';
 
 const CHUNK = 200;
 
@@ -161,6 +165,15 @@ export function serveWorker(workerName: string, adapters: Record<string, Adapter
     }
 
     try {
+      // What the database already holds, for adapters that plan around it
+      // (0055). Without it the adapter still runs, the way it did before.
+      if (adapter.wantsKnownState) {
+        const { data, error } = await db.rpc('crawl_known_state', { p_source_id: source.id });
+        const known: KnownState | null = error ? null : parseKnownState(data);
+        if (known) ctx.known = known;
+        else warnings.push(`crawl_known_state: ${error?.message ?? 'unreadable answer'}; this run reads without it.`);
+      }
+
       const result = await adapter.run(ctx);
       warnings.push(...result.warnings);
 

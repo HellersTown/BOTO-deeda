@@ -69,11 +69,21 @@
  *    apostrophe), sometimes tiered: "10% Buyer's Fee on the first $25,000 + 6%
  *    on the remainder". The card fee is separate: payment_cc_fee "3.99", or
  *    "A 3.75% credit card convenience fee" in the text.
- * 7. Weight: ~14 KB per item, almost all of it four signed CDN URLs per photo.
- *    A full Wisconsin refresh for Hansen is ~15 MB, so a run is budgeted (see
- *    planAuctions and BW_DEFAULTS): lots closing within 24 hours always, then a
- *    rotating slice of the rest when the budget cannot cover everything. A run
- *    is a complete snapshot only when it got everything.
+ * 7. Weight: ~14-17 KB per item, almost all of it four signed CDN URLs per
+ *    photo. A full Wisconsin refresh for Hansen is ~70 MB (4,759 open lots on
+ *    2026-10-05), so a run is budgeted (BW_DEFAULTS). Without the database's
+ *    state (tests, a first run) a run reads lots closing within 24 hours, then
+ *    a rotating slice of the rest (planAuctions). With it (planWatch, 0055) a
+ *    run reads NEW sales in full, then refreshes known lots BY ID for price,
+ *    bids and close time, least recently seen first, so that with runs every
+ *    15 minutes every open lot is refreshed within the hour and lots closing
+ *    within 3 hours on every run; each sale is read in full again every 6
+ *    hours, or as soon as its item count changes, to find added, edited and
+ *    withdrawn lots. A run is a complete snapshot only when it got everything.
+ *
+ *    GET {host}/api/items?ids=26400668,26374935   (verified 2026-10-05)
+ *      a bare JSON array of the same item records /items returns, in any
+ *      auction; without ids it answers 400 {"error":"ids is missing"}.
  * 8. Politeness: the crawl gate spaces requests by sources.rate_limit_rpm (or
  *    the host's Crawl-delay). run() also spaces its own by 60s / rate_limit_rpm
  *    (capped at 10 s), so it stays polite behind any fetcher, including tests'.
@@ -88,6 +98,8 @@ import type {
   Adapter,
   AdapterContext,
   IngestResult,
+  KnownLot,
+  KnownState,
   NormalizedAuction,
   NormalizedImage,
   NormalizedLocation,
@@ -114,11 +126,27 @@ export const BW_MAX_IMAGES = 20;
 // run (first live run, 2026-09-30: 24 requests reached 21 of 61 sales).
 export const BW_DEFAULTS = {
   maxRequests: 70,
-  maxBytes: 20_000_000,
+  // ~1,900 items at the observed weight: a quarter of Hansen's hourly refresh
+  // with room to spare, so four runs an hour cover it (point 7).
+  maxBytes: 32_000_000,
   maxListPages: 3,
   itemsPerPage: BW_ITEMS_PER_PAGE,
   /** An auction closing within this window is refreshed on every run. */
   urgentWindowMs: 24 * 3_600_000,
+};
+
+/** Ids per /api/items?ids= request: ~1.7 MB, like a page of an auction's items. */
+export const BW_IDS_PER_REQUEST = 100;
+
+/** When a known lot or sale is due again (planWatch). */
+export const BW_WATCH = {
+  /** A lot unseen this long is due: with runs every 15 minutes, each is refreshed within the hour. */
+  staleMs: 40 * 60_000,
+  /** A lot closing within this window is due once unseen for nearCloseStaleMs, i.e. on every run. */
+  nearCloseMs: 3 * 3_600_000,
+  nearCloseStaleMs: 10 * 60_000,
+  /** A sale read in full this long ago is read in full again, for added, edited and withdrawn lots. */
+  fullReadMaxAgeMs: 6 * 3_600_000,
 };
 
 // ------------------------------------------------------------ small helpers
@@ -265,6 +293,7 @@ export function tenantApiBase(source: Pick<SourceConfig, 'apiBase' | 'url'>): st
 export const auctionListUrl = (base: string, page: number) => `${base}/api/auctions?page=${page}`;
 export const itemsUrl = (base: string, auctionId: number, page: number, perPage: number) =>
   `${base}/api/auctions/${auctionId}/items?page=${page}&per_page=${perPage}`;
+export const itemsByIdsUrl = (base: string, ids: readonly string[]) => `${base}/api/items?ids=${ids.join(',')}`;
 export const auctionPageUrl = (base: string, auctionId: number | string) => `${base}/ui/auctions/${auctionId}`;
 export const itemPageUrl = (base: string, itemId: number | string) => `${base}/ui/items/${itemId}`;
 
@@ -306,6 +335,16 @@ function parseEnvelope(body: unknown, key: 'auctions' | 'items'): BwPage<BwRecor
 
 export const parseAuctionsPage = (body: unknown) => parseEnvelope(body, 'auctions');
 export const parseItemsPage = (body: unknown) => parseEnvelope(body, 'items');
+
+/** /api/items?ids=: a bare array of item records (an { items } envelope is read too). */
+export function parseItemsList(body: unknown): { records: BwRecord[]; warnings: string[] } {
+  const list = Array.isArray(body) ? body : obj(body) && Array.isArray(obj(body)!.items) ? (obj(body)!.items as unknown[]) : null;
+  if (!list) return { records: [], warnings: ['BidWrangler /api/items response was not an array of items.'] };
+  const records = list.filter((r): r is BwRecord => !!obj(r));
+  const warnings =
+    records.length !== list.length ? [`Skipped ${list.length - records.length} non-object entries in /api/items.`] : [];
+  return { records, warnings };
+}
 
 /**
  * True when, within one page, every open auction precedes every completed one:
@@ -787,6 +826,86 @@ export function planAuctions(
   return { queue: [...urgent, ...rotated], inScope, outOfScope, undeclaredState, notOpen };
 }
 
+export type FullReadReason = 'new' | 'count-changed' | 'aged';
+
+export interface WatchPlan {
+  /**
+   * Sales to read in full before any lot is refreshed: never read in full, or
+   * declaring a different item count than at their last full read (lots were
+   * added or withdrawn). New listings are what a buyer is waiting for.
+   */
+  firstReads: { auction: BwRecord; reason: FullReadReason }[];
+  /** Known lots closing within BW_WATCH.nearCloseMs and due, soonest close first. */
+  nearClose: string[];
+  /** Sales whose last full read is older than BW_WATCH.fullReadMaxAgeMs, oldest read first. */
+  agedReads: { auction: BwRecord; reason: FullReadReason }[];
+  /** Every other due known lot, least recently seen first. */
+  stale: string[];
+}
+
+/**
+ * Decide, from what the database already holds (0055), which sales to read in
+ * full and which known lots to refresh by id. Stateless given its inputs.
+ *
+ * Only sales listed open and in scope count: a known lot of a sale that is no
+ * longer listed (complete, or out of scope) is not refreshed here and closes on
+ * its own clock. A lot belonging to a sale queued for a first read is left to
+ * that read. Lots without a close time are refreshed as stale ones.
+ */
+export function planWatch(
+  inScope: BwRecord[],
+  known: KnownState,
+  now: Date,
+  watch: typeof BW_WATCH = BW_WATCH,
+): WatchPlan {
+  const t = now.getTime();
+  const knownAuctions = new Map(known.auctions.map((a) => [a.externalId, a]));
+  const published = (a: BwRecord) => int(a.published_items_count) ?? int(a.items_count) ?? 0;
+  const fetchable = inScope.filter((a) => published(a) > 0).sort((x, y) => endMs(x) - endMs(y));
+
+  const firstReads: WatchPlan['firstReads'] = [];
+  const aged: { auction: BwRecord; readAt: number }[] = [];
+  const listed = new Set<string>();
+  const readFirst = new Set<string>();
+  for (const a of fetchable) {
+    const id = String(int(a.id));
+    listed.add(id);
+    const k = knownAuctions.get(id);
+    if (!k || k.itemsReadAt === null) {
+      firstReads.push({ auction: a, reason: 'new' });
+      readFirst.add(id);
+    } else if (k.itemsReadCount !== published(a)) {
+      firstReads.push({ auction: a, reason: 'count-changed' });
+      readFirst.add(id);
+    } else if (t - k.itemsReadAt >= watch.fullReadMaxAgeMs) {
+      aged.push({ auction: a, readAt: k.itemsReadAt });
+    }
+  }
+  // New sales before sales whose count changed; each group soonest close first.
+  firstReads.sort((x, y) => Number(x.reason !== 'new') - Number(y.reason !== 'new'));
+  aged.sort((x, y) => x.readAt - y.readAt);
+
+  const near: KnownLot[] = [];
+  const stale: KnownLot[] = [];
+  for (const lot of known.lots) {
+    const auctionId = lot.auctionExternalId;
+    if (!auctionId || !listed.has(auctionId) || readFirst.has(auctionId)) continue;
+    const unseen = t - lot.lastSeenAt;
+    const closingSoon = lot.closesAt !== null && lot.closesAt - t <= watch.nearCloseMs;
+    if (closingSoon && unseen >= watch.nearCloseStaleMs) near.push(lot);
+    else if (unseen >= watch.staleMs) stale.push(lot);
+  }
+  near.sort((x, y) => (x.closesAt ?? 0) - (y.closesAt ?? 0));
+  stale.sort((x, y) => x.lastSeenAt - y.lastSeenAt);
+
+  return {
+    firstReads,
+    nearClose: near.map((l) => l.externalId),
+    agedReads: aged.map(({ auction }) => ({ auction, reason: 'aged' as const })),
+    stale: stale.map((l) => l.externalId),
+  };
+}
+
 // -------------------------------------------------------------------- run
 
 export interface BidwranglerRunOptions {
@@ -900,6 +1019,7 @@ export async function runBidwrangler(
   }
 
   const auctions: NormalizedAuction[] = [];
+  const auctionByExt = new Map<string, NormalizedAuction>();
   const byId = new Map<number, BwRecord>();
   for (const a of plan.inScope) {
     const n = normalizeBwAuction(a, base);
@@ -908,43 +1028,67 @@ export async function runBidwrangler(
       continue;
     }
     auctions.push(n);
+    auctionByExt.set(n.externalId, n);
     byId.set(int(a.id)!, a);
   }
 
-  // 3. Items, in plan order, inside the request and byte budgets.
+  // 3. Items, inside the request and byte budgets.
   const lots: NormalizedLot[] = [];
+  const readIds = new Set<string>();
   const skippedForBudget: number[] = [];
   const unknownStatuses = new Set<string>();
-  let infoLots = 0;
-  let unnamed = 0;
-  let foreignItems = 0;
-  let outOfScopeItems = 0;
-
+  const counts = { infoLots: 0, unnamed: 0, foreignItems: 0, outOfScopeItems: 0 };
   let itemRequests = 0;
   let outOfBudget = false;
-  for (const a of plan.queue) {
-    const auctionId = int(a.id)!;
-    if (!byId.has(auctionId)) continue;
-    if (outOfBudget) {
-      skippedForBudget.push(auctionId);
-      complete = false;
-      continue;
+
+  /** Keep one item record as a lot, or count why not. `expectAuction` refuses items of another sale. */
+  const accept = (item: BwRecord, auction: BwRecord | null, expectAuction: number | null) => {
+    if (expectAuction !== null && int(item.auction_id) !== null && int(item.auction_id) !== expectAuction) {
+      counts.foreignItems++;
+      return;
     }
+    if (isInformationalLot(item)) {
+      counts.infoLots++;
+      return;
+    }
+    const ownState = declaredState(obj(item.location)?.state);
+    if (ownState && !scope.includes(ownState)) {
+      counts.outOfScopeItems++;
+      return;
+    }
+    const lot = normalizeBwItem(item, { base, now, auction });
+    if (!lot) {
+      counts.unnamed++;
+      return;
+    }
+    const status = str(item.status);
+    if (status && !OPEN_ITEM_STATUSES.has(status) && !CLOSED_ITEM_STATUSES.has(status)) {
+      unknownStatuses.add(status);
+    }
+    if (readIds.has(lot.externalId)) return;
+    readIds.add(lot.externalId);
+    lots.push(lot);
+  };
+
+  /** Would reading this sale in full overrun the budget? A run's first item request is always tried. */
+  const overBudget = (a: BwRecord): boolean => {
     const expected = int(a.published_items_count) ?? int(a.items_count) ?? 0;
     const pagesNeeded = Math.max(1, Math.ceil(expected / perPage));
-    // The first auction in the queue is always attempted, so a run whose
-    // budget is too small for everything still makes progress on the most
-    // urgent sale instead of fetching nothing.
-    if (
+    return (
       itemRequests > 0 &&
-      (stats.bytesIn + expected * BW_EST_BYTES_PER_ITEM > maxBytes ||
-        stats.httpRequests + pagesNeeded > maxRequests)
-    ) {
-      skippedForBudget.push(auctionId);
-      complete = false;
-      continue;
-    }
+      (stats.bytesIn + expected * BW_EST_BYTES_PER_ITEM > maxBytes || stats.httpRequests + pagesNeeded > maxRequests)
+    );
+  };
 
+  /**
+   * Read every item of one sale, page by page. True when the walk got them all.
+   * The gate's time or request budget running out sets outOfBudget and keeps
+   * every item already read; the rest is left for the next run.
+   */
+  const readAuction = async (a: BwRecord): Promise<boolean> => {
+    const auctionId = int(a.id)!;
+    const expected = int(a.published_items_count) ?? int(a.items_count) ?? 0;
+    const pagesNeeded = Math.max(1, Math.ceil(expected / perPage));
     let gotAll = false;
     let seen = 0;
     let total: number | null = null;
@@ -955,8 +1099,6 @@ export async function runBidwrangler(
       try {
         res = await get(itemsUrl(base, auctionId, page, perPage));
       } catch (e) {
-        // The gate's time or request budget is spent: keep every item already
-        // read and leave the rest for the next run.
         if (!isBudgetRefusal(e)) throw e;
         outOfBudget = true;
         break;
@@ -974,45 +1116,125 @@ export async function runBidwrangler(
       warnings.push(...parsed.warnings.map((w) => `Auction ${auctionId}: ${w}`));
       seen += parsed.records.length;
       total = parsed.total ?? total;
-      for (const item of parsed.records) {
-        if (int(item.auction_id) !== null && int(item.auction_id) !== auctionId) {
-          foreignItems++;
-          continue;
-        }
-        if (isInformationalLot(item)) {
-          infoLots++;
-          continue;
-        }
-        const ownState = declaredState(obj(item.location)?.state);
-        if (ownState && !scope.includes(ownState)) {
-          outOfScopeItems++;
-          continue;
-        }
-        const lot = normalizeBwItem(item, { base, now, auction: a });
-        if (!lot) {
-          unnamed++;
-          continue;
-        }
-        const status = str(item.status);
-        if (status && !OPEN_ITEM_STATUSES.has(status) && !CLOSED_ITEM_STATUSES.has(status)) {
-          unknownStatuses.add(status);
-        }
-        lots.push(lot);
-      }
+      for (const item of parsed.records) accept(item, a, auctionId);
       if (itemWalkDone(parsed, page, perPage)) {
         gotAll = true;
         break;
       }
     }
-    // A walk the budget cut short is deferred, like the sales after it.
-    if (outOfBudget) skippedForBudget.push(auctionId);
     // A walk that "finished" short of the server's own total is not a snapshot:
     // items moved between pages, or a page came back short.
     if (gotAll && total !== null && seen < total) {
       warnings.push(`Auction ${auctionId}: received ${seen} of ${total} items; treated as incomplete.`);
       gotAll = false;
     }
-    if (!gotAll) complete = false;
+    if (gotAll) auctionByExt.get(String(auctionId))!.itemsComplete = true;
+    return gotAll;
+  };
+
+  /** One sale in full, unless the budget is spent; a sale left unread is reported. */
+  const fullRead = async (a: BwRecord): Promise<boolean> => {
+    const auctionId = int(a.id)!;
+    if (outOfBudget || overBudget(a)) {
+      skippedForBudget.push(auctionId);
+      return false;
+    }
+    const gotAll = await readAuction(a);
+    // A walk the budget cut short is deferred, like the sales after it.
+    if (outOfBudget) skippedForBudget.push(auctionId);
+    return gotAll;
+  };
+
+  let watchedLots = 0;
+  let watchMissing = 0;
+  let watchDeferred = 0;
+  /** Known lots by id, BW_IDS_PER_REQUEST at a time, skipping any already read in this run. */
+  const watchIds = async (ids: readonly string[]) => {
+    const due = ids.filter((id) => !readIds.has(id));
+    for (let i = 0; i < due.length; i += BW_IDS_PER_REQUEST) {
+      const batch = due.slice(i, i + BW_IDS_PER_REQUEST).filter((id) => !readIds.has(id));
+      if (!batch.length) continue;
+      if (
+        outOfBudget ||
+        stats.httpRequests + 1 > maxRequests ||
+        (itemRequests > 0 && stats.bytesIn + batch.length * BW_EST_BYTES_PER_ITEM > maxBytes)
+      ) {
+        watchDeferred += due.length - i;
+        return;
+      }
+      itemRequests++;
+      let res: Awaited<ReturnType<typeof get>>;
+      try {
+        res = await get(itemsByIdsUrl(base, batch));
+      } catch (e) {
+        if (!isBudgetRefusal(e)) throw e;
+        outOfBudget = true;
+        watchDeferred += due.length - i;
+        return;
+      }
+      if (res.status !== 200) {
+        warnings.push(`Items by id: HTTP ${res.status}; ${due.length - i} due lot(s) left for the next run.`);
+        watchDeferred += due.length - i;
+        return;
+      }
+      const json = parseJson(res.text);
+      if (!json.ok) {
+        warnings.push(`Items by id were not JSON; ${due.length - i} due lot(s) left for the next run.`);
+        watchDeferred += due.length - i;
+        return;
+      }
+      const parsed = parseItemsList(json.value);
+      warnings.push(...parsed.warnings);
+      const returned = new Set<string>();
+      for (const item of parsed.records) {
+        const id = int(item.id);
+        if (id === null) continue;
+        returned.add(String(id));
+        const before = lots.length;
+        accept(item, byId.get(int(item.auction_id) ?? -1) ?? null, null);
+        watchedLots += lots.length - before;
+      }
+      watchMissing += batch.filter((id) => !returned.has(id)).length;
+    }
+  };
+
+  if (!ctx.known) {
+    // No database state: lots closing within 24 hours, then a rotating slice.
+    for (const a of plan.queue) {
+      const auctionId = int(a.id)!;
+      if (!byId.has(auctionId)) continue;
+      if (!(await fullRead(a))) complete = false;
+    }
+  } else {
+    // With it (0055): new sales in full, then known lots by id where due.
+    const wp = planWatch([...byId.values()], ctx.known, now);
+    for (const { auction } of wp.firstReads) await fullRead(auction);
+    await watchIds(wp.nearClose);
+    for (const { auction } of wp.agedReads) await fullRead(auction);
+    await watchIds(wp.stale);
+    // A complete snapshot still means every listed sale was read in full here.
+    const unread = [...byId.values()].filter(
+      (a) => (int(a.published_items_count) ?? int(a.items_count) ?? 0) > 0 && !auctionByExt.get(String(int(a.id)))?.itemsComplete,
+    );
+    if (unread.length) complete = false;
+    if (watchDeferred) {
+      warnings.push(`Watch: ${watchedLots} known lot(s) refreshed by id; ${watchDeferred} due lot(s) left for the next run.`);
+    }
+    if (watchMissing) {
+      warnings.push(
+        `Watch: ${watchMissing} known lot(s) were not returned by /api/items (withdrawn or unpublished); ` +
+          'the next full read of their sale settles them.',
+      );
+    }
+    ctx.log('info', 'BidWrangler watch', {
+      firstReads: wp.firstReads.length,
+      agedReads: wp.agedReads.length,
+      nearClose: wp.nearClose.length,
+      stale: wp.stale.length,
+      watchedLots,
+      watchDeferred,
+      watchMissing,
+    });
   }
 
   if (unknownStatuses.size) {
@@ -1021,10 +1243,12 @@ export async function runBidwrangler(
     // be pinned down from real runs instead of guessed.
     warnings.push(`Unrecognised item status value(s): ${[...unknownStatuses].slice(0, 8).join(', ')}.`);
   }
-  if (infoLots) warnings.push(`Skipped ${infoLots} informational pseudo-lot(s) (e.g. "Payment Information").`);
-  if (unnamed) warnings.push(`Skipped ${unnamed} item(s) without an id or name.`);
-  if (foreignItems) warnings.push(`Skipped ${foreignItems} item(s) whose auction_id did not match the request.`);
-  if (outOfScopeItems) warnings.push(`Skipped ${outOfScopeItems} item(s) declaring a location outside ${scope.join('/')}.`);
+  if (counts.infoLots) warnings.push(`Skipped ${counts.infoLots} informational pseudo-lot(s) (e.g. "Payment Information").`);
+  if (counts.unnamed) warnings.push(`Skipped ${counts.unnamed} item(s) without an id or name.`);
+  if (counts.foreignItems) warnings.push(`Skipped ${counts.foreignItems} item(s) whose auction_id did not match the request.`);
+  if (counts.outOfScopeItems) {
+    warnings.push(`Skipped ${counts.outOfScopeItems} item(s) declaring a location outside ${scope.join('/')}.`);
+  }
   if (skippedForBudget.length) {
     warnings.push(
       `Budget (${maxRequests} requests / ${maxBytes} bytes) left ${skippedForBudget.length} in-scope auction(s) ` +
@@ -1056,5 +1280,6 @@ export async function runBidwrangler(
 export const bidwranglerAdapter: Adapter = {
   key: 'bidwrangler',
   method: 'internal_json',
+  wantsKnownState: true,
   run: (ctx: AdapterContext) => runBidwrangler(ctx),
 };
