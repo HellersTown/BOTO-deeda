@@ -76,6 +76,19 @@ const WOOD_CUES = ['corded', 'cordless', 'plunge', 'trim', 'compact', 'fixed bas
   'makita', 'porter cable', 'ryobi', 'craftsman', 'milwaukee', 'ridgid', 'festool', 'bit', 'table', 'skil', 'hitachi'];
 const MUSIC_KEY_CUES = ['piano', 'yamaha', 'casio', 'roland', 'korg', 'synthesizer', 'synth', 'midi', '61 key', '88 key',
   'digital piano', 'keys', 'organ', 'stand', 'musical'];
+// Vocabulary v5: a cartridge, shell or round is ammunition beside a calibre, a load or a maker.
+const AMMO_CUES = ['rds', 'rd', 'ammo', 'grain', 'gr', 'fmj', 'jhp', 'hollow point', 'acp', 'auto', 'lr', 'long rifle', 'hmr',
+  'wmr', 'mag', 'magnum', 'spc', 'mauser', 'luger', 'nato', 'gauge', 'ga', '12ga', '16ga', '20ga', '28ga', '410', 'buckshot',
+  'birdshot', 'slug', 'slugs', 'caliber', 'cal', 'mm', '9mm', '10mm', '7mm', '8mm', '22', '223', '556', '243', '270', '308',
+  '30 06', '3006', '30 30', '45', '40', '38', '357', '44', '45 70', '7 62', '762', 'x39', 'x54r', 'x54', 'hornet', 'swift',
+  'creedmoor', 'win', 'winchester', 'rem', 'remington', 'hornady', 'federal', 'fiocchi', 'pmc', 'cci', 'speer', 'sellier',
+  'tulammo', 'wolf', 'magtech', 'blazer', 'aguila', 'brown bear', 'nosler', 'barnes', 'sig', 'springfield', 'government',
+  'wby', 'weatherby', 'shotgun', 'rifle', 'pistol', 'brass', 'box of'];
+// Vocabulary v5: a card is a trading card beside a sport, a league, a team or a card maker.
+const CARD_CUES = ['baseball', 'football', 'basketball', 'hockey', 'nba', 'nfl', 'mlb', 'nhl', 'rookie', 'topps', 'panini',
+  'fleer', 'donruss', 'upper deck', 'bowman', 'psa', 'bgs', 'sgc', 'graded', 'packers', 'brewers', 'bucks', 'badgers',
+  'cubs', 'bears', 'vikings', 'twins', 'yankees', 'signed', 'autographed', 'insert', 'parallel', 'refractor', 'pokemon',
+  'collector', 'collectors'];
 const JEWELRY_CUES = ['gold', 'silver', 'sterling', '10k', '14k', '18k', '24k', '925', 'karat', 'kt', 'necklace', 'cuban',
   'rope', 'figaro', 'herringbone', 'pendant', 'jewelry', 'diamond', 'platinum', 'plated', 'box chain', 'franco'];
 /** Any model year (search_load_vocabulary reads "#year" as 1900 to 2035). */
@@ -151,6 +164,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
   // ============================================================ computers & IT
   k('it', 'Computers & IT', null, ['it equipment', 'computer equipment', 'computer hardware', 'office electronics']),
   k('computers', 'Computers', 'it', [
+    'apple computer',
     'computer', 'pc', 'personal computer', 'computer system', 'cpu tower', 'computer tower', 'pc tower',
   ], ['tablets', 'monitors', 'computer-parts', 'computer-peripherals', 'computer-accessories']),
   k('laptops', 'Laptops', 'computers', [
@@ -420,9 +434,12 @@ export const TAXONOMY: readonly ItemConcept[] = [
 
   // ===================================================================== tools
   k('tools', 'Tools', null, [
+    'klein tool', 'mac tool', 'matco tool', 'stanley tool', 'proto tool', 'sk tool', 'cornwell tool', 'wright tool',
+    'harbor freight tool', 'snap on tool',
     'tool', 'tools', 'tool lot', 'shop tools', 'hand and power tools', 'mechanic tools', 'shop items',
   ]),
   k('power-tools', 'Power tools', 'tools', [
+    'hitachi power tool',
     'power tool', 'cordless tool', 'cordless drill', 'drill', 'power drill', 'drill driver', 'hammer drill', 'rotary hammer',
     'impact driver', 'impact wrench', 'cordless impact', 'impact gun', 'combo kit', 'tool combo kit', 'driver drill',
     'oscillating tool', 'multi tool', 'rotary tool', 'dremel', 'heat gun', 'glue gun', 'hot glue gun', 'caulk gun',
@@ -449,6 +466,8 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'woodworking machine', 'shaper', 'wood shaper', 'pocket hole jig', 'kreg jig', 'dust collection',
   ]),
   k('hand-tools', 'Hand tools', 'tools', [
+    'gear wrench', 'gearwrench', 'sk hand tool', 'forstner bit', 'forstner bits', 'drill bit', 'drill bits', 'sds bit', 'sds bits',
+    'bit set', 'boring bar', 'boring bars', 'boring head',
     'hand tool', 'hand tools', 'wrench', 'wrenches', 'combination wrench', 'wrench set', 'ratcheting wrench',
     'adjustable wrench', 'pipe wrench', 'torque wrench', 'crescent wrench', 'socket', 'socket set', 'impact socket',
     'impact sockets', 'socket wrench', 'ratchet', 'ratchet set', 'breaker bar', 'screwdriver', 'screwdriver set',
@@ -600,6 +619,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'chevrolet blazer',
   ], ['cars', 'trucks']),
   k('trucks', 'Pickup trucks', 'vehicles', [
+    'ram truck',
     'pickup', 'pickup truck', 'truck', 'crew cab', 'extended cab', 'regular cab', 'quad cab', 'half ton truck',
     'one ton truck', 'f 150', 'f150', 'f 250', 'f250', 'f 350', 'f350', 'super duty', 'silverado', model('sierra'),
     'ram 1500', 'ram 2500', 'ram 3500', 'dodge ram',
@@ -627,6 +647,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'bus', 'school bus', 'shuttle bus', 'mini bus', 'minibus', 'coach bus', 'buses', 'party bus', 'transit bus',
   ]),
   k('motorcycles', 'Motorcycles & scooters', 'vehicles', [
+    'indian motorcycle',
     'motorcycle', 'motorbike', 'dirt bike', 'dirtbike', 'pit bike', 'street bike', 'sport bike', 'cruiser motorcycle',
     'touring motorcycle', 'chopper', 'harley', 'harley davidson', 'trike', 'moped', 'scooter', 'motor scooter',
     'vespa', 'minibike', 'mini bike', 'electric motorcycle', 'electric scooter', 'e scooter',
@@ -656,6 +677,8 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'teardrop trailer', 'truck camper', 'slide in camper', 'park model', 'airstream', 'camper trailer',
   ], ['trailers']),
   k('trailers', 'Trailers', 'vehicles', [
+    // Vocabulary v5 (2026-10-05): trailer makers whose names end in "trailer".
+    'pj trailer', 'big tex trailer', 'carry on trailer',
     'trailer', 'utility trailer', 'enclosed trailer', 'cargo trailer', 'flatbed trailer', 'dump trailer', 'car hauler',
     'car trailer', 'equipment trailer', 'tilt trailer', 'gooseneck', 'gooseneck trailer', 'horse trailer', 'livestock trailer',
     'stock trailer', 'cattle trailer', 'boat trailer', 'snowmobile trailer', 'atv trailer', 'landscape trailer',
@@ -822,6 +845,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'wheel weights', 'three point hitch', '3 point hitch', 'quick hitch', 'tractor chains', 'tractor canopy',
     'rops canopy', 'pto shaft', 'tractor tire chains', 'drawbar', 'draw bar', 'tractor cab']),
   k('farm-implements', 'Farm implements', 'farm', [
+    'bean head', 'soybean head', 'flex head', 'dump wagon', 'kicker wagon', 'side dump wagon', 'hydraulic dump wagon',
     'implement', 'farm implement', 'plow', 'moldboard plow', 'chisel plow', 'disc harrow', 'disk harrow',
     cue('disc', ['harrow', 'tandem', 'offset', 'ft', 'foot', '3 point', 'pull type', 'krause', 'john deere', 'case ih', 'sunflower', 'tillage', 'wheel', 'blades', 'gangs'], true),
     cue('disk', ['harrow', 'tandem', 'offset', 'ft', 'foot', '3 point', 'pull type', 'krause', 'john deere', 'case ih', 'sunflower', 'tillage', 'wheel', 'blades', 'gangs'], true),
@@ -870,7 +894,10 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'hydraulic hoses', 'hydraulic fittings', 'hydraulic valve', 'hydraulic motor', 'hydraulic oil', 'hydraulic fluid',
     'hydraulic power unit', 'power unit', 'hyd power unit',
   ]),
-  k('metal-stock', 'Metal stock & scrap', 'industrial', ['steel plate', 'aluminum plate', 'diamond plate', 'metal plate',
+  k('metal-stock', 'Metal stock & scrap', 'industrial', [
+    'flat steel', 'angle steel', 'tube steel', 'steel stock', 'flat stock', 'round stock', 'corrugated steel', 'steel flat stock',
+    'plastic round stock', 'scrap carbide', 'carbide scrap', 'metal stock',
+    'steel plate', 'aluminum plate', 'diamond plate', 'metal plate',
     'sheet metal', 'steel sheet', 'aluminum sheet', 'angle iron', 'flat bar', 'bar stock', 'round bar', 'square tube',
     'square tubing', 'steel tubing', 'steel pipe', 'channel iron', 'i beam', 'h beam', 'steel beam', 'scrap metal',
     'scrap steel', 'scrap iron', 'scrap copper', 'scrap aluminum', 'scrap brass', 'metal scrap',
@@ -882,6 +909,9 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'well pump', 'pressure pump', 'hydraulic pump', 'fuel pump transfer', 'diesel pump', 'centrifugal pump', 'diaphragm pump',
     'chemical pump', 'drum pump', 'booster pump', 'irrigation pump', 'pump motor']),
   k('motors-electrical', 'Electric motors & power', 'industrial', [
+    'emt fitting', 'emt fittings', 'conduit fitting', 'conduit fittings', 'meter base', 'meter bases', 'meter socket',
+    'seal tight', 'sealtight', 'electrical items', 'electrical fittings', 'rubber cord', 'high temp wire', 'ev charger',
+    'ev supply', 'electrical connectors',
     'electric motor', 'motor', 'ac motor', 'dc motor', '3 phase motor', 'three phase motor', 'gear motor', 'gearbox',
     'speed reducer', 'vfd', 'variable frequency drive', 'transformer', 'step down transformer', 'phase converter',
     'rotary phase converter', 'motor starter', 'contactor', 'plc', 'control panel', 'electrical panel', 'breaker panel',
@@ -907,6 +937,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'computer cart', 'av cart', 'tv cart', 'plastic cart', 'metal cart', 'hand cart', 'bus cart', 'bussing cart',
     'library cart', 'mail cart', 'garden wagon', 'flat cart', 'stock cart']),
   k('safety-equipment', 'Safety & fire equipment', 'industrial', [
+    'eyewash station', 'eye wash station', 'eyewash',
     'fire extinguisher', 'fire extinguishers', 'extinguisher', 'first aid kit', 'defibrillator', 'safety vest',
     'hard hat', 'hard hats', 'gas monitor', 'gas detector', 'safety glasses', 'respirator', 'gas mask',
     'fall protection', 'safety harness', 'eye wash station', 'spill kit', 'fire hose', 'fire hydrant', 'smoke detector',
@@ -923,6 +954,9 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'display case', 'bakery case', 'deli case', 'merchandiser', 'shelving commercial', 'gondola shelving', 'store fixtures',
     'retail display', 'clothing rack', 'garment rack', 'slatwall', 'mannequin', 'vending machine', 'snack machine']),
   k('medical-equipment', 'Medical & lab equipment', 'industrial', [
+    'ventilator', 'ventilators', 'stretcher', 'stretchers', 'hospital equipment', 'heart lung machine', 'lab supplies',
+    'laboratory supplies', 'physical therapy equipment', 'resuscitation training', 'cpr manikin', 'vein finder',
+    'chromatography', 'sequencing system', 'dna sequencer', 'urodynamic', 'vision system', 'surgical microscope',
     'medical equipment', 'hospital bed', 'medical bed', 'exam table', 'examination table', 'patient lift', 'hoyer lift',
     'iv pole', 'stethoscope', 'blood pressure monitor', 'pulse oximeter', 'microscope', 'centrifuge', 'autoclave',
     'sterilizer', 'lab equipment', 'laboratory equipment', 'lab glassware', 'beaker', 'fume hood', 'incubator lab',
@@ -940,7 +974,10 @@ export const TAXONOMY: readonly ItemConcept[] = [
   // ============================================== building & home improvement
   k('building-materials', 'Building materials', null, ['building materials', 'building supplies', 'construction materials',
     'home improvement', 'remodeling supplies', 'contractor supplies']),
-  k('lumber', 'Lumber, trim & sheet goods', 'building-materials', ['lumber', 'wood', 'boards', 'trim',
+  k('lumber', 'Lumber, trim & sheet goods', 'building-materials', [
+    'kiln dried', 'air dried', 'rough sawn', 'live edge', 'mantel', 'mantels', 'mantel shelf', 'black walnut',
+    'walnut lumber', 'cherry lumber', 'oak lumber', 'pine lumber', 'maple lumber', 'telephone pole', 'utility pole',
+    'lumber', 'wood', 'boards', 'trim',
     cue('molding', ['crown', 'base', 'trim', 'wood', 'oak', 'pine', 'primed', 'mdf', 'ft', 'feet', 'linear', 'quarter round',
       'shoe', 'casing', 'chair rail', 'door', 'window', 'pieces', 'lengths', 'poplar', 'cove', 'wall'], true),
     cue('moulding', ['crown', 'base', 'trim', 'wood', 'oak', 'pine', 'primed', 'mdf', 'ft', 'feet', 'linear', 'casing',
@@ -1058,8 +1095,11 @@ export const TAXONOMY: readonly ItemConcept[] = [
   ]),
 
   // =================================================================== furniture
-  k('furniture', 'Furniture', null, ['furniture', 'home furniture', 'furniture lot', 'household furniture']),
+  k('furniture', 'Furniture', null, [
+    'baker furniture', 'hooker furniture', 'lane furniture', 'furniture set', 'office set', 'office suite',
+    'furniture', 'home furniture', 'furniture lot', 'household furniture']),
   k('chairs', 'Chairs', 'furniture', [
+    'hitchcock chair',
     'chair', 'chairs', 'dining chair', 'dining chairs', 'side chair', 'accent chair', 'arm chair', 'armchair',
     'wingback chair', 'rocking chair', 'rocker', 'recliner', 'lift chair', 'power recliner', 'glider', 'glider rocker',
     'folding chair', 'folding chairs', 'stackable chairs', 'stacking chairs', 'banquet chairs', 'church chairs',
@@ -1117,6 +1157,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
 
   // ===================================================================== office
   k('office', 'Office equipment & supplies', null, [
+    'desk organizer', 'file boxes', 'file box', 'check writer',
     'office equipment', 'office supplies', 'office supply', 'office items', 'school supplies', 'stationery',
     'desk supplies', 'office products', 'stapler', 'staplers', 'tape gun', 'price gun',
   ], ['office-furniture', 'printers']),
@@ -1133,6 +1174,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
   k('home', 'Home & household', null, ['household items', 'household goods', 'home goods', 'housewares', 'household lot',
     'kitchen items', 'kitchen lot', 'estate lot', 'contents', 'house contents']),
   k('kitchenware', 'Kitchenware & dining', 'home', [
+    'fiesta dinnerware',
     'kitchenware', 'cookware', 'cookware set', 'pots and pans', 'pots', 'pans', 'pot', 'pan', 'skillet', 'cast iron',
     'cast iron skillet', 'dutch oven', 'wok', 'stock pot', 'sauce pan', 'frying pan', 'griddle pan', 'roasting pan',
     'bakeware', 'baking dish', 'baking pans', 'casserole dish', 'pyrex', 'corningware', 'mixing bowls', 'bowls', 'bowl',
@@ -1147,6 +1189,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'punch bowl', 'kitchen supplies',
   ]),
   k('home-decor', 'Home decor', 'home', [
+    'wind spinner', 'garden spinner', 'kinetic spinner', 'wall decor', 'word blocks',
     'decor', 'home decor', 'wall decor', 'wall art', 'wall hanging', 'canvas art', 'framed art', 'mirror',
     'wall mirror', 'floor mirror', 'decorative mirror', 'clock', 'wall clock', 'mantel clock', 'grandfather clock',
     'cuckoo clock', 'vase', 'vases', 'candle', 'candles', 'candle holder', 'candle holders', 'candlesticks', 'lantern',
@@ -1171,6 +1214,8 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'bed pillows', 'mattress pad', 'bedroom set', 'bedroom suite', 'linens', 'table linens', 'tablecloth', 'napkins', 'towels', 'bath towels', 'towel',
     'bath mat', 'shower curtain', 'bathroom set', 'afghan', 'electric blanket', 'weighted blanket']),
   k('household-supplies', 'Household supplies', 'home', [
+    'organizer', 'organizers', 'wardrobe organizer', 'gas jug', 'gas jugs', 'fuel jug', 'fuel jugs',
+    'safety can', 'safety cans',
     'household supplies', 'bucket', 'buckets', '5 gallon bucket', 'pail', 'globe', 'world globe', 'mat', 'rubber mat',
     'anti fatigue mat', 'storage organizer', 'closet organizer', 'hangers', 'laundry basket', 'hamper', 'ironing board',
     'iron', 'clothes iron', 'garment steamer', 'drying rack', 'mouse trap', 'mouse traps', 'mice traps', 'mice trap',
@@ -1216,7 +1261,14 @@ export const TAXONOMY: readonly ItemConcept[] = [
   ], ['smartwatches']),
 
   // ======================================================== coins & bullion
-  k('coins-currency', 'Coins & currency', null, ['coin', 'coins', 'coin lot', 'coin collection', 'coin set', 'us coins',
+  k('coins-currency', 'Coins & currency', null, [
+    // Vocabulary v5 (2026-10-05): coin series that are also lexicon names, so the item is not lost to the name ("Barber Dime").
+    'barber dime', 'barber quarter', 'barber half', 'barber half dollar', 'indian head cent', 'kennedy half dollar',
+    'franklin half dollar', 'standing liberty quarter', 'standing liberty half', 'seated liberty', 'liberty dollar',
+    'sacagawea dollar', 'susan b anthony dollar', 'presidential dollar', 'proof dollar', 'two cent piece', 'three cent piece',
+    'flying eagle cent', 'large cent', 'shield nickel', 'liberty nickel', 'v nickel', 'dollar bill', 'two dollar bill',
+    '2 bill', 'uncirculated bill', 'federal reserve note', 'united states note', 'us note', 'barr note', 'national bank note',
+    'coin', 'coins', 'coin lot', 'coin collection', 'coin set', 'us coins',
     'world coins', 'foreign coins', 'currency', 'paper money', 'banknote', 'banknotes', 'bank note', 'bills currency',
     'silver certificate', 'gold certificate', 'red seal', 'star note', 'proof set', 'mint set', 'uncirculated set',
     'silver dollar', 'morgan', 'morgan dollar', 'morgan silver dollar', 'peace dollar', 'eisenhower dollar', 'ike dollar',
@@ -1225,7 +1277,9 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'buffalo nickel', 'jefferson nickel', 'war nickel', 'penny', 'pennies', 'cent', 'wheat penny', 'wheat pennies',
     'indian head penny', 'large cent', 'two cent piece', 'commemorative coin', 'graded coin', 'pcgs', 'ngc',
     'coin album', 'coin folder', 'roll of coins', 'coin roll', 'tokens', 'medal coin'], ['precious-metals']),
-  k('precious-metals', 'Gold & silver bullion', null, ['bullion', 'silver bullion', 'gold bullion', 'silver bar', 'silver bars',
+  k('precious-metals', 'Gold & silver bullion', null, [
+    'britannia coin', 'silver britannia', 'gold britannia',
+    'bullion', 'silver bullion', 'gold bullion', 'silver bar', 'silver bars',
     'gold bar', 'gold bars', 'silver round', 'silver rounds', 'silver eagle', 'american silver eagle', 'gold eagle',
     'american gold eagle', 'maple leaf coin', 'silver maple leaf', 'krugerrand', 'gold coin', 'gold coins', 'silver coin',
     'silver coins', 'junk silver', '90 silver', 'constitutional silver', 'sterling silver flatware', 'scrap gold',
@@ -1241,7 +1295,9 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'branding iron', 'butter churn', 'washboard', 'wash board', 'cast iron toy', 'lantern antique',
     'kerosene lamp', 'oil lamp antique', 'sad iron', 'scale antique', 'apothecary', 'milk can', 'milk cans', 'butter mold',
     'wooden box antique', 'trunk antique', 'spinning wheel', 'anvil antique', 'sleigh', 'wagon wheel', 'cream separator']),
-  k('figurines', 'Figurines & porcelain', 'collectibles', ['figurine', 'figurines', 'statuette', 'porcelain figurine',
+  k('figurines', 'Figurines & porcelain', 'collectibles', [
+    'mccoy pottery', 'roseville pottery', 'weller pottery', 'mi hummel', 'm i hummel', 'goebel hummel',
+    'figurine', 'figurines', 'statuette', 'porcelain figurine',
     'hummel', 'lladro', 'precious moments', 'royal doulton', 'snowbabies', 'department 56', 'dept 56', 'boyds bears',
     'willow tree', 'jim shore', 'goebel', 'beswick', 'nao', 'capodimonte', 'collectible plate', 'collector plate',
     'collector plates', 'music box', 'snow globe', 'cookie jar collectible', 'salt and pepper collectible', 'toby jug',
@@ -1249,6 +1305,8 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'art pottery', 'mccoy', 'roseville', 'hull pottery', 'red wing crock', 'fiesta ware', 'fiestaware', 'pyrex vintage',
     'fire king', 'jadeite']),
   k('toys', 'Toys & games', 'collectibles', [
+    'marx toy', 'train track', 'train tracks', 'train track set', 'ho train', 'ho trains', 'model railroad', 'bachmann',
+    'tyco train', 'matchbox', 'kids blocks', 'gumball machine',
     'toy', 'toys', 'toy lot', 'action figure', 'action figures', 'doll', 'dolls', 'barbie', 'american girl doll',
     'stuffed animal', 'plush', 'teddy bear', 'beanie babies', 'beanie baby', 'lego', 'legos', 'lego set',
     'building blocks', 'model kit', 'model car', 'model cars', 'model train', 'train set', 'lionel', 'lionel train',
@@ -1263,19 +1321,26 @@ export const TAXONOMY: readonly ItemConcept[] = [
     cue('transformers', ['toy', 'toys', 'action figure', 'figure', 'hasbro', 'optimus', 'prime', 'bumblebee', 'megatron', 'autobot', 'decepticon', 'g1'], true),
     'hoverboard', 'die cast car', 'die cast metal car', 'diecast metal car',
   ]),
-  k('trading-cards', 'Trading cards & comics', 'collectibles', ['trading card', 'trading cards', 'sports cards', 'sports card',
+  k('trading-cards', 'Trading cards & comics', 'collectibles', [
+    'topps', 'panini', 'fleer', 'donruss', 'upper deck card', 'nba card', 'nfl card', 'mlb card', 'nhl card', 'rookie cards',
+    cue('card', CARD_CUES, true), cue('cards', CARD_CUES, true), 'card set',
+    'trading card', 'trading cards', 'sports cards', 'sports card',
     'baseball cards', 'baseball card', 'football cards', 'basketball cards', 'hockey cards', 'rookie card', 'graded card',
     'psa graded', 'bgs', 'card lot', 'card collection', 'pokemon cards', 'pokemon card', 'pokemon', 'magic the gathering',
     'mtg', 'yu gi oh', 'yugioh', 'booster box', 'booster pack', 'sealed pack', 'comic', 'comics', 'comic book',
     'comic books', 'graphic novel', 'manga', 'cgc']),
-  k('sports-memorabilia', 'Sports memorabilia', 'collectibles', ['signed jersey', 'autographed', 'autograph', 'signed ball',
+  k('sports-memorabilia', 'Sports memorabilia', 'collectibles', [
+    'signed picture', 'autographed picture', 'autographed photo', 'signed photograph',
+    'signed jersey', 'autographed', 'autograph', 'signed ball',
     'signed baseball', 'signed football', 'signed photo', 'jersey', 'sports jersey', 'bobblehead', 'pennant', 'sports memorabilia',
     'game used', 'ticket stub', 'helmet signed', 'team signed']),
   k('advertising', 'Advertising & breweriana', 'collectibles', ['advertising', 'breweriana', 'beer stein', 'stein',
     'steins', 'beer tap', 'tap handle', 'tap handles', 'super bowl', 'beer tray', 'coca cola', 'coke sign', 'pepsi', 'thermometer sign',
     'gas pump', 'oil can', 'oil cans', 'petroliana', 'license plate', 'license plates', 'tobacco tin', 'advertising tin',
     'tins', 'tin', 'match safe', 'lighter', 'zippo', 'zippo lighter', 'pocket lighter', 'promotional item']),
-  k('art', 'Art', 'collectibles', ['art', 'painting', 'paintings', 'oil painting', 'paint by number', 'watercolor', 'acrylic painting', 'canvas painting',
+  k('art', 'Art', 'collectibles', [
+    'picture', 'pictures', 'framed picture', 'wood picture', 'wall picture',
+    'art', 'painting', 'paintings', 'oil painting', 'paint by number', 'watercolor', 'acrylic painting', 'canvas painting',
     'print', 'prints', 'art print', 'lithograph', 'litho', 'etching', 'engraving', 'serigraph', 'giclee', 'poster', 'posters',
     'framed print', 'signed print', 'limited edition print', 'artwork', 'original art', 'pencil drawing',
     'charcoal drawing', 'ink drawing', 'original drawing', 'sketch', 'portrait',
@@ -1309,13 +1374,20 @@ export const TAXONOMY: readonly ItemConcept[] = [
   k('handguns', 'Handguns', 'firearms', ['handgun', 'handguns', 'pistol', 'pistols', 'revolver', 'revolvers', 'semi auto pistol',
     '9mm pistol', '45 pistol', '1911', 'glock', 'sig sauer', 'smith and wesson pistol', 'ruger pistol', 'taurus', 'derringer',
     'air pistol', 'bb pistol', 'airsoft pistol']),
-  k('ammunition', 'Ammunition & reloading', 'firearms', ['ammo', 'ammunition', 'rounds of ammo', 'ammo box', 'ammo lot',
+  k('ammunition', 'Ammunition & reloading', 'firearms', [
+    // Vocabulary v5 (2026-10-05): cartridges, shells and rounds are ammunition only beside a calibre or a maker (a toner cartridge is not).
+    cue('cartridge', AMMO_CUES, true), cue('cartridges', AMMO_CUES, true), cue('shell', AMMO_CUES, true), cue('shells', AMMO_CUES, true),
+    cue('round', AMMO_CUES, true), cue('rounds', AMMO_CUES, true), 'brass shells', 'cartridge case', 'cartridge cases',
+    'custom grade die', 'custom grade dies', 'reloading die', 'reloading dies', 'shellcase', 'shell case',
+    'ammo', 'ammunition', 'rounds of ammo', 'ammo box', 'ammo lot',
     'shotgun shells', 'brass casings', 'reloading', 'reloading equipment', 'reloading press', 'bullets',
     'reloading primers', 'ammo primers', 'gun powder', 'smokeless powder', 'black powder', 'ammo can', 'ammo cans', 'ammunition can', 'magazine gun', 'gun magazine', 'magazines gun',
     'speed loader', 'magazine loader', 'stripper clips',
     cue('magazine', ['round', 'rd', 'ar', 'ar15', 'ar 15', 'glock', '9mm', 'rifle', 'pistol', 'gun', 'pmag', 'mag', '223',
       '556', '45', '40', 'acp', 'drum'], true)]),
-  k('gun-accessories', 'Gun safes, cases & accessories', 'firearms', ['gun safe', 'rifle safe', 'firearm safe', 'pistol safe',
+  k('gun-accessories', 'Gun safes, cases & accessories', 'firearms', [
+    'cannon safe', 'liberty safe', 'gun vault',
+    'gun safe', 'rifle safe', 'firearm safe', 'pistol safe',
     'handgun safe', 'safe', 'safes', 'floor safe', 'fire safe', 'fireproof safe', 'wall safe', 'gun cabinet', 'gun case',
     'gun cases', 'rifle case', 'pistol case', 'hard case gun', 'soft gun case', 'holster', 'holsters', 'gun belt', 'sling gun',
     'gun sling', 'bipod', 'gun cleaning kit', 'cleaning kit gun', 'gun rack', 'gun vise', 'shooting rest', 'targets',
@@ -1328,7 +1400,14 @@ export const TAXONOMY: readonly ItemConcept[] = [
   k('archery', 'Bows & archery', null, ['bow', 'compound bow', 'recurve bow', 'longbow', 'crossbow', 'crossbows', 'bow package',
     'crossbow package', 'arrows', 'arrow', 'broadheads', 'bolts crossbow', 'crossbow bolts', 'crossbow bolt', 'bow case', 'archery target', 'archery',
     'bow sight', 'arrow rest', 'quiver', 'release aid'], ['hunting-gear']),
-  k('hunting-gear', 'Hunting gear', null, ['hunting gear', 'hunting equipment', 'tree stand', 'treestand', 'ladder stand',
+  k('hunting-gear', 'Hunting gear', null, [
+    // Vocabulary v5 (2026-10-05): taxidermy mounts and traps.
+    'buck mount', 'deer mount', 'elk mount', 'turkey mount', 'whitetail mount', 'plaque mount', 'full body mount', 'bear mount',
+    'duck mount', 'pheasant mount', 'fish mount', 'wall mount deer', 'antler mount',
+    'conibear', 'conibear trap', 'conibar trap', 'leghold trap', 'leg hold trap', 'long spring trap', 'coil spring trap',
+    'live trap', 'animal trap', 'live animal trap', 'havahart', 'havahart trap', 'trapping supplies', 'single shot shooting stand',
+    'shooting stand', 'shooting rest stand',
+    'hunting gear', 'hunting equipment', 'tree stand', 'treestand', 'ladder stand',
     'deer stand', 'hang on stand', 'climbing stand', 'hunting blind', 'ground blind', 'box blind', 'pop up blind',
     'duck blind', cue('blind', ['hunting', 'ground', 'pop up', 'deer', 'duck', 'turkey', 'ameristep', 'primos', 'barronett',
       'box', 'hub', 'person', '2 person', '3 person', 'camo', 'elevated', 'archery', 'rhino', 'tidewe'], true), 'trail camera', 'trail cam', 'game camera', 'deer camera', 'game feeder', 'deer feeder', 'feeder deer',
@@ -1338,6 +1417,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'skinning knife', 'game processing', 'meat processing', 'taxidermy', 'deer mount', 'deer head', 'shoulder mount', 'european mount',
     'antlers', 'antler', 'deer antlers', 'shed antlers', 'antler rack', 'antler racks', 'deer rack'], ['firearms', 'archery', 'optics']),
   k('knives', 'Knives, axes & machetes', null, [
+    'buck knife', 'buck knives', 'case knives',
     'knife', 'knives', 'pocket knife', 'pocketknife', 'pocket knives', 'folding knife', 'fixed blade knife',
     'fixed blade', 'hunting knife', 'survival knife', 'tactical knife', 'bowie knife', 'machete', 'multitool',
     'leatherman', 'swiss army knife', 'buck knife', 'case knife', 'case xx', 'kershaw', 'benchmade', 'gerber',
@@ -1345,6 +1425,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'machette',
   ]),
   k('fishing', 'Fishing gear', null, [
+    'minnow trap', 'jig head', 'jig heads',
     'fishing', 'fishing gear', 'fishing equipment', 'fishing rod', 'fishing rods', 'fishing pole', 'fishing poles',
     'rod and reel', 'rod and reel combo', 'fishing reel', 'fishing reels', 'reel', 'reels', 'spinning reel',
     'baitcaster', 'baitcasting reel', 'fly rod', 'fly reel', 'fly fishing', 'tackle', 'tackle box', 'fishing tackle',
@@ -1497,6 +1578,10 @@ export const TAXONOMY: readonly ItemConcept[] = [
 
   // ======================================================== auction notices
   k('auction-info', 'Auction notices', null, [
+    // Vocabulary v5 (2026-10-05): informational rows auction houses list as lots.
+    'last lot of the auction', 'last lot', 'location of auction', 'auction location', 'download our app', 'auction app',
+    'highlighted terms', 'buyers terms', 'new registration', 'text messages and alerts', 'text message alerts',
+    'additional information', 'firearm terms', 'firearms terms', 'preview auction', 'bid per foot',
     'open house', 'open house date', 'open house dates', 'terms and conditions', 'terms conditions', 'buyers premium',
     'buyer premium', 'buyers premium information', 'tax exemption', 'tax exempt', 'coming soon', 'auction information',
     'real estate agents', 'bidding information', 'preview dates', 'pickup times', 'pickup information',
