@@ -249,6 +249,24 @@ insert into sources (
  null, 'Farm and construction equipment auctions, timed online.',
  'https://steffesgroup.com/robots.txt', null),
 
+-- Wisconsin houses on AuctionGuide that do not sell on HiBid (0062),
+-- registered for review: robots.txt and terms not yet read.
+('iggys-auction-house', 'Iggy''s Auction House', 'https://www.iggysauction.com/',
+ null, 'private', 'html', 'iggys', array['WI'],
+ false, false, false, false, false,
+ 'Registered 2026-10-05 for review: Wisconsin Rapids estate auctioneer whose online sales are not on HiBid (AuctionGuide lists its 695-lot Lobner estate sale, closing 2026-10-14). Terms not yet read.',
+ 10, false, false, 60, 45,
+ null, 'Estate and household auctions, timed online, central Wisconsin.',
+ 'https://www.iggysauction.com/robots.txt', null),
+
+('premier-machinery-auctions', 'Premier Machinery Auctions', 'https://premiermachineryauctions.com/',
+ null, 'private', 'html', 'premier-machinery', array['WI', 'MN'],
+ false, false, false, false, false,
+ 'Registered 2026-10-05 for review: industrial liquidations, two Wisconsin sales on AuctionGuide (La Crosse tool and die shop, closing 2026-10-27; Metal Crafters facility closure), not on HiBid. Terms not yet read.',
+ 10, false, false, 60, 45,
+ null, 'Machine shop and industrial facility liquidations, timed online.',
+ 'https://premiermachineryauctions.com/robots.txt', null),
+
 ('invaluable', 'Invaluable', 'https://www.invaluable.com',
  null, 'private', 'internal_json', 'invaluable', null,
  false, false, false, true, false,
