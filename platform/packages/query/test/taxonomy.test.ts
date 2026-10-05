@@ -61,6 +61,33 @@ test('every term has words, and a fallback meaning has cues that can choose it',
   }
 });
 
+test('a cue word chooses a meaning on its own, so none is a word every title has', () => {
+  // search_load_vocabulary splits a cue phrase into words and any one of them
+  // chooses: the cue "box of" made "(7) Boxes of Sand Paper Rounds" ammunition.
+  const stop = new Set(['a', 'an', 'and', 'as', 'at', 'by', 'for', 'from', 'in', 'into', 'is', 'it', 'of', 'on', 'or',
+    'the', 'to', 'with']);
+  for (const c of TAXONOMY) {
+    for (const t of c.terms) {
+      if (typeof t === 'string') continue;
+      for (const cue of t.cues ?? []) {
+        for (const w of words(cue)) assert.ok(!stop.has(w), `${c.id}: "${t.text}" has the cue word "${w}" (from "${cue}")`);
+      }
+    }
+  }
+});
+
+test('ammunition is chosen by a calibre or a maker, not by a count or a box', () => {
+  const ammo = TAXONOMY.find((c) => c.id === 'ammunition')!;
+  const round = ammo.terms.find((t): t is Exclude<TaxonomyTerm, string> => typeof t !== 'string' && t.text === 'round')!;
+  const cueWords = new Set((round.cues ?? []).flatMap(words));
+  for (const w of ['box', 'of', 'long', 'brown', 'point', '30', '40', '45', 'mm', 'auto']) {
+    assert.ok(!cueWords.has(w), `"${w}" beside "round" would make it ammunition`);
+  }
+  for (const w of ['22', 'lr', '9mm', '12ga', 'gauge', 'fmj', '62x39', 'winchester']) {
+    assert.ok(cueWords.has(w), `"${w}" beside "round" should make it ammunition`);
+  }
+});
+
 test('a phrase means one thing unless cues decide between its meanings', () => {
   // Spellings are compared before stemming here; the stemmed check runs where
   // the vocabulary is loaded (search_load_vocabulary merges what stems alike).

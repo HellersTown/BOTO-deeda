@@ -77,16 +77,22 @@ const WOOD_CUES = ['corded', 'cordless', 'plunge', 'trim', 'compact', 'fixed bas
 const MUSIC_KEY_CUES = ['piano', 'yamaha', 'casio', 'roland', 'korg', 'synthesizer', 'synth', 'midi', '61 key', '88 key',
   'digital piano', 'keys', 'organ', 'stand', 'musical'];
 // Vocabulary v5: a cartridge, shell or round is ammunition beside a calibre, a load or a maker.
-const AMMO_CUES = ['rds', 'rd', 'ammo', 'grain', 'gr', 'fmj', 'jhp', 'hollow point', 'acp', 'auto', 'lr', 'long rifle', 'hmr',
-  'wmr', 'mag', 'magnum', 'spc', 'mauser', 'luger', 'nato', 'gauge', 'ga', '12ga', '16ga', '20ga', '28ga', '410', 'buckshot',
-  'birdshot', 'slug', 'slugs', 'caliber', 'cal', 'mm', '9mm', '10mm', '7mm', '8mm', '22', '223', '556', '243', '270', '308',
-  '30 06', '3006', '30 30', '45', '40', '38', '357', '44', '45 70', '7 62', '762', 'x39', 'x54r', 'x54', 'hornet', 'swift',
-  'creedmoor', 'win', 'winchester', 'rem', 'remington', 'hornady', 'federal', 'fiocchi', 'pmc', 'cci', 'speer', 'sellier',
-  'tulammo', 'wolf', 'magtech', 'blazer', 'aguila', 'brown bear', 'nosler', 'barnes', 'sig', 'springfield', 'government',
-  'wby', 'weatherby', 'shotgun', 'rifle', 'pistol', 'brass', 'box of'];
+// The database splits a cue phrase into words and lets each word choose on its
+// own, so every cue here is one distinctive word: "box of" made every "Boxes
+// of Sand Paper Rounds" ammunition, and "30 06" made any "30" a calibre. Bare
+// counts (40, 44, 45, 30) are left out for the same reason; ".45 ACP", ".44
+// Mag" and ".45-70 Govt" carry their own cue. A calibre the database keeps
+// whole ("62x39" from "7.62x39") is listed as it keeps it.
+const AMMO_CUES = ['rds', 'rd', 'ammo', 'grain', 'gr', 'fmj', 'jhp', 'jsp', 'hollowpoint', 'acp', 'lr', 'hmr', 'wmr',
+  'mag', 'magnum', 'spc', 'mauser', 'luger', 'nato', 'gauge', 'ga', '12ga', '16ga', '20ga', '28ga', '410', 'buckshot',
+  'birdshot', 'slug', 'slugs', 'caliber', 'cal', '9mm', '10mm', '7mm', '8mm', '22', '38', '06', '223', '556', '243',
+  '270', '308', '3006', '357', '762', '62x39', '62x51', '62x54r', 'x39', 'x54r', 'hornet', 'creedmoor', 'win',
+  'winchester', 'rem', 'remington', 'hornady', 'federal', 'fiocchi', 'pmc', 'cci', 'speer', 'sellier', 'tulammo', 'wolf',
+  'magtech', 'blazer', 'aguila', 'nosler', 'barnes', 'sig', 'springfield', 'govt', 'colt', 'wby', 'weatherby',
+  'shotgun', 'rifle', 'pistol', 'brass'];
 // Vocabulary v5: a card is a trading card beside a sport, a league, a team or a card maker.
 const CARD_CUES = ['baseball', 'football', 'basketball', 'hockey', 'nba', 'nfl', 'mlb', 'nhl', 'rookie', 'topps', 'panini',
-  'fleer', 'donruss', 'upper deck', 'bowman', 'psa', 'bgs', 'sgc', 'graded', 'packers', 'brewers', 'bucks', 'badgers',
+  'fleer', 'donruss', 'upper', 'upperdeck', 'bowman', 'psa', 'bgs', 'sgc', 'graded', 'packers', 'brewers', 'bucks', 'badgers',
   'cubs', 'bears', 'vikings', 'twins', 'yankees', 'signed', 'autographed', 'insert', 'parallel', 'refractor', 'pokemon',
   'collector', 'collectors'];
 const JEWELRY_CUES = ['gold', 'silver', 'sterling', '10k', '14k', '18k', '24k', '925', 'karat', 'kt', 'necklace', 'cuban',
@@ -156,6 +162,9 @@ export const ATTRIBUTE_TERMS: readonly string[] = [
   'set', 'kit', 'lot', 'bulk lot', 'bundle', 'pack', 'piece', 'pair', 'box lot', 'assorted', 'assortment', 'various',
   'miscellaneous', 'misc', 'mixed', 'variety', 'group', 'collection of', 'and more', 'more', 'qty', 'quantity',
   'each', 'case lot', 'pallet of', 'box of', 'bag of', 'tray of',
+  // notes to the bidder (v5): "SEE PICTURES" is not a picture for sale
+  'see picture', 'see pic', 'see photo', 'see image', 'see all picture', 'see all photo', 'more picture', 'more photo',
+  'additional picture', 'additional photo', 'view picture', 'view photo',
   // generations and editions
   'gen', 'generation', '1st gen', '2nd gen', '3rd gen', 'series', 'edition', 'model', 'version', 'type',
 ];
@@ -539,7 +548,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'power washers', 'gas pressure washer', 'electric pressure washer', 'pressure washer pump',
   ], ['shop-equipment']),
   k('measuring-tools', 'Measuring & test tools', 'tools', [
-    'moisture tester', 'moisture meter', 'grain moisture tester',
+    'moisture tester', 'moisture meter', 'grain moisture tester', 'test equipment', 'testing equipment',
     'transit level', 'rotary laser', 'laser measure', 'distance meter', 'surveying equipment', 'total station',
     'moisture meter', 'clamp meter', 'voltage tester', 'circuit tester', 'infrared thermometer', 'inspection camera',
     'borescope', 'pipe inspection camera', 'cable locator', 'metal detector pro', 'tester', 'analyzer', 'thermometer',
@@ -548,7 +557,8 @@ export const TAXONOMY: readonly ItemConcept[] = [
   k('blades', 'Blades & cutting accessories', 'tools', [
     'blade', 'saw blade', 'circular saw blade', 'miter saw blade', 'table saw blade', 'band saw blade', 'diamond blade',
     'reciprocating saw blade', 'jigsaw blade', 'grinding wheel', 'cutting wheel', 'cut off wheel', 'flap disc',
-    'sanding disc', 'sanding discs', 'sandpaper', 'abrasive', 'mower blade', 'mower blades', 'chainsaw chain',
+    'sanding disc', 'sanding discs', 'sandpaper', 'sand paper', 'sanding round', 'sandpaper round', 'sand paper round',
+    'sanding sheet', 'abrasive', 'mower blade', 'mower blades', 'chainsaw chain',
     'chainsaw bar', 'trimmer line', 'knife blade replacement', 'cutter', 'cutters', 'carbide insert', 'carbide inserts',
     'end mill', 'end mills',
   ]),

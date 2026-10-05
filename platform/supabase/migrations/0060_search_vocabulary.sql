@@ -5,7 +5,7 @@
 -- Do not edit by hand: edit taxonomy.ts and run the script.
 -- packages/query/test/taxonomy.test.ts fails when this file is stale.
 --
--- 240 concepts, 7517 terms. Loading replaces the whole vocabulary and moves
+-- 240 concepts, 7536 terms. Loading replaces the whole vocabulary and moves
 -- its version on, so every lot is re-classified in the background
 -- (reclassify_lots, every minute; lots_classify for lots ingest rewrites).
 
@@ -685,16 +685,17 @@ select public.search_load_vocabulary($vocab${
     "!pressure washer pump"
   ],
   "measuring-tools": [
-    "!moisture tester", "!moisture meter", "!grain moisture tester", "!transit level", "!rotary laser",
-    "!laser measure", "!distance meter", "!surveying equipment", "!total station", "!moisture meter",
-    "!clamp meter", "!voltage tester", "!circuit tester", "!infrared thermometer", "!inspection camera",
-    "!borescope", "!pipe inspection camera", "!cable locator", "!metal detector pro", "!tester", "!analyzer",
-    "!thermometer", "!gage stand"
+    "!moisture tester", "!moisture meter", "!grain moisture tester", "!test equipment", "!testing equipment",
+    "!transit level", "!rotary laser", "!laser measure", "!distance meter", "!surveying equipment",
+    "!total station", "!moisture meter", "!clamp meter", "!voltage tester", "!circuit tester",
+    "!infrared thermometer", "!inspection camera", "!borescope", "!pipe inspection camera", "!cable locator",
+    "!metal detector pro", "!tester", "!analyzer", "!thermometer", "!gage stand"
   ],
   "blades": [
     "blade", "!saw blade", "!circular saw blade", "!miter saw blade", "!table saw blade", "!band saw blade",
     "!diamond blade", "!reciprocating saw blade", "!jigsaw blade", "!grinding wheel", "!cutting wheel",
-    "!cut off wheel", "!flap disc", "!sanding disc", "!sanding discs", "!sandpaper", "!abrasive", "!mower blade",
+    "!cut off wheel", "!flap disc", "!sanding disc", "!sanding discs", "!sandpaper", "!sand paper",
+    "!sanding round", "!sandpaper round", "!sand paper round", "!sanding sheet", "!abrasive", "!mower blade",
     "!mower blades", "!chainsaw chain", "!chainsaw bar", "!trimmer line", "!knife blade replacement", "!cutter",
     "!cutters", "!carbide insert", "!carbide inserts", "!end mill", "!end mills"
   ],
@@ -1665,8 +1666,8 @@ select public.search_load_vocabulary($vocab${
   "trading-cards": [
     "!topps", "!panini", "!fleer", "!donruss", "!upper deck card", "!nba card", "!nfl card", "!mlb card",
     "!nhl card", "!rookie cards",
-    {"t":"card","c":["baseball","football","basketball","hockey","nba","nfl","mlb","nhl","rookie","topps","panini","fleer","donruss","upper deck","bowman","psa","bgs","sgc","graded","packers","brewers","bucks","badgers","cubs","bears","vikings","twins","yankees","signed","autographed","insert","parallel","refractor","pokemon","collector","collectors"],"f":true,"s":true},
-    {"t":"cards","c":["baseball","football","basketball","hockey","nba","nfl","mlb","nhl","rookie","topps","panini","fleer","donruss","upper deck","bowman","psa","bgs","sgc","graded","packers","brewers","bucks","badgers","cubs","bears","vikings","twins","yankees","signed","autographed","insert","parallel","refractor","pokemon","collector","collectors"],"f":true,"s":true},
+    {"t":"card","c":["baseball","football","basketball","hockey","nba","nfl","mlb","nhl","rookie","topps","panini","fleer","donruss","upper","upperdeck","bowman","psa","bgs","sgc","graded","packers","brewers","bucks","badgers","cubs","bears","vikings","twins","yankees","signed","autographed","insert","parallel","refractor","pokemon","collector","collectors"],"f":true,"s":true},
+    {"t":"cards","c":["baseball","football","basketball","hockey","nba","nfl","mlb","nhl","rookie","topps","panini","fleer","donruss","upper","upperdeck","bowman","psa","bgs","sgc","graded","packers","brewers","bucks","badgers","cubs","bears","vikings","twins","yankees","signed","autographed","insert","parallel","refractor","pokemon","collector","collectors"],"f":true,"s":true},
     "!card set", "trading card", "trading cards", "!sports cards", "!sports card", "!baseball cards",
     "!baseball card", "!football cards", "!basketball cards", "!hockey cards", "!rookie card", "!graded card",
     "!psa graded", "!bgs", "!card lot", "!card collection", "!pokemon cards", "!pokemon card", "!pokemon",
@@ -1739,12 +1740,12 @@ select public.search_load_vocabulary($vocab${
     "!derringer", "!air pistol", "!bb pistol", "!airsoft pistol"
   ],
   "ammunition": [
-    {"t":"cartridge","c":["rds","rd","ammo","grain","gr","fmj","jhp","hollow point","acp","auto","lr","long rifle","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","mm","9mm","10mm","7mm","8mm","22","223","556","243","270","308","30 06","3006","30 30","45","40","38","357","44","45 70","7 62","762","x39","x54r","x54","hornet","swift","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","brown bear","nosler","barnes","sig","springfield","government","wby","weatherby","shotgun","rifle","pistol","brass","box of"],"f":true,"s":true},
-    {"t":"cartridges","c":["rds","rd","ammo","grain","gr","fmj","jhp","hollow point","acp","auto","lr","long rifle","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","mm","9mm","10mm","7mm","8mm","22","223","556","243","270","308","30 06","3006","30 30","45","40","38","357","44","45 70","7 62","762","x39","x54r","x54","hornet","swift","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","brown bear","nosler","barnes","sig","springfield","government","wby","weatherby","shotgun","rifle","pistol","brass","box of"],"f":true,"s":true},
-    {"t":"shell","c":["rds","rd","ammo","grain","gr","fmj","jhp","hollow point","acp","auto","lr","long rifle","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","mm","9mm","10mm","7mm","8mm","22","223","556","243","270","308","30 06","3006","30 30","45","40","38","357","44","45 70","7 62","762","x39","x54r","x54","hornet","swift","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","brown bear","nosler","barnes","sig","springfield","government","wby","weatherby","shotgun","rifle","pistol","brass","box of"],"f":true,"s":true},
-    {"t":"shells","c":["rds","rd","ammo","grain","gr","fmj","jhp","hollow point","acp","auto","lr","long rifle","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","mm","9mm","10mm","7mm","8mm","22","223","556","243","270","308","30 06","3006","30 30","45","40","38","357","44","45 70","7 62","762","x39","x54r","x54","hornet","swift","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","brown bear","nosler","barnes","sig","springfield","government","wby","weatherby","shotgun","rifle","pistol","brass","box of"],"f":true,"s":true},
-    {"t":"round","c":["rds","rd","ammo","grain","gr","fmj","jhp","hollow point","acp","auto","lr","long rifle","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","mm","9mm","10mm","7mm","8mm","22","223","556","243","270","308","30 06","3006","30 30","45","40","38","357","44","45 70","7 62","762","x39","x54r","x54","hornet","swift","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","brown bear","nosler","barnes","sig","springfield","government","wby","weatherby","shotgun","rifle","pistol","brass","box of"],"f":true,"s":true},
-    {"t":"rounds","c":["rds","rd","ammo","grain","gr","fmj","jhp","hollow point","acp","auto","lr","long rifle","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","mm","9mm","10mm","7mm","8mm","22","223","556","243","270","308","30 06","3006","30 30","45","40","38","357","44","45 70","7 62","762","x39","x54r","x54","hornet","swift","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","brown bear","nosler","barnes","sig","springfield","government","wby","weatherby","shotgun","rifle","pistol","brass","box of"],"f":true,"s":true},
+    {"t":"cartridge","c":["rds","rd","ammo","grain","gr","fmj","jhp","jsp","hollowpoint","acp","lr","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","9mm","10mm","7mm","8mm","22","38","06","223","556","243","270","308","3006","357","762","62x39","62x51","62x54r","x39","x54r","hornet","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","nosler","barnes","sig","springfield","govt","colt","wby","weatherby","shotgun","rifle","pistol","brass"],"f":true,"s":true},
+    {"t":"cartridges","c":["rds","rd","ammo","grain","gr","fmj","jhp","jsp","hollowpoint","acp","lr","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","9mm","10mm","7mm","8mm","22","38","06","223","556","243","270","308","3006","357","762","62x39","62x51","62x54r","x39","x54r","hornet","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","nosler","barnes","sig","springfield","govt","colt","wby","weatherby","shotgun","rifle","pistol","brass"],"f":true,"s":true},
+    {"t":"shell","c":["rds","rd","ammo","grain","gr","fmj","jhp","jsp","hollowpoint","acp","lr","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","9mm","10mm","7mm","8mm","22","38","06","223","556","243","270","308","3006","357","762","62x39","62x51","62x54r","x39","x54r","hornet","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","nosler","barnes","sig","springfield","govt","colt","wby","weatherby","shotgun","rifle","pistol","brass"],"f":true,"s":true},
+    {"t":"shells","c":["rds","rd","ammo","grain","gr","fmj","jhp","jsp","hollowpoint","acp","lr","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","9mm","10mm","7mm","8mm","22","38","06","223","556","243","270","308","3006","357","762","62x39","62x51","62x54r","x39","x54r","hornet","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","nosler","barnes","sig","springfield","govt","colt","wby","weatherby","shotgun","rifle","pistol","brass"],"f":true,"s":true},
+    {"t":"round","c":["rds","rd","ammo","grain","gr","fmj","jhp","jsp","hollowpoint","acp","lr","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","9mm","10mm","7mm","8mm","22","38","06","223","556","243","270","308","3006","357","762","62x39","62x51","62x54r","x39","x54r","hornet","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","nosler","barnes","sig","springfield","govt","colt","wby","weatherby","shotgun","rifle","pistol","brass"],"f":true,"s":true},
+    {"t":"rounds","c":["rds","rd","ammo","grain","gr","fmj","jhp","jsp","hollowpoint","acp","lr","hmr","wmr","mag","magnum","spc","mauser","luger","nato","gauge","ga","12ga","16ga","20ga","28ga","410","buckshot","birdshot","slug","slugs","caliber","cal","9mm","10mm","7mm","8mm","22","38","06","223","556","243","270","308","3006","357","762","62x39","62x51","62x54r","x39","x54r","hornet","creedmoor","win","winchester","rem","remington","hornady","federal","fiocchi","pmc","cci","speer","sellier","tulammo","wolf","magtech","blazer","aguila","nosler","barnes","sig","springfield","govt","colt","wby","weatherby","shotgun","rifle","pistol","brass"],"f":true,"s":true},
     "!brass shells", "!cartridge case", "!cartridge cases", "!custom grade die", "!custom grade dies",
     "!reloading die", "!reloading dies", "!shellcase", "!shell case", "ammo", "ammunition", "!rounds of ammo",
     "!ammo box", "!ammo lot", "!shotgun shells", "!brass casings", "!reloading", "!reloading equipment",
@@ -2126,7 +2127,9 @@ select public.search_load_vocabulary($vocab${
   "twin size", "heavy duty", "commercial grade", "industrial grade", "professional", "set", "kit", "lot",
   "bulk lot", "bundle", "pack", "piece", "pair", "box lot", "assorted", "assortment", "various", "miscellaneous",
   "misc", "mixed", "variety", "group", "collection of", "and more", "more", "qty", "quantity", "each",
-  "case lot", "pallet of", "box of", "bag of", "tray of", "gen", "generation", "1st gen", "2nd gen", "3rd gen",
-  "series", "edition", "model", "version", "type"
+  "case lot", "pallet of", "box of", "bag of", "tray of", "see picture", "see pic", "see photo", "see image",
+  "see all picture", "see all photo", "more picture", "more photo", "additional picture", "additional photo",
+  "view picture", "view photo", "gen", "generation", "1st gen", "2nd gen", "3rd gen", "series", "edition",
+  "model", "version", "type"
 ]
 }$vocab$::jsonb);
