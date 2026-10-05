@@ -1399,6 +1399,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
       '556', '45', '40', 'acp', 'drum'], true)]),
   k('gun-accessories', 'Gun safes, cases & accessories', 'firearms', [
     'cannon safe', 'liberty safe', 'gun vault',
+    'shotgun case', 'shell pouch', 'shell holder', 'shell carrier', 'shell belt', 'shell bag', 'ammo pouch', 'ammo belt',
     'gun safe', 'rifle safe', 'firearm safe', 'pistol safe',
     'handgun safe', 'safe', 'safes', 'floor safe', 'fire safe', 'fireproof safe', 'wall safe', 'gun cabinet', 'gun case',
     'gun cases', 'rifle case', 'pistol case', 'hard case gun', 'soft gun case', 'holster', 'holsters', 'gun belt', 'sling gun',

@@ -5,7 +5,7 @@
 -- Do not edit by hand: edit taxonomy.ts and run the script.
 -- packages/query/test/taxonomy.test.ts fails when this file is stale.
 --
--- 240 concepts, 7536 terms. Loading replaces the whole vocabulary and moves
+-- 240 concepts, 7544 terms. Loading replaces the whole vocabulary and moves
 -- its version on, so every lot is re-classified in the background
 -- (reclassify_lots, every minute; lots_classify for lots ingest rewrites).
 
@@ -1755,14 +1755,15 @@ select public.search_load_vocabulary($vocab${
     {"t":"magazine","c":["round","rd","ar","ar15","ar 15","glock","9mm","rifle","pistol","gun","pmag","mag","223","556","45","40","acp","drum"],"f":true,"s":true}
   ],
   "gun-accessories": [
-    "!cannon safe", "!liberty safe", "!gun vault", "!gun safe", "!rifle safe", "!firearm safe", "!pistol safe",
-    "!handgun safe", "!safe", "!safes", "!floor safe", "!fire safe", "!fireproof safe", "!wall safe",
-    "!gun cabinet", "!gun case", "!gun cases", "!rifle case", "!pistol case", "!hard case gun", "!soft gun case",
-    "!holster", "!holsters", "!gun belt", "!sling gun", "!gun sling", "!bipod", "!gun cleaning kit",
-    "!cleaning kit gun", "!gun rack", "!gun vise", "!shooting rest", "!targets", "!target", "!shooting target",
-    "!steel target", "!clay thrower", "!trap thrower", "!gun stock", "!rifle stock", "!barrel gun", "!trigger",
-    "!choke tube", "!lower receiver", "!upper receiver", "!scope mount", "!scope rings", "!gun parts",
-    "!firearm parts"
+    "!cannon safe", "!liberty safe", "!gun vault", "!shotgun case", "!shell pouch", "!shell holder",
+    "!shell carrier", "!shell belt", "!shell bag", "!ammo pouch", "!ammo belt", "!gun safe", "!rifle safe",
+    "!firearm safe", "!pistol safe", "!handgun safe", "!safe", "!safes", "!floor safe", "!fire safe",
+    "!fireproof safe", "!wall safe", "!gun cabinet", "!gun case", "!gun cases", "!rifle case", "!pistol case",
+    "!hard case gun", "!soft gun case", "!holster", "!holsters", "!gun belt", "!sling gun", "!gun sling",
+    "!bipod", "!gun cleaning kit", "!cleaning kit gun", "!gun rack", "!gun vise", "!shooting rest", "!targets",
+    "!target", "!shooting target", "!steel target", "!clay thrower", "!trap thrower", "!gun stock",
+    "!rifle stock", "!barrel gun", "!trigger", "!choke tube", "!lower receiver", "!upper receiver",
+    "!scope mount", "!scope rings", "!gun parts", "!firearm parts"
   ],
   "optics": [
     "!scope", "!rifle scope", "!riflescope", "!red dot", "!red dot sight", "!holographic sight", "!iron sights",
