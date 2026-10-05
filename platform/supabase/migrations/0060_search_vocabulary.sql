@@ -5,7 +5,7 @@
 -- Do not edit by hand: edit taxonomy.ts and run the script.
 -- packages/query/test/taxonomy.test.ts fails when this file is stale.
 --
--- 240 concepts, 7514 terms. Loading replaces the whole vocabulary and moves
+-- 240 concepts, 7517 terms. Loading replaces the whole vocabulary and moves
 -- its version on, so every lot is re-classified in the background
 -- (reclassify_lots, every minute; lots_classify for lots ingest rewrites).
 
@@ -685,10 +685,11 @@ select public.search_load_vocabulary($vocab${
     "!pressure washer pump"
   ],
   "measuring-tools": [
-    "!transit level", "!rotary laser", "!laser measure", "!distance meter", "!surveying equipment",
-    "!total station", "!moisture meter", "!clamp meter", "!voltage tester", "!circuit tester",
-    "!infrared thermometer", "!inspection camera", "!borescope", "!pipe inspection camera", "!cable locator",
-    "!metal detector pro", "!tester", "!analyzer", "!thermometer", "!gage stand"
+    "!moisture tester", "!moisture meter", "!grain moisture tester", "!transit level", "!rotary laser",
+    "!laser measure", "!distance meter", "!surveying equipment", "!total station", "!moisture meter",
+    "!clamp meter", "!voltage tester", "!circuit tester", "!infrared thermometer", "!inspection camera",
+    "!borescope", "!pipe inspection camera", "!cable locator", "!metal detector pro", "!tester", "!analyzer",
+    "!thermometer", "!gage stand"
   ],
   "blades": [
     "blade", "!saw blade", "!circular saw blade", "!miter saw blade", "!table saw blade", "!band saw blade",
@@ -1246,17 +1247,17 @@ select public.search_load_vocabulary($vocab${
     "!garment rack", "!slatwall", "!mannequin", "!vending machine", "!snack machine"
   ],
   "medical-equipment": [
-    "!ventilator", "!ventilators", "!stretcher", "!stretchers", "!hospital equipment", "!heart lung machine",
-    "!lab supplies", "!laboratory supplies", "!physical therapy equipment", "!resuscitation training",
-    "!cpr manikin", "!vein finder", "!chromatography", "!sequencing system", "!dna sequencer", "!urodynamic",
-    "!vision system", "!surgical microscope", "medical equipment", "!hospital bed", "!medical bed",
-    "!exam table", "!examination table", "!patient lift", "!hoyer lift", "!iv pole", "!stethoscope",
-    "!blood pressure monitor", "!pulse oximeter", "!microscope", "!centrifuge", "!autoclave", "!sterilizer",
-    "lab equipment", "laboratory equipment", "!lab glassware", "!beaker", "!fume hood", "!incubator lab",
-    "!dental chair", "!dental equipment", "!x ray", "!ultrasound", "!ekg", "!cpap", "!cpap machine",
-    "!oxygen concentrator", "!nebulizer", "medical supplies", "!surgical instruments", "!massage table",
-    "!treatment table", "!dialysis machine", "!dialysis unit", "!imaging system", "!ophthalmic equipment",
-    "!surgical supplies", "!rehabilitation equipment"
+    "!sterilizing unit", "!sterilizing", "!steam sterilizer", "!ventilator", "!ventilators", "!stretcher",
+    "!stretchers", "!hospital equipment", "!heart lung machine", "!lab supplies", "!laboratory supplies",
+    "!physical therapy equipment", "!resuscitation training", "!cpr manikin", "!vein finder", "!chromatography",
+    "!sequencing system", "!dna sequencer", "!urodynamic", "!vision system", "!surgical microscope",
+    "medical equipment", "!hospital bed", "!medical bed", "!exam table", "!examination table", "!patient lift",
+    "!hoyer lift", "!iv pole", "!stethoscope", "!blood pressure monitor", "!pulse oximeter", "!microscope",
+    "!centrifuge", "!autoclave", "!sterilizer", "lab equipment", "laboratory equipment", "!lab glassware",
+    "!beaker", "!fume hood", "!incubator lab", "!dental chair", "!dental equipment", "!x ray", "!ultrasound",
+    "!ekg", "!cpap", "!cpap machine", "!oxygen concentrator", "!nebulizer", "medical supplies",
+    "!surgical instruments", "!massage table", "!treatment table", "!dialysis machine", "!dialysis unit",
+    "!imaging system", "!ophthalmic equipment", "!surgical supplies", "!rehabilitation equipment"
   ],
   "cleaning-equipment": [
     "cleaning supplies", "janitorial supplies", "!mop bucket", "!mop", "!broom", "!brooms", "!squeegee",
@@ -1401,8 +1402,8 @@ select public.search_load_vocabulary($vocab${
     "!20 ft container", "!mobile container", "!storage container mobile"
   ],
   "furniture": [
-    "!baker furniture", "!hooker furniture", "!lane furniture", "!furniture set", "!office set", "!office suite",
-    "furniture", "home furniture", "furniture lot", "household furniture"
+    "!baker furniture", "!hooker furniture", "!lane furniture", "furniture", "home furniture", "furniture lot",
+    "household furniture"
   ],
   "chairs": [
     "!hitchcock chair", "chair", "chairs", "!dining chair", "!dining chairs", "!side chair", "!accent chair",

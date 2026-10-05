@@ -539,6 +539,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'power washers', 'gas pressure washer', 'electric pressure washer', 'pressure washer pump',
   ], ['shop-equipment']),
   k('measuring-tools', 'Measuring & test tools', 'tools', [
+    'moisture tester', 'moisture meter', 'grain moisture tester',
     'transit level', 'rotary laser', 'laser measure', 'distance meter', 'surveying equipment', 'total station',
     'moisture meter', 'clamp meter', 'voltage tester', 'circuit tester', 'infrared thermometer', 'inspection camera',
     'borescope', 'pipe inspection camera', 'cable locator', 'metal detector pro', 'tester', 'analyzer', 'thermometer',
@@ -954,6 +955,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
     'display case', 'bakery case', 'deli case', 'merchandiser', 'shelving commercial', 'gondola shelving', 'store fixtures',
     'retail display', 'clothing rack', 'garment rack', 'slatwall', 'mannequin', 'vending machine', 'snack machine']),
   k('medical-equipment', 'Medical & lab equipment', 'industrial', [
+    'sterilizing unit', 'sterilizing', 'steam sterilizer',
     'ventilator', 'ventilators', 'stretcher', 'stretchers', 'hospital equipment', 'heart lung machine', 'lab supplies',
     'laboratory supplies', 'physical therapy equipment', 'resuscitation training', 'cpr manikin', 'vein finder',
     'chromatography', 'sequencing system', 'dna sequencer', 'urodynamic', 'vision system', 'surgical microscope',
@@ -1096,7 +1098,7 @@ export const TAXONOMY: readonly ItemConcept[] = [
 
   // =================================================================== furniture
   k('furniture', 'Furniture', null, [
-    'baker furniture', 'hooker furniture', 'lane furniture', 'furniture set', 'office set', 'office suite',
+    'baker furniture', 'hooker furniture', 'lane furniture',
     'furniture', 'home furniture', 'furniture lot', 'household furniture']),
   k('chairs', 'Chairs', 'furniture', [
     'hitchcock chair',
