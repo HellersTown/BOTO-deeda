@@ -13,6 +13,12 @@
  *   {region}     the Craigslist site nearest the search's origin
  *   {location}   a Facebook city path segment; dropped, so Facebook uses the
  *                location the buyer set there
+ *   {postal}     the ZIP the search is centred on; dropped without one
+ *   {radius}     the search radius in whole miles; dropped without an origin
+ *                or for "anywhere". {radius:25,50,100} rounds up to the
+ *                smallest distance the site offers, and drops the parameter
+ *                when the radius is wider than all of them (HiBid offers 25,
+ *                50, 100, 250 and 500 miles).
  */
 import { haversineMiles, type LatLon } from './distance';
 
@@ -102,6 +108,20 @@ export function elsewhereWords(websearchQuery: string): string {
     .trim();
 }
 
+/**
+ * The radius to hand a site for a {radius} or {radius:25,50,100} placeholder:
+ * whole miles, or the smallest step the site offers that covers the search.
+ * Null (drop the parameter) for "anywhere", a malformed placeholder, or a
+ * radius wider than every step.
+ */
+export function siteRadius(radiusMiles: number | null, placeholder: string): number | null {
+  const m = /^\{radius(?::(\d+(?:,\d+)*))?\}$/.exec(placeholder);
+  if (!m || radiusMiles === null || !(radiusMiles > 0)) return null;
+  if (!m[1]) return Math.round(radiusMiles);
+  const steps = m[1].split(',').map(Number).sort((a, b) => a - b);
+  return steps.find((step) => step >= radiusMiles) ?? null;
+}
+
 /** One link per source whose template can be filled; the order of `sources` is kept. */
 export function elsewhereLinks(sources: readonly ElsewhereSource[], options: ElsewhereOptions): ElsewhereLink[] {
   const words = options.words.trim();
@@ -135,6 +155,13 @@ export function elsewhereLinks(sources: readonly ElsewhereSource[], options: Els
       if (value === '{query}') url.searchParams.set(key, words);
       else if (value === '{max_price}') {
         if (options.maxCents !== null && options.maxCents > 0) url.searchParams.set(key, String(Math.floor(options.maxCents / 100)));
+        else url.searchParams.delete(key);
+      } else if (value === '{postal}') {
+        if (options.origin) url.searchParams.set(key, options.origin.zip);
+        else url.searchParams.delete(key);
+      } else if (value.startsWith('{radius')) {
+        const miles = options.origin ? siteRadius(options.radiusMiles, value) : null;
+        if (miles !== null) url.searchParams.set(key, String(miles));
         else url.searchParams.delete(key);
       }
     }

@@ -1529,6 +1529,11 @@ select.input {
   text-decoration: none;
 }
 
+/* Nothing here is exactly it: the other sites come first, outlined in pine. */
+.elsewhere--lead {
+  border-color: var(--pine);
+}
+
 /* "Keep watch for this": pine (Main.dc.html) */
 .hunt-cta {
   display: flex;
@@ -3582,6 +3587,10 @@ select.input {
 
   .elsewhere {
     order: 6;
+  }
+
+  .elsewhere--lead {
+    order: 3;
   }
 
   .lot-grid > li {

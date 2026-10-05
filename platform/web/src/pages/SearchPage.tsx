@@ -460,6 +460,32 @@ export function SearchPage() {
 
   const settled = Boolean(args) && !search.error && !(search.loading && !search.data);
 
+  // When nothing open here is exactly what was asked for, the other sites are
+  // the next place to look, so their links come straight after that notice
+  // instead of below every fold.
+  const leadElsewhere = settled && links.length > 0 && rows.length > 0 && exact.length === 0;
+  const elsewhereSection = (
+    <section className={`elsewhere${leadElsewhere ? ' elsewhere--lead' : ''}`} aria-labelledby={`${uid}-elsewhere`}>
+      <h2 id={`${uid}-elsewhere`} className="elsewhere__title">
+        Search other sites for “{words}”
+      </h2>
+      <p className="elsewhere__note">
+        Skeuos copies listings only from sites that allow it. Each link opens the same search on one that does not
+        {origin && radiusSearch ? `, within ${filters.radius} mi of ${origin} where the site can narrow by place` : ''}.
+      </p>
+      <ul className="elsewhere__links">
+        {links.map((l) => (
+          <li key={l.key}>
+            <a className="chip" href={l.href} target="_blank" rel="noopener noreferrer">
+              {l.name}
+              {l.place ? ` · ${l.place}` : ''}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+
   return (
     <div className="search-page">
       <header className="search-head mobile-only">
@@ -619,6 +645,8 @@ export function SearchPage() {
             </button>
           ) : null}
 
+          {leadElsewhere ? elsewhereSection : null}
+
           {settled ? (
             <>
               {fold('close', groups.close, 'Close matches', 'Related kinds, or lots that include one')}
@@ -626,24 +654,7 @@ export function SearchPage() {
             </>
           ) : null}
 
-          {links.length > 0 ? (
-            <section className="elsewhere" aria-labelledby={`${uid}-elsewhere`}>
-              <h2 id={`${uid}-elsewhere`} className="elsewhere__title">
-                Search other sites for “{words}”
-              </h2>
-              <p className="elsewhere__note">Skeuos does not copy listings from these sites. Each link opens the same search there.</p>
-              <ul className="elsewhere__links">
-                {links.map((l) => (
-                  <li key={l.key}>
-                    <a className="chip" href={l.href} target="_blank" rel="noopener noreferrer">
-                      {l.name}
-                      {l.place ? ` · ${l.place}` : ''}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+          {links.length > 0 && !leadElsewhere ? elsewhereSection : null}
 
           {hasWords && q ? (
             <Link to={huntHref} className="hunt-cta mobile-only">
