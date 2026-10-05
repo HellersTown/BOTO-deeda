@@ -680,7 +680,7 @@ test('planWatch: new sales first, then changed counts; known lots by urgency and
       { externalId: 'd1', auctionExternalId: '4', lastSeenAt: at(20 * MIN), closesAt: NOW.getTime() + 2 * HOUR },
       { externalId: 'd2', auctionExternalId: '4', lastSeenAt: at(15 * MIN), closesAt: NOW.getTime() + 1 * HOUR },
       { externalId: 'd3', auctionExternalId: '4', lastSeenAt: at(5 * MIN), closesAt: NOW.getTime() + 30 * MIN }, // seen just now
-      { externalId: 'd4', auctionExternalId: '4', lastSeenAt: at(30 * MIN), closesAt: NOW.getTime() + 96 * HOUR }, // not yet due
+      { externalId: 'd4', auctionExternalId: '4', lastSeenAt: at(25 * MIN), closesAt: NOW.getTime() + 96 * HOUR }, // not yet due
       { externalId: 'd5', auctionExternalId: '4', lastSeenAt: at(2 * HOUR), closesAt: NOW.getTime() + 96 * HOUR },
       { externalId: 'd6', auctionExternalId: '4', lastSeenAt: at(45 * MIN), closesAt: null },
       { externalId: 'x1', auctionExternalId: '9', lastSeenAt: at(3 * HOUR), closesAt: NOW.getTime() + HOUR }, // sale gone
@@ -695,7 +695,7 @@ test('planWatch: new sales first, then changed counts; known lots by urgency and
   assert.deepEqual(wp.agedReads.map((r) => r.auction.id), [3]);
   // Closing within 3 h and unseen for 10+ minutes: soonest close first.
   assert.deepEqual(wp.nearClose, ['d2', 'd1']);
-  // Unseen for 40+ minutes: least recently seen first, including a lot whose
+  // Unseen for 30+ minutes: least recently seen first, including a lot whose
   // sale is queued for a full read (the run may not reach that read).
   assert.deepEqual(wp.stale, ['b1', 'd5', 'c1', 'd6']);
 });

@@ -116,8 +116,12 @@ export type BwRecord = Record<string, unknown>;
 export const BW_AUCTIONS_PER_PAGE = 50;
 /** Items per request. ~1.4 MB per page at the observed ~14 KB per item. */
 export const BW_ITEMS_PER_PAGE = 100;
-/** Used only to decide whether an auction fits in the remaining byte budget. */
-export const BW_EST_BYTES_PER_ITEM = 15_000;
+/**
+ * Used only to decide what fits in the remaining byte budget. Measured on
+ * Hansen Auction Group, 2026-10-05: 32 MB carried 1,564 and 1,699 lots, list
+ * pages included (19-20 KB each).
+ */
+export const BW_EST_BYTES_PER_ITEM = 19_000;
 /** Images kept per lot, in source order. The deep link shows the rest. */
 export const BW_MAX_IMAGES = 20;
 
@@ -126,9 +130,11 @@ export const BW_MAX_IMAGES = 20;
 // run (first live run, 2026-09-30: 24 requests reached 21 of 61 sales).
 export const BW_DEFAULTS = {
   maxRequests: 70,
-  // ~1,900 items at the observed weight: a quarter of Hansen's hourly refresh
-  // with room to spare, so four runs an hour cover it (point 7).
-  maxBytes: 32_000_000,
+  // ~2,500 items at the measured 19 KB. The six BidWrangler houses share one
+  // worker, so each runs about every 20 minutes and, at BW_WATCH.staleMs,
+  // refreshes about half its lots per run: 2,400 for Hansen Auction Group's
+  // 4,760 (2026-10-05). The gate's deadline still bounds every run's time.
+  maxBytes: 48_000_000,
   maxListPages: 3,
   itemsPerPage: BW_ITEMS_PER_PAGE,
   /** An auction closing within this window is refreshed on every run. */
@@ -140,8 +146,14 @@ export const BW_IDS_PER_REQUEST = 100;
 
 /** When a known lot or sale is due again (planWatch). */
 export const BW_WATCH = {
-  /** A lot unseen this long is due: with runs every 15 minutes, each is refreshed within the hour. */
-  staleMs: 40 * 60_000,
+  /**
+   * A lot unseen this long is due. Each house's runs land about 20 minutes
+   * apart (cadence, run time and the 5-minute tick of a shared worker), so a
+   * lot is refreshed every second run, about every 40 minutes; at 40 minutes
+   * (2026-10-05) lots seen 38-39 minutes before a run waited for the third,
+   * an hour after they were last seen.
+   */
+  staleMs: 30 * 60_000,
   /** A lot closing within this window is due once unseen for nearCloseStaleMs, i.e. on every run. */
   nearCloseMs: 3 * 3_600_000,
   nearCloseStaleMs: 10 * 60_000,
