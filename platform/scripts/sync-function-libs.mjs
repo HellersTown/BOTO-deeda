@@ -44,6 +44,9 @@ export const FUNCTION_LIBS = {
   'load-gazetteer': ['http.ts'],
   // Finds: values open lots with Claude (0044). No crawling, so no gate.
   'appraise-lots': ['appraisal.ts'],
+  // What each lot's photos show (0057): photos fetched as our crawler, with
+  // robots.txt read first, then named by Claude in the search vocabulary.
+  'look-at-lots': ['look.ts', 'robots.ts', 'http.ts'],
   'inspect-page': ['http.ts', 'robots.ts', 'probe.ts', 'block.ts', 'jsonld.ts', 'money.ts', 'types.ts', 'politeness.ts'],
 };
 
