@@ -675,7 +675,7 @@ test('planWatch: new sales first, then changed counts; known lots by urgency and
       { externalId: '9', itemsReadAt: at(1 * HOUR), itemsReadCount: 3 }, // no longer listed
     ],
     lots: [
-      { externalId: 'b1', auctionExternalId: '2', lastSeenAt: at(5 * HOUR), closesAt: null }, // its sale is re-read
+      { externalId: 'b1', auctionExternalId: '2', lastSeenAt: at(5 * HOUR), closesAt: null }, // its sale waits for a full read
       { externalId: 'c1', auctionExternalId: '3', lastSeenAt: at(50 * MIN), closesAt: NOW.getTime() + 72 * HOUR },
       { externalId: 'd1', auctionExternalId: '4', lastSeenAt: at(20 * MIN), closesAt: NOW.getTime() + 2 * HOUR },
       { externalId: 'd2', auctionExternalId: '4', lastSeenAt: at(15 * MIN), closesAt: NOW.getTime() + 1 * HOUR },
@@ -695,64 +695,67 @@ test('planWatch: new sales first, then changed counts; known lots by urgency and
   assert.deepEqual(wp.agedReads.map((r) => r.auction.id), [3]);
   // Closing within 3 h and unseen for 10+ minutes: soonest close first.
   assert.deepEqual(wp.nearClose, ['d2', 'd1']);
-  // Unseen for 40+ minutes: least recently seen first.
-  assert.deepEqual(wp.stale, ['d5', 'c1', 'd6']);
+  // Unseen for 40+ minutes: least recently seen first, including a lot whose
+  // sale is queued for a full read (the run may not reach that read).
+  assert.deepEqual(wp.stale, ['b1', 'd5', 'c1', 'd6']);
 });
 
-test('run(): with database state, a known sale is refreshed by id, not re-read', async () => {
-  const item = tractor();
+test('run(): a sale waiting for its full read cannot starve its known lots', async () => {
+  // 169893 is new (one item); 168337 lists 195 items, 1 more than at its last
+  // full read. 195 x 15 KB does not fit a 2 MB run beside the first full read,
+  // so 168337 waits, and its known lots are refreshed by id meanwhile: the one
+  // about to close first, the stale ones after the full reads.
   const { calls, fetch } = routes({
     [`${BASE}/api/auctions?page=1`]: AUCTION_TJOFLAT,
     [`${BASE}/api/auctions?page=2`]: AUCTIONS_P1,
-    [itemsByIdsUrl(BASE, ['26044401'])]: JSON.stringify([item]),
+    [`${BASE}/api/auctions/169893/items?page=1&per_page=100`]: '{"total":0,"items":[]}',
+    [itemsByIdsUrl(BASE, ['31000001'])]: '[]',
+    [itemsByIdsUrl(BASE, ['31000002', '31000003'])]: '[]',
   });
   const known: KnownState = {
     auctions: [
-      { externalId: '168337', itemsReadAt: at(HOUR), itemsReadCount: 195 },
-      { externalId: '169893', itemsReadAt: at(HOUR), itemsReadCount: 1 },
+      { externalId: '168337', itemsReadAt: at(HOUR), itemsReadCount: 194 },
       { externalId: '156558', itemsReadAt: at(HOUR), itemsReadCount: 1 },
     ],
-    lots: [{ externalId: '26044401', auctionExternalId: '168337', lastSeenAt: at(HOUR), closesAt: Date.parse('2026-09-30T23:04:00Z') }],
+    lots: [
+      { externalId: '31000001', auctionExternalId: '168337', lastSeenAt: at(20 * MIN), closesAt: NOW.getTime() + HOUR },
+      { externalId: '31000002', auctionExternalId: '168337', lastSeenAt: at(99 * HOUR), closesAt: null },
+      { externalId: '31000003', auctionExternalId: '168337', lastSeenAt: at(2 * HOUR), closesAt: null },
+    ],
   };
-  const res = await runBidwrangler({ ...makeCtx(fetch), known }, noWait);
-  assert.equal(calls.filter((u) => u.includes('/items')).length, 1);
-  assert.ok(calls.includes(`${BASE}/api/items?ids=26044401`));
-  assert.equal(res.lots.length, 1);
-  const lot = res.lots[0];
-  assert.equal(lot.currentBidCents, 110_000);
-  assert.equal(lot.pickup!.state, 'WI'); // the listed sale's location, exactly as a full read gives it
-  assert.deepEqual(lot, normalizeBwItem(item, { base: BASE, now: NOW, auction: tjoflat() }));
-  assert.equal(res.completeSnapshot, false);
-  assert.ok(res.auctions.every((a) => !a.itemsComplete));
+  const res = await runBidwrangler({ ...makeCtx(fetch), known }, { ...noWait, maxBytes: 2_000_000 });
+  assert.deepEqual(calls.filter((u) => u.includes('/items')), [
+    itemsByIdsUrl(BASE, ['31000001']),
+    `${BASE}/api/auctions/169893/items?page=1&per_page=100`,
+    itemsByIdsUrl(BASE, ['31000002', '31000003']),
+  ]);
+  assert.ok(res.warnings.some((w) => /for a later run: 168337/.test(w)));
 });
 
-test('run(): with database state, a new sale is read in full and marked complete', async () => {
-  const { calls, fetch } = routes({
+test('run(): full reads stop at the reserve the watch needs', async () => {
+  // 169893 (new) and 156558 (its count changed) each list one item; 400 known
+  // lots of 156558 are due. Of 4 requests, the watch holds back 2 (half the
+  // budget at most): 1 list page + 1 full read, then 2 id batches. Without the
+  // reserve the second full read would take one of them.
+  const ids = Array.from({ length: 400 }, (_, i) => String(32_000_000 + i));
+  const served: Record<string, string> = {
     [`${BASE}/api/auctions?page=1`]: AUCTIONS_P1,
     [`${BASE}/api/auctions/169893/items?page=1&per_page=100`]: '{"total":0,"items":[]}',
     [`${BASE}/api/auctions/156558/items?page=1&per_page=100`]: '{"total":0,"items":[]}',
-  });
+  };
+  for (let i = 0; i < ids.length; i += 100) served[itemsByIdsUrl(BASE, ids.slice(i, i + 100))] = '[]';
+  const { calls, fetch } = routes(served);
   const known: KnownState = {
-    auctions: [{ externalId: '156558', itemsReadAt: at(HOUR), itemsReadCount: 1 }],
-    lots: [],
+    auctions: [{ externalId: '156558', itemsReadAt: at(HOUR), itemsReadCount: 2 }],
+    lots: ids.map((id, i) => ({ externalId: id, auctionExternalId: '156558', lastSeenAt: at(2 * HOUR - i), closesAt: null })),
   };
-  const res = await runBidwrangler({ ...makeCtx(fetch), known }, noWait);
-  // 169893 has never been read in full; 156558 was read an hour ago with the same count.
-  assert.deepEqual(calls.filter((u) => u.includes('/items')), [`${BASE}/api/auctions/169893/items?page=1&per_page=100`]);
-  assert.equal(res.auctions.find((a) => a.externalId === '169893')!.itemsComplete, true);
-  assert.equal(res.auctions.find((a) => a.externalId === '156558')!.itemsComplete, undefined);
-  assert.equal(res.completeSnapshot, false); // 156558 was not read in full in this run
-});
-
-test('run(): a full read without database state marks each sale it finished', async () => {
-  const { fetch } = routes({
-    [`${BASE}/api/auctions?page=1`]: AUCTIONS_P1,
-    [`${BASE}/api/auctions/169893/items?page=1&per_page=100`]: '{"total":0,"items":[]}',
-    [`${BASE}/api/auctions/156558/items?page=1&per_page=100`]: '{"total":0,"items":[]}',
-  });
-  const res = await runBidwrangler(makeCtx(fetch), noWait);
-  assert.deepEqual(res.auctions.map((a) => a.itemsComplete), [true, true]);
-  assert.equal(res.completeSnapshot, true);
+  const res = await runBidwrangler({ ...makeCtx(fetch), known }, { ...noWait, maxRequests: 4 });
+  assert.deepEqual(calls.filter((u) => /\/api\/auctions\/\d+\/items/.test(u)), [
+    `${BASE}/api/auctions/169893/items?page=1&per_page=100`,
+  ]);
+  assert.equal(calls.filter((u) => u.includes('/api/items?ids=')).length, 2);
+  assert.ok(res.warnings.some((w) => /for a later run: 156558/.test(w)));
+  assert.ok(res.warnings.some((w) => /200 due lot\(s\) left for the next run/.test(w)));
 });
 
 test('run(): watched ids the platform no longer returns are reported, not guessed closed', async () => {

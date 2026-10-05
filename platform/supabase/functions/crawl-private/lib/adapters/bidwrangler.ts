@@ -148,6 +148,14 @@ export const BW_WATCH = {
   nearCloseStaleMs: 10 * 60_000,
   /** A sale read in full this long ago is read in full again, for added, edited and withdrawn lots. */
   fullReadMaxAgeMs: 6 * 3_600_000,
+  /**
+   * Most of a run's byte and request budget that full reads may leave to the
+   * due known lots. Full reads stop short of it, so a long queue of sales
+   * waiting to be read cannot keep known lots from being watched (on
+   * 2026-10-05 Hansen Auction Group had 46 sales queued and lots unseen for
+   * 99 hours), and always keep at least the other half, so the queue drains.
+   */
+  watchReserveShare: 0.5,
 };
 
 // ------------------------------------------------------------ small helpers
@@ -843,11 +851,18 @@ export function planAuctions(
 
 export type FullReadReason = 'new' | 'count-changed' | 'aged';
 
+/** Bytes and requests full reads leave for refreshing known lots by id. */
+interface Reserve {
+  readonly bytes: number;
+  readonly requests: number;
+}
+const NO_RESERVE: Reserve = { bytes: 0, requests: 0 };
+
 export interface WatchPlan {
   /**
-   * Sales to read in full before any lot is refreshed: never read in full, or
-   * declaring a different item count than at their last full read (lots were
-   * added or withdrawn). New listings are what a buyer is waiting for.
+   * Sales to read in full: never read in full, or declaring a different item
+   * count than at their last full read (lots were added or withdrawn). New
+   * listings are what a buyer is waiting for.
    */
   firstReads: { auction: BwRecord; reason: FullReadReason }[];
   /** Known lots closing within BW_WATCH.nearCloseMs and due, soonest close first. */
@@ -864,8 +879,9 @@ export interface WatchPlan {
  *
  * Only sales listed open and in scope count: a known lot of a sale that is no
  * longer listed (complete, or out of scope) is not refreshed here and closes on
- * its own clock. A lot belonging to a sale queued for a first read is left to
- * that read. Lots without a close time are refreshed as stale ones.
+ * its own clock. A lot of a sale queued for a full read is still watched by id:
+ * the run may not reach that read, and a lot it does read is not fetched twice.
+ * Lots without a close time are refreshed as stale ones.
  */
 export function planWatch(
   inScope: BwRecord[],
@@ -881,17 +897,14 @@ export function planWatch(
   const firstReads: WatchPlan['firstReads'] = [];
   const aged: { auction: BwRecord; readAt: number }[] = [];
   const listed = new Set<string>();
-  const readFirst = new Set<string>();
   for (const a of fetchable) {
     const id = String(int(a.id));
     listed.add(id);
     const k = knownAuctions.get(id);
     if (!k || k.itemsReadAt === null) {
       firstReads.push({ auction: a, reason: 'new' });
-      readFirst.add(id);
     } else if (k.itemsReadCount !== published(a)) {
       firstReads.push({ auction: a, reason: 'count-changed' });
-      readFirst.add(id);
     } else if (t - k.itemsReadAt >= watch.fullReadMaxAgeMs) {
       aged.push({ auction: a, readAt: k.itemsReadAt });
     }
@@ -904,7 +917,7 @@ export function planWatch(
   const stale: KnownLot[] = [];
   for (const lot of known.lots) {
     const auctionId = lot.auctionExternalId;
-    if (!auctionId || !listed.has(auctionId) || readFirst.has(auctionId)) continue;
+    if (!auctionId || !listed.has(auctionId)) continue;
     const unseen = t - lot.lastSeenAt;
     const closingSoon = lot.closesAt !== null && lot.closesAt - t <= watch.nearCloseMs;
     if (closingSoon && unseen >= watch.nearCloseStaleMs) near.push(lot);
@@ -1054,6 +1067,8 @@ export async function runBidwrangler(
   const unknownStatuses = new Set<string>();
   const counts = { infoLots: 0, unnamed: 0, foreignItems: 0, outOfScopeItems: 0 };
   let itemRequests = 0;
+  /** Full reads started in this run: the first is always tried, however large. */
+  let fullReadsTried = 0;
   let outOfBudget = false;
 
   /** Keep one item record as a lot, or count why not. `expectAuction` refuses items of another sale. */
@@ -1085,13 +1100,18 @@ export async function runBidwrangler(
     lots.push(lot);
   };
 
-  /** Would reading this sale in full overrun the budget? A run's first item request is always tried. */
-  const overBudget = (a: BwRecord): boolean => {
+  /**
+   * Would reading this sale in full overrun the budget, less what is held back
+   * for the watch? A run's first full read is always tried, so no sale is too
+   * big ever to be read.
+   */
+  const overBudget = (a: BwRecord, reserve: Reserve): boolean => {
     const expected = int(a.published_items_count) ?? int(a.items_count) ?? 0;
     const pagesNeeded = Math.max(1, Math.ceil(expected / perPage));
     return (
-      itemRequests > 0 &&
-      (stats.bytesIn + expected * BW_EST_BYTES_PER_ITEM > maxBytes || stats.httpRequests + pagesNeeded > maxRequests)
+      fullReadsTried > 0 &&
+      (stats.bytesIn + expected * BW_EST_BYTES_PER_ITEM > maxBytes - reserve.bytes ||
+        stats.httpRequests + pagesNeeded > maxRequests - reserve.requests)
     );
   };
 
@@ -1147,13 +1167,14 @@ export async function runBidwrangler(
     return gotAll;
   };
 
-  /** One sale in full, unless the budget is spent; a sale left unread is reported. */
-  const fullRead = async (a: BwRecord): Promise<boolean> => {
+  /** One sale in full, unless the budget (less the reserve) is spent; a sale left unread is reported. */
+  const fullRead = async (a: BwRecord, reserve: Reserve = NO_RESERVE): Promise<boolean> => {
     const auctionId = int(a.id)!;
-    if (outOfBudget || overBudget(a)) {
+    if (outOfBudget || overBudget(a, reserve)) {
       skippedForBudget.push(auctionId);
       return false;
     }
+    fullReadsTried++;
     const gotAll = await readAuction(a);
     // A walk the budget cut short is deferred, like the sales after it.
     if (outOfBudget) skippedForBudget.push(auctionId);
@@ -1221,11 +1242,17 @@ export async function runBidwrangler(
       if (!(await fullRead(a))) complete = false;
     }
   } else {
-    // With it (0055): new sales in full, then known lots by id where due.
+    // With it (0055): lots about to close by id, where bids move fastest; then
+    // sales in full, down to a reserve that keeps every other due known lot
+    // watched within the hour; then those lots by id.
     const wp = planWatch([...byId.values()], ctx.known, now);
-    for (const { auction } of wp.firstReads) await fullRead(auction);
     await watchIds(wp.nearClose);
-    for (const { auction } of wp.agedReads) await fullRead(auction);
+    const reserve: Reserve = {
+      bytes: Math.min(wp.stale.length * BW_EST_BYTES_PER_ITEM, maxBytes * BW_WATCH.watchReserveShare),
+      requests: Math.min(Math.ceil(wp.stale.length / BW_IDS_PER_REQUEST), Math.floor(maxRequests * BW_WATCH.watchReserveShare)),
+    };
+    for (const { auction } of wp.firstReads) await fullRead(auction, reserve);
+    for (const { auction } of wp.agedReads) await fullRead(auction, reserve);
     await watchIds(wp.stale);
     // A complete snapshot still means every listed sale was read in full here.
     const unread = [...byId.values()].filter(
