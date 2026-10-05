@@ -241,6 +241,33 @@ test('the summary forms are strict: no street, other states out of scope, two st
   );
 });
 
+test('a long description counts only for a place-of-sale label, and only when the summary declares nothing', () => {
+  // Bennett Auction Service, sale 169422 (read 2026-10-05): no location object, no summary.
+  const bennett = {
+    ...HY_ELEVA,
+    simple_description: null,
+    formatted_simple_description: null,
+    description:
+      '<p><strong>Auction Location:</strong>  N11067 County Rd. F, Phillips, WI.</p>' +
+      '<p><strong>Preview Date/Time:</strong> Open house Saturday, October 24th from 9 until 10 a.m or by appointment. ' +
+      'at N11067 County Rd. F, Phillips, WI.</p>',
+  };
+  assert.deepEqual([textDeclaredLocation(bennett)!.city, textDeclaredLocation(bennett)!.state, textDeclaredLocation(bennett)!.line1], ['Phillips', 'WI', null]);
+  assert.equal(planAuctions([bennett], ['WI'], NOW).undeclaredState.length, 0);
+  // Directions and neighbouring counties in a long description are not declarations.
+  const passing = { ...bennett, description: '<p>Five miles from Crawford County, Wisconsin; take Hwy 18 west.</p>' };
+  assert.equal(textDeclaredLocation(passing), null);
+  // A bare "Location:" in a long description is not a place-of-sale label.
+  assert.equal(textDeclaredLocation({ ...bennett, description: '<p>Location: Phillips, WI</p>' }), null);
+  // The summary, when it declares, wins.
+  assert.equal(textDeclaredLocation({ ...bennett, simple_description: 'ADDRESS: Marenisco, MI' })!.state, 'MI');
+  // Two states in the long description: neither.
+  assert.equal(
+    textDeclaredLocation({ ...bennett, description: 'Auction Location: Phillips, WI. Sale Location: Duluth, MN.' }),
+    null,
+  );
+});
+
 test('a declared location object always wins over the summary', () => {
   const conflicting = { ...tjoflat(), simple_description: 'ADDRESS: Marenisco, MI' };
   assert.equal(auctionLocation(conflicting)!.state, 'WI');

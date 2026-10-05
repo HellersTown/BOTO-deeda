@@ -443,6 +443,12 @@ const LABELLED_PLACE = new RegExp(
   String.raw`\b(?:ADDRESS|Address|LOCATION|Location)\s*:\s*([^:\n]{1,120}?),\s*(?:([A-Z]{2})|(${STATE_NAME_ALT}))(?![A-Za-z])`,
   'g',
 );
+// "Auction Location: N11067 County Rd. F, Phillips, WI": the one form read from
+// a sale's long description, where only a place-of-sale label is a declaration.
+const LABELLED_SALE_PLACE = new RegExp(
+  String.raw`\b(?:Auction|AUCTION|Sale|SALE)\s+(?:Location|LOCATION|Address|ADDRESS)\s*:\s*([^:\n]{1,120}?),\s*(?:([A-Z]{2})|(${STATE_NAME_ALT}))(?![A-Za-z])`,
+  'g',
+);
 // "Dane County, Wisconsin", "Dane and Green Counties, WI".
 const COUNTY_STATE = new RegExp(
   String.raw`\b(?:County|COUNTY|Counties|COUNTIES),\s*(?:([A-Z]{2})|(${STATE_NAME_ALT}))(?![A-Za-z])`,
@@ -465,11 +471,15 @@ function cityFrom(place: string): string | null {
  * Where a sale says it is in its own summary, for houses that leave the
  * location object empty (point 1 above). Two forms count, both the house
  * stating the state, never a city implying one: a labelled place ("ADDRESS:
- * Eleva, WI") and a county with its state ("Dane County, Wisconsin"). Only
- * the summary is read (simple_description and formatted_simple_description),
- * never the name or the long description, where directions and neighbouring
- * counties are mentioned in passing. A summary that names two different
- * states declares none. The street is not kept, only the city and state.
+ * Eleva, WI") and a county with its state ("Dane County, Wisconsin"). The
+ * summary is read (simple_description and formatted_simple_description), never
+ * the name. The long description, where directions and neighbouring counties
+ * are mentioned in passing, is read only when the summary declares nothing,
+ * and only for a place-of-sale label ("Auction Location: N11067 County Rd. F,
+ * Phillips, WI": Bennett Auction Service writes its sales' places only so,
+ * and its 975-lot sale of 2026-10-25 was skipped until this was read). Text
+ * that names two different states declares none. The street is not kept,
+ * only the city and state.
  */
 export function textDeclaredLocation(a: BwRecord): NormalizedLocation | null {
   const texts = [textFromHtml(a.formatted_simple_description), str(a.simple_description)]
@@ -488,6 +498,18 @@ export function textDeclaredLocation(a: BwRecord): NormalizedLocation | null {
     for (const m of t.matchAll(COUNTY_STATE)) {
       const state = stateFrom(m[1], m[2]);
       if (state) states.add(state);
+    }
+  }
+  if (states.size === 0) {
+    const long = textFromHtml(a.description);
+    if (long) {
+      for (const m of decodeEntities(long).matchAll(LABELLED_SALE_PLACE)) {
+        const state = stateFrom(m[2], m[3]);
+        if (!state) continue;
+        states.add(state);
+        const city = cityFrom(m[1]);
+        if (city) cities.add(city);
+      }
     }
   }
   if (states.size !== 1) return null;
