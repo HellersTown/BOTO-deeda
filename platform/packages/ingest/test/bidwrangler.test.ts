@@ -31,6 +31,8 @@ import {
   scopeStates,
   tenantApiBase,
   textDeclaredLocation,
+  nameDeclaredLocation,
+  itemPickup,
   toIso,
   validTimeZone,
 } from '../src/adapters/bidwrangler.ts';
@@ -266,6 +268,67 @@ test('a long description counts only for a place-of-sale label, and only when th
     textDeclaredLocation({ ...bennett, description: 'Auction Location: Phillips, WI. Sale Location: Duluth, MN.' }),
     null,
   );
+});
+
+test('an item names its own place only as "(City, ST)" ending its name', () => {
+  assert.deepEqual(nameDeclaredLocation('1918 Packard Pedal Car (Arpin, WI)'), {
+    line1: null,
+    city: 'Arpin',
+    state: 'WI',
+    postalCode: null,
+    lat: null,
+    lon: null,
+    ambiguous: false,
+  });
+  // Hansen Auction Group, sale 154396 (read 2026-10-06): a title note, then the place.
+  assert.equal(nameDeclaredLocation('2018 Ford F-150 Black Widow FX4 (Has WI Title) (Holcombe, WI)')!.city, 'Holcombe');
+  assert.equal(nameDeclaredLocation('1965 Ford Mustang (St. Paul, MN)')!.state, 'MN');
+  assert.equal(nameDeclaredLocation('2018 Ford F-150 (Has WI Title)'), null);
+  assert.equal(nameDeclaredLocation('(Holcombe, WI) 2018 Ford F-150'), null);
+  assert.equal(nameDeclaredLocation('Tires (225/70R19.5, WI)'), null);
+  assert.equal(nameDeclaredLocation('Truck (Somewhere, XX)'), null);
+  assert.equal(nameDeclaredLocation('Pedal Car'), null);
+});
+
+test('an item of a sale with a declared state keeps the sale\'s place, whatever its name says', () => {
+  const wiSale = tjoflat();
+  const item = { ...tractor(), location: null, name: '1965 Ford Mustang (St. Paul, MN)' };
+  assert.equal(itemPickup(item, wiSale)!.state, 'WI');
+  // A sale without a state: the item's own place.
+  const noState = { ...wiSale, location: null, simple_description: null, formatted_simple_description: null, description: null };
+  assert.equal(itemPickup(item, noState)!.state, 'MN');
+  assert.equal(itemPickup({ ...item, name: 'Pedal Car' }, noState), null);
+});
+
+test('run(): a sale at "Multiple Locations" keeps only the items that declare a place in scope', async () => {
+  const sale = {
+    ...bichler,
+    name: 'Midwest Fall Classic Car - Multiple Locations',
+    location: null,
+    simple_description: null,
+    formatted_simple_description: null,
+    description: null,
+    published_items_count: 3,
+    items_count: 3,
+  };
+  const car = (id: number, name: string) => ({ ...tractor(), id, auction_id: sale.id, location: null, name });
+  const { fetch } = routes({
+    [`${BASE}/api/auctions?page=1`]: JSON.stringify({ total: 1, page: 1, per_page: 50, auctions: [sale] }),
+    [`${BASE}/api/auctions/${sale.id}/items?page=1&per_page=100`]: JSON.stringify({
+      total: 3,
+      items: [
+        car(36_000_001, '2018 Ford F-150 Black Widow FX4 (Has WI Title) (Holcombe, WI)'),
+        car(36_000_002, '1965 Ford Mustang (St. Paul, MN)'),
+        car(36_000_003, '1957 Chevrolet Bel Air'),
+      ],
+    }),
+  });
+  const res = await runBidwrangler(makeCtx(fetch), noWait);
+  assert.deepEqual(res.lots.map((l) => [l.externalId, l.pickup!.city, l.pickup!.state]), [['36000001', 'Holcombe', 'WI']]);
+  assert.equal(res.auctions.length, 1);
+  assert.equal(res.auctions[0].pickup, null); // the sale itself is not placed
+  assert.ok(res.warnings.some((w) => /1 item\(s\) declaring a location outside WI/.test(w)));
+  assert.ok(res.warnings.some((w) => /1 item\(s\) of auctions without a state that declare no place/.test(w)));
 });
 
 test('a declared location object always wins over the summary', () => {

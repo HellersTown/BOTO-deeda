@@ -539,6 +539,49 @@ export function auctionLocation(a: BwRecord): NormalizedLocation | null {
   return { ...declared, city: declared.city ?? fromText.city, state: fromText.state, ambiguous: false };
 }
 
+// "1918 Packard Pedal Car (Arpin, WI)": a city and a state in parentheses
+// ending an item's name, as Hansen Auction Group marks each car of a sale held
+// at "Multiple Locations". "(Has WI Title)" is not a place.
+const NAME_PLACE = /\(\s*([A-Za-z][A-Za-z .'-]{0,39}?)\s*,\s*([A-Z]{2})\s*\)\s*$/;
+
+/**
+ * Where an item says it is in its own name: a city and state in parentheses
+ * that end the name. Read only for items of a sale that declares no state of
+ * its own (itemPickup), never to move an item out of its sale's declared place.
+ */
+export function nameDeclaredLocation(name: unknown): NormalizedLocation | null {
+  const n = str(name);
+  if (!n) return null;
+  const m = NAME_PLACE.exec(decodeEntities(n));
+  if (!m || !STATE_CODES.has(m[2])) return null;
+  const city = tidyCity(m[1]);
+  if (!city) return null;
+  return { line1: null, city, state: m[2], postalCode: null, lat: null, lon: null, ambiguous: false };
+}
+
+/**
+ * The state an item declares for itself: its location object, or the place
+ * ending its name. What an item of a sale without a declared state needs to
+ * be kept.
+ */
+export function itemDeclaredLocation(item: BwRecord): NormalizedLocation | null {
+  const own = bwLocation(item.location);
+  if (own?.state) return own;
+  return nameDeclaredLocation(item.name);
+}
+
+/**
+ * An item's pickup place. In a sale that declares its state, the item's own
+ * location object or else the sale's, as always. In a sale that declares none
+ * (each item somewhere else), what the item declares for itself.
+ */
+export function itemPickup(item: BwRecord, auction: BwRecord | null): NormalizedLocation | null {
+  const own = bwLocation(item.location);
+  const sale = auction ? auctionLocation(auction) : null;
+  if (sale?.state) return own ?? sale;
+  return itemDeclaredLocation(item) ?? own ?? sale;
+}
+
 export interface BuyerPremium {
   pct: number;
   note: string;
@@ -782,8 +825,9 @@ export function normalizeBwItem(item: BwRecord, ctx: NormalizeItemContext): Norm
     closesAt,
     closed,
     url: itemPageUrl(ctx.base, id),
-    // An item may declare its own location; otherwise the auction's applies.
-    pickup: bwLocation(item.location) ?? (ctx.auction ? auctionLocation(ctx.auction) : null),
+    // An item may declare its own location; otherwise the auction's applies
+    // (and in a sale that declares no state, only the item's own: itemPickup).
+    pickup: itemPickup(item, ctx.auction ?? null),
     ships: item.shippable === true,
     images: bwImages(item.images),
     raw: slimItemRaw(item),
@@ -1073,17 +1117,25 @@ export async function runBidwrangler(
 
   // 2. Scope by DECLARED location, then plan the item fetches.
   const plan = planAuctions(listed, scope, now);
+  // A sale that declares no state of its own ("Midwest Fall Classic Car -
+  // Multiple Locations") is not placed, but its items are read, and an item is
+  // kept only where it declares its own place in scope (itemDeclaredLocation).
+  const itemLocated = plan.undeclaredState.filter(
+    (a) => (int(a.published_items_count) ?? int(a.items_count) ?? 0) > 0,
+  );
+  const itemLocatedIds = new Set(itemLocated.map((a) => int(a.id)!));
   if (plan.undeclaredState.length) {
     warnings.push(
-      `Skipped ${plan.undeclaredState.length} open auction(s) declaring no state in their location or summary ` +
-        `(ids ${plan.undeclaredState.slice(0, 5).map((a) => a.id).join(', ')}); state is never guessed from a name.`,
+      `${plan.undeclaredState.length} open auction(s) declare no state in their location or summary ` +
+        `(ids ${plan.undeclaredState.slice(0, 5).map((a) => a.id).join(', ')}); state is never guessed from a sale's name, ` +
+        `so their items are kept only where each declares its own place.`,
     );
   }
 
   const auctions: NormalizedAuction[] = [];
   const auctionByExt = new Map<string, NormalizedAuction>();
   const byId = new Map<number, BwRecord>();
-  for (const a of plan.inScope) {
+  for (const a of [...plan.inScope, ...itemLocated]) {
     const n = normalizeBwAuction(a, base);
     if (!n) {
       warnings.push(`Skipped an auction record without id or name.`);
@@ -1099,7 +1151,7 @@ export async function runBidwrangler(
   const readIds = new Set<string>();
   const skippedForBudget: number[] = [];
   const unknownStatuses = new Set<string>();
-  const counts = { infoLots: 0, unnamed: 0, foreignItems: 0, outOfScopeItems: 0 };
+  const counts = { infoLots: 0, unnamed: 0, foreignItems: 0, outOfScopeItems: 0, unplacedItems: 0 };
   let itemRequests = 0;
   /** Full reads started in this run: the first is always tried, however large. */
   let fullReadsTried = 0;
@@ -1119,6 +1171,19 @@ export async function runBidwrangler(
     if (ownState && !scope.includes(ownState)) {
       counts.outOfScopeItems++;
       return;
+    }
+    const saleId = int(auction?.id) ?? int(item.auction_id);
+    if (saleId !== null && itemLocatedIds.has(saleId)) {
+      // A sale with no state of its own: the item must declare one.
+      const place = itemDeclaredLocation(item)?.state ?? null;
+      if (!place) {
+        counts.unplacedItems++;
+        return;
+      }
+      if (!scope.includes(place)) {
+        counts.outOfScopeItems++;
+        return;
+      }
     }
     const lot = normalizeBwItem(item, { base, now, auction });
     if (!lot) {
@@ -1324,7 +1389,7 @@ export async function runBidwrangler(
 
   if (!ctx.known) {
     // No database state: lots closing within 24 hours, then a rotating slice.
-    for (const a of plan.queue) {
+    for (const a of [...plan.queue, ...itemLocated]) {
       const auctionId = int(a.id)!;
       if (!byId.has(auctionId)) continue;
       if (!(await fullRead(a))) complete = false;
@@ -1400,6 +1465,11 @@ export async function runBidwrangler(
   if (counts.foreignItems) warnings.push(`Skipped ${counts.foreignItems} item(s) whose auction_id did not match the request.`);
   if (counts.outOfScopeItems) {
     warnings.push(`Skipped ${counts.outOfScopeItems} item(s) declaring a location outside ${scope.join('/')}.`);
+  }
+  if (counts.unplacedItems) {
+    warnings.push(
+      `Skipped ${counts.unplacedItems} item(s) of auctions without a state that declare no place of their own.`,
+    );
   }
   if (skippedForBudget.length) {
     warnings.push(
