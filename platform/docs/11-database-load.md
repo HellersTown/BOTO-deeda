@@ -25,6 +25,8 @@ what to watch.
 | 15:38–16:29 | No timeouts. Every house finishes a run `ok` (Hansen Auction Group 2,495 lots in 3.2 minutes). By 16:12, 8,678 unchanged re-reads went to `lot_seen` and lots took 1,454 updates (real changes plus the other jobs): about 86% fewer row rewrites. |
 | 16:29 | Timeouts return anyway, about 50 minutes after the resume, during Hansen Auction Group's catch-up runs. Supabase's own `pg_stat_statements` report query took 12–48 s in the same minutes. |
 | 16:40 | crawl-private is paused again. |
+| 16:40–17:15 | The instance does not recover this time: cron startup timeouts in every 5 minutes, and the app's own requests fail. Ten searches average 53 s and 6 of them return 5xx; sources, postal codes and profiles take 30–40 s. |
+| 17:15 | crawl-worker, crawl-public, probe-sources and the hunt matcher are paused too (step 1 below, plus the hunt matcher, whose searches over cold pages compete with the app's). |
 
 ## Why
 
