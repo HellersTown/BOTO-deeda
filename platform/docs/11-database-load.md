@@ -35,6 +35,8 @@ what to watch.
 | 18:59 | Clean since 18:35 (51 cron runs, none failed; the hunt matcher 1.5 s a run). probe-sources resumes: every job is back on. |
 | 19:24–19:28 | A short wave: three BidWrangler runs in consecutive 5-minute ticks (Bennett 2,095 lots at 19:12, Hansen Auction Group 2,220 at 19:17, Hansen & Young at 19:22), a checkpoint and the hunt matcher. For about two minutes even a one-line `pg_settings` query took 10 s; 3 statements and 6 cron starts timed out. 0071's breaker held every crawler, and the instance was clean again from 19:30. |
 
+| 19:50–20:09, 20:40– | The waves recur. Each begins when the breaker lets go and the BidWrangler houses that came due while it held all run: 19 minutes of timeouts from 19:50 (11 statements, 26 cron starts), clean from 20:10 to 20:40, then again from 20:40. `ingest_batch` and `crawl_run_finish` calls reached 170 s. At 20:45 the hunt matcher and probe-sources (no breaker) are paused per step 1. |
+
 ### Where it stands (19:40)
 
 - With 0070 and 0071 in, a starvation episode lasts minutes, not hours: the
@@ -44,6 +46,9 @@ what to watch.
 - The cost is freshness: houses that come due while the breaker holds wait
   for it. At 19:40, BidWrangler houses ranged from 100% (Bennett) to 0% (North
   Central, Hueckman, held since 19:26) of open lots seen within the hour.
+- **Update 20:45:** the breaker caps each wave but cannot stop them; on
+  Micro, with every listing watched hourly, the instance cycles every 40–50
+  minutes between clean and starved.
 - Micro carries the app and the light crawlers, but not about ten BidWrangler
   runs an hour of ~2,000 lots each. Either of these ends the episodes: Small
   (recommended), or Hansen Auction Group seen every ~3 hours instead of
