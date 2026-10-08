@@ -27,6 +27,8 @@ what to watch.
 | 16:40 | crawl-private is paused again. |
 | 16:40–17:15 | The instance does not recover this time: cron startup timeouts in every 5 minutes, and the app's own requests fail. Ten searches average 53 s and 6 of them return 5xx; sources, postal codes and profiles take 30–40 s. |
 | 17:15 | crawl-worker, crawl-public, probe-sources and the hunt matcher are paused too (step 1 below, plus the hunt matcher, whose searches over cold pages compete with the app's). |
+| 17:20 | The last timeout. App requests average 0.9 s with no errors. |
+| 17:47 | 0071 applied. crawl-worker and crawl-public resume behind its circuit breaker; crawl-private, the hunt matcher and probe-sources follow one at a time. |
 
 ## Why
 
@@ -96,6 +98,7 @@ With 0066–0069 in, everything fit except the BidWrangler watch.
 | 0067 | search_tsv is kept by a trigger that recomputes only when its inputs change. lots fillfactor is 70. lots_seen_tsv_gin is added. ingest_batch parses each batch once and skips unchanged auctions. crawl_run_finish reads a source's lots once. The gazetteer skips unchanged pickups. The sleeper rescores only what the clock moved. Watch alerts, reclassify and look-at-lots exit early when there is nothing to do. |
 | 0068 | Each crawl job wakes its worker only when one of that worker's sources is due. |
 | 0069 | authenticator statement_timeout is 60 s, so PostgREST's own schema-cache load can finish under load. Request timeouts are unchanged. |
+| 0071 | Every crawler's cron gate holds its worker while 2 or more of the last 40 cron runs failed on a timeout, so a starving instance sheds its crawlers by itself and takes them back once the failures age out (about 15 minutes of cron). The six smaller BidWrangler houses run every 50 minutes instead of 15; each run re-reads all their lots, so every listing is still seen within the hour. Hansen Auction Group keeps 10. A first version that set them to 120 minutes was rejected by the `sources_hourly_floor` constraint (the owner's hourly requirement) and rolled back. |
 | 0070 | A re-read that changes nothing is recorded in a 60-byte `lot_seen` row instead of rewriting the lot. Every reader of `last_seen_at` (the watch planner, crawl_run_finish, search's watched-only filter, v_lot_detail) uses the later of the two times. Crawl cadence is unchanged: a run re-reads at most about 2,400 known lots (the 48 MB byte budget), so Hansen Auction Group (6,700 open lots) must stay at 10 minutes to go round within the hour. |
 
 Measured after the fixes, across 8,989 lot updates that included all seven
@@ -165,7 +168,18 @@ warm a minute apart.
    job's crawl runs finished `ok`.
 3. If `/rest/v1` answers 503 with "Could not query the database for the schema
    cache", run `notify pgrst, 'reload schema';` after load drops.
-4. After a long pause, every BidWrangler lot is stale at once, and the first
+4. Since 0071 the crawlers stop themselves while 2 or more of the last 40 cron
+   runs failed on a timeout. To see whether the breaker is holding them:
+
+   ```sql
+   select count(*) from (select status, return_message from cron.job_run_details
+                          order by runid desc limit 40) r
+    where r.status = 'failed' and r.return_message ilike '%timeout%';
+   ```
+
+   2 or more means the gates are holding. The hunt matcher and probe-sources
+   have no breaker; pause them by hand as in step 1.
+5. After a long pause, every BidWrangler lot is stale at once, and the first
    runs re-read all of them. Spread the catch-up by staggering the houses before
    resuming crawl-private:
 
@@ -179,7 +193,13 @@ warm a minute apart.
 
 ## Pending owner decisions
 
-- **Compute size.** Small is recommended; see the decision rule.
+- **Compute size.** Small is recommended; see the decision rule. On Micro the
+  hourly watch of every BidWrangler listing does not fit: Hansen Auction Group
+  alone (6,700 open lots, ~2,400 re-read a run) needs a run every ~15 minutes to
+  see each listing within the hour.
+- **If not Small: Hansen Auction Group's pace.** Seeing its listings every ~3
+  hours instead of hourly (cadence 50) would roughly halve the remaining watch
+  load. That relaxes the hourly requirement, so it is the owner's call.
 - **Leftover indexes.** The interrupted CONCURRENTLY builds left 16 invalid,
   never-ready indexes: `lots_seen_tsv_idx` and `_ccnew` through `_ccnew14`. There
   is also an inactive cron job, `build-seen-tsv-idx`. None of these holds data or
