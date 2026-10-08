@@ -78,7 +78,7 @@ With 0066–0069 in, everything fit except the BidWrangler watch.
 | 0067 | search_tsv is kept by a trigger that recomputes only when its inputs change. lots fillfactor is 70. lots_seen_tsv_gin is added. ingest_batch parses each batch once and skips unchanged auctions. crawl_run_finish reads a source's lots once. The gazetteer skips unchanged pickups. The sleeper rescores only what the clock moved. Watch alerts, reclassify and look-at-lots exit early when there is nothing to do. |
 | 0068 | Each crawl job wakes its worker only when one of that worker's sources is due. |
 | 0069 | authenticator statement_timeout is 60 s, so PostgREST's own schema-cache load can finish under load. Request timeouts are unchanged. |
-| 0070 | A re-read that changes nothing is recorded in a 60-byte `lot_seen` row instead of rewriting the lot. Every reader of `last_seen_at` (the watch planner, crawl_run_finish, search's watched-only filter, v_lot_detail) uses the later of the two times. BidWrangler houses move to a 20-minute cadence: runs about 25 minutes apart, each lot re-read about every 50 minutes. |
+| 0070 | A re-read that changes nothing is recorded in a 60-byte `lot_seen` row instead of rewriting the lot. Every reader of `last_seen_at` (the watch planner, crawl_run_finish, search's watched-only filter, v_lot_detail) uses the later of the two times. Crawl cadence is unchanged: a run re-reads at most about 2,400 known lots (the 48 MB byte budget), so Hansen Auction Group (6,700 open lots) must stay at 10 minutes to go round within the hour. |
 
 Measured after the fixes, across 8,989 lot updates that included all seven
 BidWrangler houses:
@@ -105,6 +105,20 @@ explain analyze select count(*) from generate_series(1, 1000000);
 -- Slow the first time and fast the second: lots had been pushed out of RAM.
 -- Slow both times: the instance is starved.
 explain (analyze, buffers) select count(*) from public.lots where closes_at > now();
+```
+
+Price-watch freshness, per source. After 0070, a lot was last seen at the later
+of `lots.last_seen_at` and `lot_seen.seen_at`; `lots.last_seen_at` alone moves
+only when something changed.
+
+```sql
+select s.slug, count(*) as open_lots,
+       count(*) filter (where greatest(l.last_seen_at, ls.seen_at) > now() - interval '60 minutes') as seen_60m
+  from public.lots l
+  join public.sources s on s.id = l.source_id
+  left join public.lot_seen ls on ls.lot_id = l.id
+ where not l.closed and l.closes_at > now()
+ group by s.slug order by s.slug;
 ```
 
 The earlier probe, a single `count(*)` over auctions, mostly measures whether

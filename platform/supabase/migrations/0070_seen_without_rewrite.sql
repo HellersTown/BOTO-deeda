@@ -7,8 +7,8 @@
 --
 -- Measured:
 --
--- * BidWrangler has 13,042 open lots, and the watch re-reads each one about
---   every 40 minutes. In the 3 hours before the pause it re-read 9,219 lots, and
+-- * BidWrangler has 13,042 open lots, and the watch re-reads each one every
+--   40-45 minutes. In the 3 hours before the pause it re-read 9,219 lots, and
 --   586 (6.4%) had changed. Each of the other 94% still went through the
 --   price-only write, a full new version of a 2.4 KB lots row (48 MB of heap for
 --   20,409 rows), only to move last_seen_at. That is about 20,000 row rewrites an
@@ -25,7 +25,8 @@
 --
 -- * public.lot_seen (lot_id, seen_at) records when a lot was last seen without
 --   changing. A row is about 60 bytes, so 20,000 lots fit in ~2 MB, and an update
---   is HOT (seen_at is not indexed; fillfactor 50).
+--   is HOT (seen_at is not indexed; fillfactor 50). It has no foreign key (see
+--   below), so writing it never touches lots.
 -- * ingest_batch: of the known lots whose content is unchanged (the price-only
 --   set), those whose price, bids, close and closed state are also unchanged go
 --   to lot_seen. Any lot with something to write is written exactly as before,
@@ -38,19 +39,16 @@
 --   in the database, the crawlers or the app reads lots.last_seen_at.
 --   lots.last_seen_at keeps its meaning for every lot that changes; for one
 --   that does not, the newer time is in lot_seen.
--- * BidWrangler's cadence goes to 20 minutes (Hansen Auction Group was 10, the
---   rest 15). crawl_run_finish sets next_due_at to finish + cadence, and
---   crawl-private wakes every 5 minutes, so a house's runs, about 2 minutes
---   long, start about 25 minutes apart. The adapter re-reads a lot unseen for 30
---   minutes (BW_WATCH.staleMs), so each lot is re-read every second run, about
---   every 50 minutes, within the hourly promise. Before, Hansen Auction Group
---   ran every 15 minutes and re-read each lot every 30. This removes about a
---   third of the re-reads and 40% of Hansen's runs (each run's
---   crawl_known_state and crawl_run_finish read all of the house's lots).
---   Limit: a run reads at most 3,500 known lots (35 requests of 100 ids, half of
---   BW_DEFAULTS.maxRequests). Hansen Auction Group has 6,700 open lots and needs
---   about half of them each run. Above about 7,000 open lots at one house, some
---   lots would wait a third run.
+--
+-- Cadence is unchanged. A run re-reads at most about 2,400 known lots: the
+-- 48 MB byte budget (BW_DEFAULTS.maxBytes) at ~19 KB a lot, shared with
+-- near-close lots and full reads. Hansen Auction Group (6,700 open lots) needs
+-- about three runs to go round, so it must keep its 10-minute cadence (runs
+-- ~15 minutes apart, each lot every ~45). The other houses, at 15, re-read each
+-- lot about every 40 minutes. At 20 they would land ~25 minutes apart and
+-- stay within the hour only while every run finishes on time and the house
+-- has under ~4,800 open lots. Once this file is in, an unchanged re-read
+-- costs a 60-byte write, so spacing runs out further would save little.
 --
 -- Checked before apply in the PG16 lab: 0067 and 0070 fed the same crawl
 -- batches. After every step, every table matched except lots.last_seen_at, and
@@ -58,9 +56,15 @@
 -- lot_seen.seen_at. crawl_known_state's output, every run's counts and closures,
 -- and every function's result (lots_unchanged aside) were equal.
 --
--- Applied with execute_sql in file order: guard, table, readers, writer,
--- cadence. Readers go first, so lot_seen is read before anything writes it.
--- Nothing drops or deletes.
+-- A dry run on production executed the whole file and rolled back: 177 ms;
+-- crawl_known_state (Hansen), v_lot_detail and two searches returned the
+-- same before and after; search_lots kept SECURITY DEFINER, its search_path
+-- and its grants. Applied in one transaction, readers before the writer, so
+-- lot_seen is read before anything writes it. Nothing drops or deletes.
+
+-- A lock on lots that waits behind a long writer would queue every later lots
+-- write behind it; give up after 4 s instead and run the file again.
+set local lock_timeout = '4s';
 
 -- ------------------------------------------------------------------ guard
 -- Stops the file if a function it replaces is not the body it was written
@@ -84,8 +88,12 @@ begin
 end $$;
 
 -- --------------------------------------------------------------- lot_seen
+-- No foreign key to lots: lots are never deleted (0002), the only writer takes
+-- lot_id from lots itself, and a foreign key would lock lots to create and
+-- write a key-share lock into each lot's row the first time it is seen, the
+-- very write this file removes.
 create table if not exists public.lot_seen (
-  lot_id  uuid primary key references public.lots (id) on delete cascade,
+  lot_id  uuid primary key,
   seen_at timestamptz not null
 ) with (fillfactor = 50);
 
@@ -94,14 +102,19 @@ comment on table public.lot_seen is
 comment on column public.lots.last_seen_at is
   'When this row was last written by a crawl. A re-read that changes nothing is recorded in lot_seen instead (0070); the lot was last seen at greatest(last_seen_at, lot_seen.seen_at).';
 
--- Readable like lots (lots_public_read); only the crawlers' service role writes it.
-alter table public.lot_seen enable row level security;
+-- Readable like lots (lots_public_read); only the crawlers' service role writes
+-- it. RLS is switched on only once: the statement locks the table even when it
+-- is already on, and search reads lot_seen.
 do $$ begin
+  if not (select relrowsecurity from pg_class where oid = 'public.lot_seen'::regclass) then
+    alter table public.lot_seen enable row level security;
+  end if;
   if not exists (select 1 from pg_policy
                   where polrelid = 'public.lot_seen'::regclass and polname = 'lot_seen_public_read') then
     create policy lot_seen_public_read on public.lot_seen for select using (true);
   end if;
 end $$;
+revoke all on public.lot_seen from anon, authenticated;
 grant select on public.lot_seen to anon, authenticated;
 grant select, insert, update on public.lot_seen to service_role;
 
@@ -663,11 +676,3 @@ begin
     'auctions', v_auctions, 'lots', v_full + v_light, 'lots_new', v_new,
     'lots_updated', v_full + v_light - v_new, 'lots_price_only', v_light, 'lots_unchanged', v_unchanged, 'images', v_images);
 end $function$;
-
--- ---------------------------------------------------------------- cadence
--- BidWrangler houses: runs about 25 minutes apart, each lot re-read about
--- every 50 minutes (see the header).
-update public.sources
-   set crawl_cadence_min = 20
- where platform = 'bidwrangler'
-   and crawl_cadence_min < 20;
