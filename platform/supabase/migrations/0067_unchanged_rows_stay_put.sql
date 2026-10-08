@@ -28,8 +28,7 @@
 -- * search_lots stopped using its indexes on 2026-10-05: 0057 added
 --   "or l.seen_tsv @@ v_any" to the candidate filter, and seen_tsv has no index,
 --   so the planner's BitmapOr lost an arm and every search, and every hunt,
---   read every open lot. lots_seen_tsv_idx restores the bitmap plan. It is
---   built CONCURRENTLY, outside a transaction, before the rest of this file.
+--   read every open lot. lots_seen_tsv_idx restores the bitmap plan.
 --
 -- * ingest_batch parsed each batch three times and rewrote every auction on
 --   every run (88k updates for 2.5k auctions; each fired the gazetteer twice).
@@ -42,8 +41,12 @@
 --
 -- * resolve_location_from_gazetteer re-resolved on every upsert that named the
 --   pickup columns, though the INSERT side of the same upsert had just resolved
---   them. It returns early when they are unchanged. After loading new gazetteer
---   data, force a re-resolve with: set local skeuos.regeocode = 'on';
+--   them. It returns early when they are unchanged; ingest_batch keeps the
+--   label the INSERT side resolved. After loading new gazetteer data, force a
+--   re-resolve in one transaction:
+--     begin; set local skeuos.regeocode = 'on';
+--     update public.auctions set pickup_city = pickup_city;
+--     update public.lots set pickup_city = pickup_city; commit;
 --
 -- * queue_watch_alerts returns at once when nothing is watched, and runs each
 --   section only when some watch could qualify.
@@ -59,59 +62,23 @@
 -- 0017, 0013+0025, 0054, 0057). The hunt matcher, paused while every run hit
 -- the statement timeout, is turned back on at the end.
 --
--- Applied in pieces with execute_sql: the index, then the rest.
+-- Checked before apply in a PG16 lab: old and new ingest_batch,
+-- crawl_run_finish and gazetteer trigger diffed over 18 crawl steps (only the
+-- intended auctions.last_seen_at/raw differences); search_tsv equal to the
+-- generated expression; every function compiled and run.
+--
+-- Applied in four execute_sql calls, in file order: the functions, the
+-- search_tsv block, the index, the cron block.
 
--- ------------------------------------------------------------- the index
--- Run alone (CONCURRENTLY cannot run in a transaction block).
-create index concurrently if not exists lots_seen_tsv_idx on public.lots using gin (seen_tsv);
-
--- ------------------------------------------------- search_tsv, kept by trigger
-set lock_timeout = '5s';
-
-create or replace function public.lots_search_tsv()
-returns trigger
-language plpgsql
-set search_path = pg_catalog, public
-as $function$
-begin
-  -- The 0002 generated expression, recomputed only when an input changes. A
-  -- price-only update leaves the stored datum alone, so it can be HOT.
-  -- A future BEFORE trigger that rewrites one of these five columns must sort
-  -- before 'lots_search_tsv', or search_tsv will go stale.
-  if tg_op = 'UPDATE'
-     and new.title       is not distinct from old.title
-     and new.brand       is not distinct from old.brand
-     and new.model       is not distinct from old.model
-     and new.description is not distinct from old.description
-     and new.lot_number  is not distinct from old.lot_number then
-    return new;
-  end if;
-  new.search_tsv :=
-       setweight(to_tsvector('english'::regconfig, coalesce(new.title, '')), 'A')
-    || setweight(to_tsvector('english'::regconfig, coalesce(new.brand, '') || ' ' || coalesce(new.model, '')), 'B')
-    || setweight(to_tsvector('english'::regconfig, coalesce(new.description, '')), 'C')
-    || setweight(to_tsvector('english'::regconfig, coalesce(new.lot_number, '')), 'D');
-  return new;
-end $function$;
-
-revoke execute on function public.lots_search_tsv() from public, anon, authenticated;
-
-do $$
-begin
-  if exists (select 1 from pg_attribute
-              where attrelid = 'public.lots'::regclass and attname = 'search_tsv' and attgenerated = 's') then
-    alter table public.lots alter column search_tsv drop expression;
+-- --------------------------------------------------------------- functions
+-- First, so the every-minute jobs run their new, lighter bodies before the
+-- block below waits for its lock on lots. The guard stops the file if
+-- queue_watch_alerts is not the 0013+0025 body it replaces (or 0067 already ran).
+do $$ begin
+  if md5(pg_get_functiondef('public.queue_watch_alerts()'::regprocedure)) <> '2f71a6e39319740703c4ab157817f1fb' then
+    raise exception 'queue_watch_alerts changed since 0066 part 3 was written; re-derive from the live definition';
   end if;
 end $$;
-
-drop trigger if exists lots_search_tsv on public.lots;
-create trigger lots_search_tsv
-  before insert or update of title, brand, model, description, lot_number on public.lots
-  for each row execute function public.lots_search_tsv();
-
-alter table public.lots set (fillfactor = 70);
-
-reset lock_timeout;
 
 -- ------------------------------------------------------------ ingest_batch
 create or replace function public.ingest_batch(p_run_id bigint, p_auctions jsonb default '[]'::jsonb, p_lots jsonb default '[]'::jsonb)
@@ -197,6 +164,7 @@ begin
       buyer_premium_note = excluded.buyer_premium_note,
       terms_url          = excluded.terms_url,
       raw                = excluded.raw,
+      pickup_geo_source  = excluded.pickup_geo_source,
       last_seen_at       = now(),
       items_read_at      = coalesce(excluded.items_read_at, t.items_read_at),
       items_read_count   = case when excluded.items_read_at is not null
@@ -215,6 +183,7 @@ begin
            excluded.buyer_premium_note, excluded.terms_url)
        or t.pickup_geom::text is distinct from excluded.pickup_geom::text
        or excluded.items_read_at is not null
+       or t.pickup_geo_source is distinct from excluded.pickup_geo_source
        or (t.raw is distinct from excluded.raw
            and coalesce(t.last_seen_at, '-infinity'::timestamptz) < now() - interval '1 hour')
     returning 1
@@ -346,6 +315,10 @@ begin
       raw                 = excluded.raw,
       sale_level          = excluded.sale_level,
       content_md5         = excluded.content_md5,
+      -- The INSERT-side trigger resolved the label afresh (it may come from
+      -- the auction); keep it, so the UPDATE-side early return cannot hold
+      -- a stale one.
+      pickup_geo_source   = excluded.pickup_geo_source,
       last_seen_at        = now(),
       updated_at = case
         when (t.title, t.description, t.current_bid_cents, t.bid_count,
@@ -664,11 +637,6 @@ begin
 end $function$;
 
 -- ------------------------------------------------------- queue_watch_alerts
-do $$ begin
-  if md5(pg_get_functiondef('public.queue_watch_alerts()'::regprocedure)) <> '2f71a6e39319740703c4ab157817f1fb' then
-    raise exception 'queue_watch_alerts changed since 0066 part 3 was written; re-derive from the live definition';
-  end if;
-end $$;
 
 create or replace function public.queue_watch_alerts()
 returns jsonb
@@ -877,14 +845,18 @@ begin
   -- Every 3 minutes while it can look (0057); hourly while it has no key.
   if v_state.configured is not null then
     v_want := case when v_state.configured then '*/3 * * * *' else '41 * * * *' end;
-    perform cron.alter_job(j.jobid, schedule := v_want)
-       from cron.job j
-      where j.jobname = 'look-at-lots' and j.schedule is distinct from v_want;
+    begin
+      perform cron.alter_job(j.jobid, schedule := v_want)
+         from cron.job j
+        where j.jobname = 'look-at-lots' and j.schedule is distinct from v_want;
+    exception when others then
+      raise warning 'look-at-lots: could not reschedule: %', sqlerrm;
+    end;
   end if;
 
   -- No ANTHROPIC_API_KEY: the function only answers {"configured":false}. Ask
   -- again every 3 hours, so it starts by itself within ~4 h of the key being set.
-  if v_state.configured is false and v_state.last_called_at > now() - interval '3 hours' then
+  if v_state.configured is false and v_state.last_called_at > now() - interval '2 hours 50 minutes' then
     return null;
   end if;
 
@@ -906,12 +878,111 @@ begin
   return v_id;
 end $function$;
 
+-- ------------------------------------------------- search_tsv, kept by trigger
+begin;
+set local lock_timeout = '3s';
+set local statement_timeout = '30s';
+
+create or replace function public.lots_search_tsv()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public
+as $function$
+begin
+  -- The 0002 generated expression, recomputed only when an input changes. A
+  -- price-only update leaves the stored datum alone, so it can be HOT.
+  -- A BEFORE trigger that rewrites one of these five columns must also make
+  -- sure this one runs: the UPDATE must name that column (this trigger fires
+  -- only on UPDATE OF its columns), and it must sort before 'lots_search_tsv'.
+  if tg_op = 'UPDATE'
+     and new.title       is not distinct from old.title
+     and new.brand       is not distinct from old.brand
+     and new.model       is not distinct from old.model
+     and new.description is not distinct from old.description
+     and new.lot_number  is not distinct from old.lot_number then
+    return new;
+  end if;
+  new.search_tsv :=
+       setweight(to_tsvector('english'::regconfig, coalesce(new.title, '')), 'A')
+    || setweight(to_tsvector('english'::regconfig, coalesce(new.brand, '') || ' ' || coalesce(new.model, '')), 'B')
+    || setweight(to_tsvector('english'::regconfig, coalesce(new.description, '')), 'C')
+    || setweight(to_tsvector('english'::regconfig, coalesce(new.lot_number, '')), 'D');
+  return new;
+end $function$;
+
+revoke execute on function public.lots_search_tsv() from public, anon, authenticated;
+
+-- Invalid leftovers of interrupted CONCURRENTLY builds of lots_seen_tsv_idx
+-- (see the index section below). None was ready, so none held data or was
+-- maintained; they are dropped here, under the lock this block takes anyway.
+do $$ begin
+  if exists (select 1 from pg_index where indexrelid = to_regclass('public.lots_seen_tsv_idx') and not indisvalid) then
+    drop index public.lots_seen_tsv_idx;
+  end if;
+end $$;
+drop index if exists public.lots_seen_tsv_idx_ccnew;
+drop index if exists public.lots_seen_tsv_idx_ccnew1;
+drop index if exists public.lots_seen_tsv_idx_ccnew2;
+drop index if exists public.lots_seen_tsv_idx_ccnew3;
+drop index if exists public.lots_seen_tsv_idx_ccnew4;
+drop index if exists public.lots_seen_tsv_idx_ccnew5;
+drop index if exists public.lots_seen_tsv_idx_ccnew6;
+drop index if exists public.lots_seen_tsv_idx_ccnew7;
+drop index if exists public.lots_seen_tsv_idx_ccnew8;
+drop index if exists public.lots_seen_tsv_idx_ccnew9;
+drop index if exists public.lots_seen_tsv_idx_ccnew10;
+drop index if exists public.lots_seen_tsv_idx_ccnew11;
+drop index if exists public.lots_seen_tsv_idx_ccnew12;
+drop index if exists public.lots_seen_tsv_idx_ccnew13;
+drop index if exists public.lots_seen_tsv_idx_ccnew14;
+
+do $$
+begin
+  if exists (select 1 from pg_attribute
+              where attrelid = 'public.lots'::regclass and attname = 'search_tsv' and attgenerated = 's') then
+    alter table public.lots alter column search_tsv drop expression;
+  end if;
+end $$;
+
+drop trigger if exists lots_search_tsv on public.lots;
+create trigger lots_search_tsv
+  before insert or update of title, brand, model, description, lot_number on public.lots
+  for each row execute function public.lots_search_tsv();
+
+alter table public.lots set (fillfactor = 70);
+
+commit;
+
+-- ------------------------------------------------------------- the index
+-- Its own call, after the block above. CREATE INDEX CONCURRENTLY was tried
+-- first (from execute_sql and from a one-off cron job): on the starved
+-- instance its waits for older transactions outlasted every timeout, and each
+-- interrupted build left an invalid index that IF NOT EXISTS would then skip.
+-- A plain build is transactional, so an interrupted one leaves nothing. It
+-- holds a SHARE lock: reads go on, lot writes wait for the build (seen_tsv is
+-- empty for most lots, so it is small).
+begin;
+set local lock_timeout = '3s';
+set local statement_timeout = '120s';
+create index if not exists lots_seen_tsv_idx on public.lots using gin (seen_tsv);
+commit;
+
 -- --------------------------------------------------------------------- cron
--- Sleeper and reclassify are cheap now; back to every 15 minutes. The hunt
--- matcher stays every 5 minutes (alerts cannot be fresher than the 5-minute
--- crawl) and is turned back on.
+-- Sleeper back to every 15 minutes, reclassify down from every 5 to every 15.
+-- The hunt matcher stays every 5 minutes (alerts cannot be fresher than the
+-- 5-minute crawl) and comes back on only once search_lots has its index.
+do $$ begin
+  if not exists (select 1 from pg_index
+                  where indexrelid = to_regclass('public.lots_seen_tsv_idx') and indisvalid and indisready) then
+    raise exception 'lots_seen_tsv_idx is missing or invalid: leave hunt-matcher paused';
+  end if;
+end $$;
+
 select cron.alter_job(j.jobid, schedule := v.schedule, active := true)
   from (values ('sleeper-refresh', '8-59/15 * * * *'),
                ('reclassify-lots', '3-59/15 * * * *'),
                ('hunt-matcher',    '4-59/5 * * * *')) v(jobname, schedule)
   join cron.job j on j.jobname = v.jobname;
+
+-- The one-off job that tried the concurrent build.
+select cron.unschedule(jobname) from cron.job where jobname = 'build-seen-tsv-idx';
