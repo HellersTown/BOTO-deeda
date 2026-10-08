@@ -35,7 +35,7 @@ Where our crawler read an operator's pages before we had read its terms, the let
 
 1. Fill in the bracketed fields with the contact details you want them to have. Nothing is filled in for you.
 2. If you have a Wisconsin Surplus bidder account, give your bidder name or number. It shows them you are a customer.
-3. Send it through the Contact page on wisconsinsurplus.com, or call the Mount Horeb office and ask who should receive it. No address is guessed here.
+3. Send it to their published bidder-support address, **bid@wisconsinsurplus.com**, or call **608-437-2001** and ask who should receive it. Both appear on the City of Janesville's surplus-auction page, which points its bidders to Wisconsin Surplus ([janesvillewi.gov](https://www.janesvillewi.gov/departments-services/public-works/operations-division/vehicle-operations-maintenance-vom/online-auctions-for-surplus-property-other-assets), found 2026-10-08). The Contact page on wisconsinsurplus.com works too.
 4. **The crawler's information link is live.** Every request carries `WaystockBot/0.1 (+https://waystock.org/bot)`. Since 2026-10-01 waystock.org serves the Skeuos app, and `/bot` is the crawler's page: what it reads, how it behaves, and how to turn it away (`web/public/bot/index.html`). Their IT staff may well check that link.
 
 ### The letter
