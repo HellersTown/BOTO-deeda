@@ -21,6 +21,7 @@ what to watch.
 | 12:55–14:30 | Timeouts return: 89 cron startup timeouts and 18 statement timeouts in the first hour, in crawl_run_finish, crawl_known_state, ingest_batch, the hunt matcher and the exporter. |
 | 13:58 | crawl-private is paused again. Timeouts continue for another 32 minutes while the backlog drains. |
 | 14:35 | No timeouts from here on, with every other job running. |
+| 15:38 | 0070 applied (one transaction). The BidWrangler houses are staggered 5 minutes apart, Hansen Auction Group first, and crawl-private resumes. |
 
 ## Why
 
