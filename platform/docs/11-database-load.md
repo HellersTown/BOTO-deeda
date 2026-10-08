@@ -32,6 +32,7 @@ what to watch.
 | 17:50 | The breaker lets go as the 17:19 failures age out. GSA (1,341 lots in 6 s), IRS, the Department of Revenue and Dane County all run `ok`. |
 | 18:08 | No timeouts since 17:20. crawl-private resumes, its houses staggered 5 minutes apart from 18:08 (Hansen Auction Group) to 18:38. |
 | 18:37 | Clean since 18:05: no timeouts, 0 of 60 cron runs failed, and all 7 BidWrangler runs `ok` (Hansen Auction Group twice, 1,810 and 2,291 lots in 2.4 minutes each). The hunt matcher resumes; probe-sources follows. |
+| 18:59 | Clean since 18:35 (51 cron runs, none failed; the hunt matcher 1.5 s a run). probe-sources resumes: every job is back on. |
 
 ## Why
 
