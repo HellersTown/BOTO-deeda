@@ -22,6 +22,9 @@ what to watch.
 | 13:58 | crawl-private is paused again. Timeouts continue for another 32 minutes while the backlog drains. |
 | 14:35 | No timeouts from here on, with every other job running. |
 | 15:38 | 0070 applied (one transaction). The BidWrangler houses are staggered 5 minutes apart, Hansen Auction Group first, and crawl-private resumes. |
+| 15:38–16:29 | No timeouts. Every house finishes a run `ok` (Hansen Auction Group 2,495 lots in 3.2 minutes). By 16:12, 8,678 unchanged re-reads went to `lot_seen` and lots took 1,454 updates (real changes plus the other jobs): about 86% fewer row rewrites. |
+| 16:29 | Timeouts return anyway, about 50 minutes after the resume, during Hansen Auction Group's catch-up runs. Supabase's own `pg_stat_statements` report query took 12–48 s in the same minutes. |
+| 16:40 | crawl-private is paused again. |
 
 ## Why
 
@@ -47,6 +50,18 @@ The database is small: 405 MB, 20k lots. The load was waste.
   alerts ran every 30 s, but lots change every 5 minutes. The crawlers were woken
   about 500 times a day with nothing due. look-at-lots ran every 3 minutes with
   no API key.
+
+### After 0070: writes are down, and memory is still the limit
+
+0070 removed most of the write load, and the instance still starved within an
+hour of full-rate BidWrangler crawling. What is left is reading: every run reads
+its house's lot list and up to 48 MB of JSON, and lots and lot_images do not stay
+in 1 GB. **On Micro, the hourly BidWrangler watch does not fit. It needs Small.**
+
+While crawl-private is paused, BidWrangler prices are not refreshed. Search's
+watched-only filter (0061) hides a lot its source has not shown for 6 hours, so
+after 6 paused hours the 13,000 BidWrangler lots (two thirds of the catalogue)
+drop out of search until crawling resumes.
 
 ### Why it came back at 12:55: memory, not CPU
 
