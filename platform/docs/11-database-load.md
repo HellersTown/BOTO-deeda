@@ -29,6 +29,8 @@ what to watch.
 | 17:15 | crawl-worker, crawl-public, probe-sources and the hunt matcher are paused too (step 1 below, plus the hunt matcher, whose searches over cold pages compete with the app's). |
 | 17:20 | The last timeout. App requests average 0.9 s with no errors. |
 | 17:47 | 0071 applied. crawl-worker and crawl-public resume behind its circuit breaker; crawl-private, the hunt matcher and probe-sources follow one at a time. |
+| 17:50 | The breaker lets go as the 17:19 failures age out. GSA (1,341 lots in 6 s), IRS, the Department of Revenue and Dane County all run `ok`. |
+| 18:08 | No timeouts since 17:20. crawl-private resumes, its houses staggered 5 minutes apart from 18:08 (Hansen Auction Group) to 18:38. |
 
 ## Why
 
