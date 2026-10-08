@@ -33,6 +33,23 @@ what to watch.
 | 18:08 | No timeouts since 17:20. crawl-private resumes, its houses staggered 5 minutes apart from 18:08 (Hansen Auction Group) to 18:38. |
 | 18:37 | Clean since 18:05: no timeouts, 0 of 60 cron runs failed, and all 7 BidWrangler runs `ok` (Hansen Auction Group twice, 1,810 and 2,291 lots in 2.4 minutes each). The hunt matcher resumes; probe-sources follows. |
 | 18:59 | Clean since 18:35 (51 cron runs, none failed; the hunt matcher 1.5 s a run). probe-sources resumes: every job is back on. |
+| 19:24–19:28 | A short wave: three BidWrangler runs in consecutive 5-minute ticks (Bennett 2,095 lots at 19:12, Hansen Auction Group 2,220 at 19:17, Hansen & Young at 19:22), a checkpoint and the hunt matcher. For about two minutes even a one-line `pg_settings` query took 10 s; 3 statements and 6 cron starts timed out. 0071's breaker held every crawler, and the instance was clean again from 19:30. |
+
+### Where it stands (19:40)
+
+- With 0070 and 0071 in, a starvation episode lasts minutes, not hours: the
+  breaker holds the crawlers and lets them go once the failures age out (about
+  25 minutes of cron). The app answered every request without errors outside
+  those minutes.
+- The cost is freshness: houses that come due while the breaker holds wait
+  for it. At 19:40, BidWrangler houses ranged from 100% (Bennett) to 0% (North
+  Central, Hueckman, held since 19:26) of open lots seen within the hour.
+- Micro carries the app and the light crawlers, but not about ten BidWrangler
+  runs an hour of ~2,000 lots each. Either of these ends the episodes: Small
+  (recommended), or Hansen Auction Group seen every ~3 hours instead of
+  hourly. The next engineering lever, if neither, is sending unchanged lots to
+  `ingest_batch` as ~250-byte price-only rows instead of ~5.7 KB each (a
+  crawler change and redeploy), which cuts each run's parsing by about 90%.
 
 ## Why
 
