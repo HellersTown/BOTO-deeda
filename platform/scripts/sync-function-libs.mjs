@@ -16,7 +16,17 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = join(root, 'packages/ingest/src');
 const fns = join(root, 'supabase/functions');
 
-const WORKER_CORE = ['http.ts', 'types.ts', 'money.ts', 'robots.ts', 'block.ts', 'gate.ts', 'known.ts', 'edge/worker.ts'];
+const WORKER_CORE = [
+  'http.ts',
+  'types.ts',
+  'money.ts',
+  'robots.ts',
+  'block.ts',
+  'gate.ts',
+  'known.ts',
+  'claimBudget.ts',
+  'edge/worker.ts',
+];
 
 export const FUNCTION_LIBS = {
   'probe-sources': ['http.ts', 'robots.ts', 'probe.ts', 'block.ts', 'jsonld.ts', 'money.ts', 'types.ts', 'politeness.ts'],

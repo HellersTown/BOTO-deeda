@@ -28,7 +28,9 @@
 // robots.txt checked per URL, requests to a host spaced by the source's rate
 // limit or the site's Crawl-delay, and a stop at the first bot-manager
 // challenge. Sources are claimed one at a time while the invocation's time
-// budget lasts, so a slow source cannot push the next one past the limit.
+// budget lasts, so a slow source cannot push the next one past the limit, and
+// only while what it has crawled is small (../claimBudget.ts), so a large house
+// never runs second and takes the invocation past its 2 s of CPU.
 //
 // BACKGROUND RUNS. Supabase must answer an Edge Function request within 150 s,
 // but on the Pro plan the worker itself may live 400 s. A scheduled invocation
@@ -42,6 +44,7 @@ import { politeFetch, CRAWLER_UA } from '../http.ts';
 import { gateFetcher } from '../gate.ts';
 import type { RawFetch } from '../gate.ts';
 import { parseKnownState } from '../known.ts';
+import { mayClaimAnother } from '../claimBudget.ts';
 import type { Adapter, AdapterContext, KnownState, NormalizedLot, SourceConfig } from '../types.ts';
 
 const CHUNK = 200;
@@ -209,7 +212,15 @@ export function serveWorker(workerName: string, adapters: Record<string, Adapter
         p_complete_snapshot: !!result.completeSnapshot && gate.refusals.length === 0,
       });
       if (finErr) throw new Error(`crawl_run_finish: ${finErr.message}`);
-      return { slug: source.slug, run_id: runId, ...totals, requests: gate.requests, finish: fin, warnings };
+      return {
+        slug: source.slug,
+        run_id: runId,
+        ...totals,
+        known_lots: ctx.known?.lots.length ?? 0,
+        requests: gate.requests,
+        finish: fin,
+        warnings,
+      };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       await db.rpc('crawl_run_finish', {
@@ -229,7 +240,7 @@ export function serveWorker(workerName: string, adapters: Record<string, Adapter
   /** Claim and crawl due sources, one at a time, while the budget lasts. */
   async function crawlDue(started: number, budget: Budget) {
     const results: Row[] = [];
-    while (Date.now() - started < budget.claimUntilMs) {
+    while (Date.now() - started < budget.claimUntilMs && mayClaimAnother(results)) {
       const { data: claimed, error } = await db.rpc('claim_due_sources', {
         p_platforms: Object.keys(adapters),
         p_limit: 1,
@@ -266,7 +277,14 @@ export function serveWorker(workerName: string, adapters: Record<string, Adapter
           log('info', 'background crawl finished', {
             claimed: results.length,
             ms: Date.now() - started,
-            results: results.map((r) => ({ slug: r.slug, run_id: r.run_id, lots: r.lots, requests: r.requests, error: r.error })),
+            results: results.map((r) => ({
+              slug: r.slug,
+              run_id: r.run_id,
+              lots: r.lots,
+              known_lots: r.known_lots,
+              requests: r.requests,
+              error: r.error,
+            })),
           }),
         (e) => log('error', 'background crawl crashed', e instanceof Error ? e.message : String(e)),
       ),
