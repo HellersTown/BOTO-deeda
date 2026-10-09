@@ -1,0 +1,13 @@
+{
+  "name": "@platform/query",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Natural-language search parsing: turns what a buyer types into hunt columns and search_lots parameters. Zero runtime dependencies by design.",
+  "scripts": {
+    "test": "node --test 'test/*.test.ts'"
+  },
+  "engines": {
+    "node": ">=22.6"
+  }
+}

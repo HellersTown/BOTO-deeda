@@ -1,0 +1,11 @@
+# Skeuos web app. Set the Netlify site's base directory to platform/web so this
+# file (not the AgentHQ netlify.toml at the repository root) is used.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# public/_redirects rewrites every path to /index.html (static SPA);
+# public/_headers keeps sw.js and the manifest uncached and assets immutable.
