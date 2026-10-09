@@ -14,6 +14,10 @@ one-line change plus a `git mv`.
 
 ---
 
+> **Continuing this work in a new Claude Code session?** Start with
+> [`docs/12-session-handoff.md`](docs/12-session-handoff.md): live state, rules,
+> deploy and migration patterns, and what is waiting on the owner.
+
 ## Read these in order
 
 | Doc | What it answers |

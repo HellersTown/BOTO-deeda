@@ -34,8 +34,8 @@ what to watch.
 | 18:37 | Clean since 18:05: no timeouts, 0 of 60 cron runs failed, and all 7 BidWrangler runs `ok` (Hansen Auction Group twice, 1,810 and 2,291 lots in 2.4 minutes each). The hunt matcher resumes; probe-sources follows. |
 | 18:59 | Clean since 18:35 (51 cron runs, none failed; the hunt matcher 1.5 s a run). probe-sources resumes: every job is back on. |
 | 19:24–19:28 | A short wave: three BidWrangler runs in consecutive 5-minute ticks (Bennett 2,095 lots at 19:12, Hansen Auction Group 2,220 at 19:17, Hansen & Young at 19:22), a checkpoint and the hunt matcher. For about two minutes even a one-line `pg_settings` query took 10 s; 3 statements and 6 cron starts timed out. 0071's breaker held every crawler, and the instance was clean again from 19:30. |
-
 | 19:50–20:09, 20:40– | The waves recur. Each begins when the breaker lets go and the BidWrangler houses that came due while it held all run: 19 minutes of timeouts from 19:50 (11 statements, 26 cron starts), clean from 20:10 to 20:40, then again from 20:40. `ingest_batch` and `crawl_run_finish` calls reached 170 s. At 20:45 the hunt matcher and probe-sources (no breaker) are paused per step 1. |
+| 20:48 | The last failure. From 21:00 to 01:57 on 10-09, 0 of 555 cron runs fail and every crawl run finishes `ok`, except two Hansen Auction Group runs that end `failed` with no error after ~28 minutes (23:58 and 01:13; not yet investigated). At 01:57 every BidWrangler house but Hansen Auction Group has 100% of its open lots seen within the hour; Hansen Auction Group has 89% (5,716 of 6,406) with a run in progress. Night traffic is lighter, so the pause of the hunt matcher and probe-sources is not proven to be what ended the waves. |
 
 ### Where it stands (19:40)
 
@@ -55,6 +55,10 @@ what to watch.
   hourly. The next engineering lever, if neither, is sending unchanged lots to
   `ingest_batch` as ~250-byte price-only rows instead of ~5.7 KB each (a
   crawler change and redeploy), which cuts each run's parsing by about 90%.
+- **Update 2026-10-09 01:57:** clean since 20:48, with the hunt matcher and
+  probe-sources still paused (saved hunts are not matched against new lots
+  meanwhile). Resume the hunt matcher first, in daytime, and watch the
+  breaker; `docs/12` §9 has the order.
 
 ## Why
 
